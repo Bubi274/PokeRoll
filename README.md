@@ -28,6 +28,7 @@ npm run dist:linux     # build cho Linux (AppImage) → dist/
 ```
 node scripts/build-data.js     # data.js — thông tin Pokémon từ PokeAPI
 node scripts/build-spawns.js   # spawns.js — nơi xuất hiện từ Cobbleverse Wiki
+node scripts/build-images.js   # images/ — ảnh Pokémon có sẵn trong app (không cần mạng)
 ```
 
 ## Nguồn dữ liệu

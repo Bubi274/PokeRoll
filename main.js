@@ -1,7 +1,7 @@
 // Điểm khởi động của app desktop (Electron): mở index.html trong một cửa sổ riêng.
 // Chạy thử:  npm start      Đóng gói file .exe cho Windows:  npm run dist
 
-const { app, BrowserWindow, Menu, shell } = require("electron");
+const { app, BrowserWindow, Menu, shell, session } = require("electron");
 const path = require("path");
 
 // Chỉ cho mở một cửa sổ PokéRoll; mở lần nữa thì đưa cửa sổ cũ lên trước.
@@ -54,5 +54,22 @@ app.on("second-instance", () => {
 });
 
 Menu.setApplicationMenu(null); // ẩn thanh menu File/Edit/View
-app.whenReady().then(createWindow);
+// Ảnh Pokémon tải từ CDN (khi thiếu ảnh có sẵn) được giữ trong cache 1 năm → lần sau không cần tải lại.
+function cacheCdnImages() {
+  session.defaultSession.webRequest.onHeadersReceived(
+    { urls: ["https://cdn.jsdelivr.net/gh/PokeAPI/*"] },
+    ({ responseHeaders }, callback) => {
+      for (const key of Object.keys(responseHeaders)) {
+        if (key.toLowerCase() === "cache-control") delete responseHeaders[key];
+      }
+      responseHeaders["Cache-Control"] = ["public, max-age=31536000, immutable"];
+      callback({ responseHeaders });
+    }
+  );
+}
+
+app.whenReady().then(() => {
+  cacheCdnImages();
+  createWindow();
+});
 app.on("window-all-closed", () => app.quit());

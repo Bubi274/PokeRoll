@@ -41,9 +41,13 @@ const PSEUDO_LEGENDARY_IDS = new Set([
 
 const SHINY_CHANCE = 1 / 100;
 
-const ARTWORK_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork";
+// Ảnh có sẵn trong app (tạo bằng scripts/build-images.js) — dùng trước, không cần mạng.
+const LOCAL_ARTWORK = "images/artwork";
+const LOCAL_SPRITE = "images/sprite";
+// Thiếu ảnh local thì tải qua CDN jsDelivr (nhanh và cache lâu hơn raw.githubusercontent).
+const ARTWORK_URL = "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork";
 // Ảnh nhỏ (96×96, vài KB) dùng cho danh sách nội dung hòm — nhẹ hơn ảnh artwork rất nhiều.
-const SPRITE_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
+const SPRITE_URL = "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon";
 
 // Ảnh dự phòng khi không tải được ảnh Pokémon (hình Poké Ball xám).
 const FALLBACK_IMG = "data:image/svg+xml," + encodeURIComponent(
@@ -222,11 +226,15 @@ function filterCollection(pokemon, collection, filters) {
 }
 
 function artworkUrl(id, shiny) {
+  return shiny ? `${LOCAL_ARTWORK}/shiny/${id}.webp` : `${LOCAL_ARTWORK}/${id}.webp`;
+}
+
+function artworkCdnUrl(id, shiny) {
   return shiny ? `${ARTWORK_URL}/shiny/${id}.png` : `${ARTWORK_URL}/${id}.png`;
 }
 
 function spriteUrl(id, shiny = false) {
-  return shiny ? `${SPRITE_URL}/shiny/${id}.png` : `${SPRITE_URL}/${id}.png`;
+  return shiny ? `${LOCAL_SPRITE}/shiny/${id}.png` : `${LOCAL_SPRITE}/${id}.png`;
 }
 
 function rarityInfo(key) {
@@ -424,12 +432,15 @@ function onSelectionChanged() {
 
 // ----- Ảnh -----
 
-// Gắn ảnh Pokémon cho thẻ <img>: lỗi ảnh shiny → thử ảnh thường → ảnh dự phòng.
+// Gắn ảnh Pokémon cho thẻ <img>: ảnh local → ảnh CDN → (shiny) ảnh thường trên CDN → ảnh dự phòng.
 function setPokemonImage(img, id, shiny) {
   img.onerror = () => {
-    if (shiny && img.dataset.step !== "normal") {
+    if (!img.dataset.step) {
+      img.dataset.step = "cdn";
+      img.src = artworkCdnUrl(id, shiny);
+    } else if (shiny && img.dataset.step !== "normal") {
       img.dataset.step = "normal";
-      img.src = artworkUrl(id, false);
+      img.src = artworkCdnUrl(id, false);
     } else {
       img.onerror = null;
       img.src = FALLBACK_IMG;
@@ -939,7 +950,9 @@ async function spin({ quick = false } = {}) {
   } else {
     updateSpinButton("Loading…");
     audio(); // mở âm thanh ngay trong lúc bấm (trình duyệt chỉ cho phát tiếng sau thao tác của người dùng)
-    const urls = [...new Set(items.map((it) => artworkUrl(it.pokemon.id, it.shiny)))];
+    // Chỉ chờ các thẻ thấy được lúc bắt đầu và lúc dừng; thẻ ở giữa tải trong lúc dải đang chạy.
+    const visible = items.filter((_, i) => i < IDLE_REEL_SIZE || Math.abs(i - WIN_INDEX) <= 6);
+    const urls = [...new Set(visible.map((it) => artworkUrl(it.pokemon.id, it.shiny)))];
     await preloadImages(urls, PRELOAD_TIMEOUT_MS);
 
     renderReel(items);
@@ -1046,11 +1059,12 @@ function init() {
     const tile = e.target.closest("[data-pokemon]");
     if (tile) openPokemonDetail(state.byId.get(Number(tile.dataset.pokemon)), tile.dataset.shiny === "1");
   });
-  // Ảnh nhỏ bị lỗi → ảnh dự phòng
+  // Ảnh nhỏ bị lỗi: ảnh local → ảnh CDN → ảnh dự phòng
   document.addEventListener("error", (e) => {
-    if (e.target.classList && e.target.classList.contains("mini-img") && e.target.src !== FALLBACK_IMG) {
-      e.target.src = FALLBACK_IMG;
-    }
+    const img = e.target;
+    if (!img.classList || !img.classList.contains("mini-img") || img.src === FALLBACK_IMG) return;
+    const local = img.src.match(/images\/sprite\/((?:shiny\/)?\d+\.png)$/);
+    img.src = local ? `${SPRITE_URL}/${local[1]}` : FALLBACK_IMG;
   }, true);
 }
 
