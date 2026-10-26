@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PokéRoll — Pokémon Case Opening</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="logo">Poké<span>Roll</span></h1>
+    <p class="tagline">CS2-style case opening — Pokémon Gen 1–9</p>
+    <p class="credit">Created by <span>Bubi</span></p>
+  </header>
+
+  <!-- Chuyển trang -->
+  <nav class="tabs" role="tablist" aria-label="Pages">
+    <button type="button" class="tab is-active" role="tab" aria-selected="true" data-view="case">Case</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-view="collection">
+      Collection <span class="tab-count" id="tab-collection-count">0/0</span>
+    </button>
+  </nav>
+
+  <!-- ===== Trang mở hòm ===== -->
+  <main class="container view" id="view-case">
+    <!-- Dải thẻ quay -->
+    <section class="reel" id="reel" aria-label="Case reel">
+      <div class="reel-strip" id="reel-strip"></div>
+      <div class="reel-marker" aria-hidden="true"></div>
+      <p class="reel-empty">Select at least one generation</p>
+    </section>
+
+    <!-- Nút quay -->
+    <div class="spin-area">
+      <button type="button" class="btn btn-spin" id="btn-spin">Open case</button>
+      <div class="spin-actions">
+        <button type="button" class="btn btn-ghost" id="btn-quick" title="Skip the animation">Quick open</button>
+        <button type="button" class="btn btn-ghost" id="btn-contents">View case contents</button>
+        <button type="button" class="btn btn-ghost btn-icon" id="btn-sound">Sound</button>
+      </div>
+      <p class="hint" id="spin-hint" aria-live="polite"></p>
+    </div>
+
+    <!-- Những lần quay gần đây -->
+    <section class="panel" id="recent-panel" hidden aria-labelledby="recent-title">
+      <div class="panel-head">
+        <h2 id="recent-title">Recent drops</h2>
+        <button type="button" class="btn btn-ghost" id="btn-see-collection">View collection</button>
+      </div>
+      <div class="recent-row" id="recent-row"></div>
+    </section>
+
+    <!-- Chọn thế hệ -->
+    <section class="panel" aria-labelledby="gen-title">
+      <div class="panel-head">
+        <h2 id="gen-title">Select generations</h2>
+        <div class="btn-group">
+          <button type="button" class="btn btn-ghost" id="btn-all">All</button>
+          <button type="button" class="btn btn-ghost" id="btn-none">None</button>
+        </div>
+      </div>
+      <div class="gen-grid" id="gen-grid"></div>
+    </section>
+
+    <!-- Thống kê hòm hiện tại -->
+    <section class="panel" aria-labelledby="pool-title">
+      <div class="panel-head">
+        <h2 id="pool-title">Current case</h2>
+        <p class="pool-total"><strong id="pool-count">0</strong> Pokémon</p>
+      </div>
+      <ul class="rarity-list" id="rarity-list"></ul>
+    </section>
+  </main>
+
+  <!-- ===== Trang bộ sưu tập ===== -->
+  <main class="container view" id="view-collection" hidden>
+    <section class="panel" aria-labelledby="coll-title">
+      <div class="panel-head">
+        <h2 id="coll-title">Collection</h2>
+        <button type="button" class="btn btn-danger" id="btn-clear">Clear data</button>
+      </div>
+      <p class="save-warning" id="save-warning" hidden>Couldn't save to this browser's storage — your progress will be lost when you close the page.</p>
+      <div class="stats" id="coll-summary"></div>
+      <div class="gen-progress" id="gen-progress"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="dex-title">
+      <div class="panel-head">
+        <h2 id="dex-title">Pokémon <span class="modal-sub" id="coll-count"></span></h2>
+        <div class="filters">
+          <select id="f-gen" aria-label="Generation">
+            <option value="all">All gens</option>
+            <option value="1">Gen 1</option><option value="2">Gen 2</option><option value="3">Gen 3</option>
+            <option value="4">Gen 4</option><option value="5">Gen 5</option><option value="6">Gen 6</option>
+            <option value="7">Gen 7</option><option value="8">Gen 8</option><option value="9">Gen 9</option>
+          </select>
+          <select id="f-rarity" aria-label="Rarity">
+            <option value="all">All rarities</option>
+            <option value="gold">Gold</option><option value="red">Red</option><option value="pink">Pink</option>
+            <option value="purple">Purple</option><option value="blue">Blue</option>
+          </select>
+          <select id="f-status" aria-label="Status">
+            <option value="all">Owned + missing</option>
+            <option value="owned">Owned</option>
+            <option value="missing">Missing</option>
+            <option value="dupes">Duplicates</option>
+            <option value="shiny">Shiny</option>
+          </select>
+        </div>
+      </div>
+      <div class="contents-grid" id="coll-grid"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="history-title">
+      <div class="panel-head">
+        <h2 id="history-title">Roll history</h2>
+        <span class="modal-sub" id="history-count"></span>
+      </div>
+      <ol class="history-list" id="history-list"></ol>
+    </section>
+  </main>
+
+  <!-- Popup: kết quả mở hòm -->
+  <dialog class="modal modal-narrow result-modal" id="result-modal" aria-labelledby="result-name">
+    <div class="modal-inner">
+      <p class="result-heading">You unboxed</p>
+      <div class="modal-body" id="result-body"></div>
+      <div class="result-actions">
+        <button type="button" class="btn btn-ghost" id="result-close">Close</button>
+        <button type="button" class="btn btn-spin btn-again" id="result-again" autofocus>Open again</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Popup: danh sách Pokémon có thể quay ra -->
+  <dialog class="modal" id="contents-modal" aria-labelledby="contents-title">
+    <div class="modal-inner">
+      <div class="modal-head">
+        <h2 id="contents-title">Case contents <span class="modal-sub" id="contents-summary"></span></h2>
+        <button type="button" class="modal-close" id="contents-close" aria-label="Close">&times;</button>
+      </div>
+      <input type="search" class="modal-search" id="contents-search" placeholder="Search by name or Pokédex number…" autocomplete="off">
+      <div class="modal-body">
+        <div id="contents-body"></div>
+        <p class="hint" id="contents-empty" hidden>No Pokémon match your search.</p>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Popup: chi tiết Pokémon & nơi xuất hiện trong Cobbleverse -->
+  <dialog class="modal modal-narrow" id="detail-modal" aria-label="Pokémon details">
+    <div class="modal-inner">
+      <div class="modal-head">
+        <h2>Pokémon details</h2>
+        <button type="button" class="modal-close" id="detail-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="detail-body"></div>
+        <p class="modal-credit">Spawn data: <a href="https://thenolan1234.github.io/cobbleverse-wiki/" target="_blank" rel="noopener">Cobbleverse Wiki</a></p>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="data.js"></script>
+  <script src="spawns.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

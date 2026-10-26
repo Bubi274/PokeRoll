@@ -1,0 +1,55 @@
+{
+  "name": "pokeroll",
+  "productName": "PokeRoll",
+  "version": "1.0.0",
+  "description": "CS2-style Pokémon case opening",
+  "author": "Bubi",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "dist:linux": "electron-builder --linux --x64"
+  },
+  "build": {
+    "appId": "com.bubi.pokeroll",
+    "productName": "PokeRoll",
+    "files": [
+      "main.js",
+      "index.html",
+      "style.css",
+      "app.js",
+      "data.js",
+      "spawns.js",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "zip"
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "PokeRoll-${version}-win.${ext}"
+    },
+    "portable": {
+      "artifactName": "PokeRoll-Portable-${version}.exe"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "Game",
+      "synopsis": "CS2-style Pokémon case opening",
+      "maintainer": "Bubi",
+      "artifactName": "PokeRoll-${version}-linux-${arch}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.9.3",
+    "electron-builder": "^26.18.0"
+  }
+}
