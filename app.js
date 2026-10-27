@@ -408,15 +408,16 @@ function allSourceKeys() {
 }
 
 // Người đã lưu lựa chọn thì giữ nguyên (nhóm Special mới thêm sẽ chưa được chọn).
-function loadSelectedGens() {
-  const saved = loadJson(STORAGE_KEY_GENS, null, Array.isArray);
+// key: khóa localStorage (mặc định là lựa chọn của trang Case).
+function loadSelectedGens(key = STORAGE_KEY_GENS) {
+  const saved = loadJson(key, null, Array.isArray);
   const valid = allSourceKeys();
   if (saved) return new Set(saved.filter((g) => valid.includes(g)));
   return new Set(valid); // mặc định: chọn tất cả, kể cả Special
 }
 
-function saveSelectedGens(gens) {
-  saveJson(STORAGE_KEY_GENS, [...gens]);
+function saveSelectedGens(gens, key = STORAGE_KEY_GENS) {
+  saveJson(key, [...gens]);
 }
 
 const isPlainObject = (v) => typeof v === "object" && !Array.isArray(v);
@@ -462,15 +463,19 @@ const state = {
   history: [],          // lịch sử quay, mới nhất trước
   saveFailed: false,    // true nếu không lưu được vào localStorage
   view: "case",         // trang đang xem: "case" hoặc "collection"
-  reelOffset: 0,        // độ lệch điểm dừng của lần quay gần nhất
+  resultAgain: null,    // nút "Open again" trong popup kết quả sẽ chạy hàm này
 };
+
+// Độ lệch điểm dừng của lần quay gần nhất, nhớ riêng cho từng dải thẻ.
+const reelOffsets = new WeakMap();
 
 const pad4 = (id) => String(id).padStart(4, "0");
 
 // ----- Chọn gen & thống kê -----
 
-function buildGenGrid() {
-  const grid = $("gen-grid");
+// Vẽ các ô chọn gen vào grid. selected là Set gen đang chọn (sửa trực tiếp trên Set này),
+// onChange chạy mỗi khi bấm chọn/bỏ một ô. Mặc định: bảng chọn gen của trang Case.
+function buildGenGrid({ grid = $("gen-grid"), selected = state.selectedGens, onChange = onSelectionChanged } = {}) {
   grid.innerHTML = "";
   const count = (gen) => state.pokemon.filter((p) => p.gen === gen).length;
   const options = [
@@ -490,24 +495,29 @@ function buildGenGrid() {
         <span class="gen-count">${note}</span>
       </span>`;
     const input = label.querySelector("input");
-    input.checked = state.selectedGens.has(gen);
+    input.checked = selected.has(gen);
     input.addEventListener("change", () => {
-      if (input.checked) state.selectedGens.add(gen);
-      else state.selectedGens.delete(gen);
-      onSelectionChanged();
+      if (input.checked) selected.add(gen);
+      else selected.delete(gen);
+      onChange();
     });
     grid.appendChild(label);
   }
 }
 
-function syncCheckboxes() {
-  for (const input of $("gen-grid").querySelectorAll("input")) {
-    input.checked = state.selectedGens.has(parseId(input.value));
+function syncCheckboxes(grid = $("gen-grid"), selected = state.selectedGens) {
+  for (const input of grid.querySelectorAll("input")) {
+    input.checked = selected.has(parseId(input.value));
   }
 }
 
+// Tổng số Pokémon trong một hòm đã chia theo độ hiếm.
+function groupsSize(groups) {
+  return RARITIES.reduce((sum, r) => sum + groups[r.key].length, 0);
+}
+
 function poolSize() {
-  return RARITIES.reduce((sum, r) => sum + state.groups[r.key].length, 0);
+  return groupsSize(state.groups);
 }
 
 function renderPoolStats() {
@@ -609,54 +619,58 @@ function createCard(item) {
   return card;
 }
 
+// Mọi hàm dải thẻ nhận reel = khung .reel (mặc định là dải thẻ của trang Case);
+// thanh thẻ bên trong là phần tử .reel-strip của khung đó.
+const stripOf = (reel) => reel.querySelector(".reel-strip");
+
 // Vẽ lại dải thẻ và đưa về vị trí đầu (không có hiệu ứng).
-function renderReel(items) {
-  const strip = $("reel-strip");
+function renderReel(items, reel = $("reel")) {
+  const strip = stripOf(reel);
   strip.style.transition = "none";
   strip.style.transform = "translateX(0)";
   strip.replaceChildren(...items.map(createCard));
-  $("reel").classList.toggle("is-empty", items.length === 0);
+  reel.classList.toggle("is-empty", items.length === 0);
 }
 
-// Dải thẻ lúc chưa quay: vài thẻ ngẫu nhiên trong hòm hiện tại.
-function renderIdleReel() {
+// Dải thẻ lúc chưa quay: vài thẻ ngẫu nhiên trong hòm (groups).
+function renderIdleReel(groups = state.groups, reel = $("reel")) {
   const idle = [];
-  for (let i = 0; i < IDLE_REEL_SIZE && poolSize() > 0; i++) idle.push(rollOnce(state.groups));
-  renderReel(idle);
+  for (let i = 0; i < IDLE_REEL_SIZE && groupsSize(groups) > 0; i++) idle.push(rollOnce(groups));
+  renderReel(idle, reel);
 }
 
 // Vị trí translateX để vạch chỉ nằm trên thẻ thắng, lệch ngẫu nhiên trong phạm vi thẻ
 // (tối đa 40% bề rộng thẻ mỗi bên) để không lúc nào cũng dừng đúng tâm.
 // offsetFrac: độ lệch từ -1 đến 1 (nhớ lại để căn lại đúng chỗ khi đổi cỡ cửa sổ).
-function reelTarget(winIndex, offsetFrac = Math.random() * 2 - 1) {
-  state.reelOffset = offsetFrac;
-  const card = $("reel-strip").children[winIndex];
+function reelTarget(winIndex, offsetFrac = Math.random() * 2 - 1, reel = $("reel")) {
+  reelOffsets.set(reel, offsetFrac);
+  const card = stripOf(reel).children[winIndex];
   const offset = offsetFrac * card.offsetWidth * 0.4;
-  return $("reel").clientWidth / 2 - (card.offsetLeft + card.offsetWidth / 2 + offset);
+  return reel.clientWidth / 2 - (card.offsetLeft + card.offsetWidth / 2 + offset);
 }
 
 // Đặt ngay dải thẻ ở thẻ thắng, không có hiệu ứng (dùng cho "Quick open" và khi đổi cỡ cửa sổ).
-function jumpReel(winIndex, offsetFrac) {
-  const strip = $("reel-strip");
+function jumpReel(winIndex, offsetFrac, reel = $("reel")) {
+  const strip = stripOf(reel);
   strip.style.transition = "none";
-  strip.style.transform = `translateX(${reelTarget(winIndex, offsetFrac)}px)`;
+  strip.style.transform = `translateX(${reelTarget(winIndex, offsetFrac, reel)}px)`;
 }
 
 // Đổi cỡ cửa sổ / xoay điện thoại: căn lại để vạch chỉ vẫn nằm trên thẻ thắng.
-function realignReel() {
+function realignReel(reel = $("reel")) {
   if (state.spinning) return;
-  const strip = $("reel-strip");
+  const strip = stripOf(reel);
   const winner = strip.querySelector(".is-winner");
-  if (winner) jumpReel([...strip.children].indexOf(winner), state.reelOffset);
+  if (winner) jumpReel([...strip.children].indexOf(winner), reelOffsets.get(reel), reel);
 }
 
 // Theo dõi dải thẻ trong lúc chạy: mỗi khi một thẻ mới đi qua vạch chỉ thì phát tiếng "tick".
 // Trả về hàm để dừng theo dõi.
-function trackTicks() {
-  const strip = $("reel-strip");
+function trackTicks(reel = $("reel")) {
+  const strip = stripOf(reel);
   const first = strip.children[0];
   const step = strip.children[1].offsetLeft - first.offsetLeft;
-  const center = $("reel").clientWidth / 2;
+  const center = reel.clientWidth / 2;
   let last = null;
   let running = true;
   const loop = () => {
@@ -673,16 +687,15 @@ function trackTicks() {
 }
 
 // Chạy dải thẻ tới thẻ thắng. Trả về Promise xong khi dải dừng.
-function animateReel(winIndex) {
-  const reel = $("reel");
-  const strip = $("reel-strip");
-  const target = reelTarget(winIndex);
+function animateReel(winIndex, reel = $("reel")) {
+  const strip = stripOf(reel);
+  const target = reelTarget(winIndex, undefined, reel);
 
   void strip.offsetWidth; // ép trình duyệt áp vị trí đầu trước khi bắt đầu chạy
   strip.style.transition = `transform ${SPIN_MS}ms cubic-bezier(0.08, 0.6, 0, 1)`;
   strip.style.transform = `translateX(${target}px)`;
   reel.classList.add("is-spinning");
-  const stopTicks = trackTicks();
+  const stopTicks = trackTicks(reel);
 
   return new Promise((resolve) => {
     let finished = false;
@@ -859,7 +872,9 @@ function oddsBlock(result, groups) {
 }
 
 // groups: Pokémon trong hòm lúc quay (để "1 in N" đúng kể cả khi đổi gen trong lúc dải đang chạy).
-function showResultModal(result, { isNew, count, groups = state.groups }) {
+// again: hàm chạy khi bấm "Open again" (mặc định mở hòm ở trang Case); canAgain: nút đó có bấm được không.
+// extra: HTML thêm vào ngay dưới khung "1 in N" (vd. thông tin riêng của chế độ quay).
+function showResultModal(result, { isNew, count, groups = state.groups, again = spin, canAgain = poolSize() > 0, extra = "" }) {
   const { pokemon: p, rarity, shiny, downgraded } = result;
   const epic = rarity === "red" || rarity === "gold";
   const modal = $("result-modal");
@@ -888,6 +903,7 @@ function showResultModal(result, { isNew, count, groups = state.groups }) {
       <div class="reveal-info">
         ${tierPanel(rarity, shiny)}
         ${oddsBlock(result, groups)}
+        ${extra}
         ${downgraded ? `<div class="result-note">Rolled a higher tier with no Pokémon in this case — dropped to ${rarityInfo(rarity).name}.</div>` : ""}
         <dl class="facts">
           ${originFacts(p)}
@@ -900,7 +916,8 @@ function showResultModal(result, { isNew, count, groups = state.groups }) {
     </div>`;
   setPokemonImage($("result-body").querySelector("img"), p, shiny);
 
-  $("result-again").disabled = poolSize() === 0;
+  $("result-again").disabled = !canAgain;
+  state.resultAgain = again;
   $("result-view").dataset.target = p.id; // nút "View in collection" biết cần tìm Pokémon nào
   modal.showModal();
   playReveal(rarity, shiny);
@@ -1317,7 +1334,7 @@ function init() {
   renderIdleReel();
 
   $("btn-all").addEventListener("click", () => {
-    state.selectedGens = new Set(allSourceKeys());
+    for (const key of allSourceKeys()) state.selectedGens.add(key);
     syncCheckboxes();
     onSelectionChanged();
   });
@@ -1335,7 +1352,7 @@ function init() {
   let resizeTimer;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(realignReel, 100);
+    resizeTimer = setTimeout(() => realignReel(), 100);
   });
 
   // Danh sách nội dung hòm
@@ -1355,7 +1372,7 @@ function init() {
   resultModal.addEventListener("click", (e) => { if (e.target === resultModal) resultModal.close(); });
   $("result-again").addEventListener("click", () => {
     resultModal.close();
-    spin();
+    state.resultAgain();
   });
 
   // Phím Space: mở hòm ở trang Case, hoặc "Open again" khi đang xem popup kết quả.
