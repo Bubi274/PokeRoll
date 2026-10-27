@@ -36,8 +36,6 @@ node scripts/build-images.js   # images/ — Pokémon images bundled with the ap
 - [PokeAPI](https://pokeapi.co) — Pokémon info and images
 - [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) — spawn locations in Cobbleverse
 
-Created by Bubi
-
 ## Disclaimer
 
 PokéRoll is a non-commercial fan project and is not affiliated with Nintendo, Game Freak or The Pokémon Company.
