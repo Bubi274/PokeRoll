@@ -1613,8 +1613,9 @@ function inkOn(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.5 ? "#12151c" : "#fff";
 }
 
-// Bánh xe SVG: một ô cho mỗi hệ, màu theo hệ, tên hệ chạy dọc bán kính.
-function wheelSvg(types) {
+// Bánh xe SVG: một ô cho mỗi mục (keys), tên chạy dọc bán kính.
+// color(key) / label(key): màu và chữ của ô — mặc định theo hệ (Type Roulette).
+function wheelSvg(types, { color = (t) => TYPE_COLORS[t] || "#777", label = typeName } = {}) {
   const n = types.length, a = 360 / n, R = 97, r0 = 32;
   const pt = (deg, rad) => {
     const t = (deg - 90) * Math.PI / 180;
@@ -1622,15 +1623,15 @@ function wheelSvg(types) {
   };
   const slices = types.map((t, i) => {
     const s = i * a, e = (i + 1) * a, mid = s + a / 2, large = a > 180 ? 1 : 0;
-    const color = TYPE_COLORS[t] || "#777";
+    const fill = color(t);
     const d = n === 1
       ? `M 0 ${-R} A ${R} ${R} 0 1 1 0 ${R} A ${R} ${R} 0 1 1 0 ${-R} Z M 0 ${-r0} A ${r0} ${r0} 0 1 0 0 ${r0} A ${r0} ${r0} 0 1 0 0 ${-r0} Z`
       : `M ${pt(s, r0)} L ${pt(s, R)} A ${R} ${R} 0 ${large} 1 ${pt(e, R)} L ${pt(e, r0)} A ${r0} ${r0} 0 ${large} 0 ${pt(s, r0)} Z`;
     // Chữ chạy dọc bán kính, mọi ô cùng chiều (từ tâm ra ngoài) vì bánh xe dừng ở góc bất kỳ
     return `
       <g class="wheel-slice" data-type="${t}" data-index="${i}">
-        <path d="${d}" fill="${color}" fill-rule="evenodd"/>
-        <text transform="rotate(${mid - 90}) translate(${(R + r0) / 2} 0)" fill="${inkOn(color)}">${typeName(t)}</text>
+        <path d="${d}" fill="${fill}" fill-rule="evenodd"/>
+        <text transform="rotate(${mid - 90}) translate(${(R + r0) / 2} 0)" fill="${inkOn(fill)}">${label(t)}</text>
       </g>`;
   }).join("");
   return `
@@ -1654,6 +1655,18 @@ const roulette = {
   lost: null,       // hệ vừa bị bỏ vì đổi gen làm hệ đó hết Pokémon (để báo người dùng)
 };
 
+// Các hàm bánh xe bên dưới nhận w = bánh xe nào: id các phần tử (khung, phần quay, tâm), trạng thái
+// (state.types = các ô, state.rotation = góc xoay) và cách tô màu / ghi tên ô.
+// Mặc định là bánh xe của Type Roulette.
+const TYPE_WHEEL = {
+  wheel: "tr-wheel",
+  disc: "tr-disc",
+  hub: "tr-hub",
+  state: roulette,
+  color: (t) => TYPE_COLORS[t] || "#777",
+  label: typeName,
+};
+
 // Đặt hệ đang chọn và lưu lại (tải lại trang vẫn giữ).
 function selectType(type) {
   roulette.selected = type;
@@ -1661,11 +1674,11 @@ function selectType(type) {
 }
 
 // Đặt ngay góc xoay của bánh xe, không có hiệu ứng.
-function setWheelRotation(deg) {
-  const disc = $("tr-disc");
+function setWheelRotation(deg, w = TYPE_WHEEL) {
+  const disc = $(w.disc);
   disc.style.transition = "none";
   disc.style.transform = `rotate(${deg}deg)`;
-  roulette.rotation = deg;
+  w.state.rotation = deg;
 }
 
 // Vẽ lại bánh xe theo các hệ hiện có; đang có hệ thì kim chỉ vào giữa ô của hệ đó.
@@ -1686,39 +1699,39 @@ function renderWheel() {
   }
 }
 
-// Làm sáng ô trúng, các ô khác mờ đi; tên hệ hiện ở giữa bánh xe.
-function markWheelWinner(type) {
-  const svg = $("tr-disc").querySelector("svg");
+// Làm sáng ô trúng, các ô khác mờ đi; tên ô hiện ở giữa bánh xe.
+function markWheelWinner(type, w = TYPE_WHEEL) {
+  const svg = $(w.disc).querySelector("svg");
   const slice = svg.querySelector(`.wheel-slice[data-type="${type}"]`);
   for (const g of svg.querySelectorAll(".wheel-slice")) g.classList.toggle("is-winner", g === slice);
   svg.appendChild(slice); // vẽ sau cùng để viền sáng không bị ô bên cạnh che
-  $("tr-wheel").classList.add("has-winner");
-  $("tr-hub").textContent = typeName(type);
-  $("tr-hub").style.setProperty("--t", TYPE_COLORS[type]);
+  $(w.wheel).classList.add("has-winner");
+  $(w.hub).textContent = w.label(type);
+  $(w.hub).style.setProperty("--t", w.color(type));
 }
 
 // Ô đang nằm dưới kim chỉ, đọc từ góc xoay thật trên màn hình (để kiểm tra và phát tiếng tick).
-function wheelSliceOnScreen() {
-  const t = getComputedStyle($("tr-disc")).transform;
+function wheelSliceOnScreen(w = TYPE_WHEEL) {
+  const t = getComputedStyle($(w.disc)).transform;
   const m = t && t !== "none" ? new DOMMatrixReadOnly(t) : new DOMMatrixReadOnly();
   const deg = Math.atan2(m.b, m.a) * 180 / Math.PI;
-  return wheelSliceAt(deg, roulette.types.length);
+  return wheelSliceAt(deg, w.state.types.length);
 }
 
 // Quay bánh xe tới góc target. Trả về Promise xong khi bánh xe dừng hẳn.
-function animateWheel(target) {
-  const disc = $("tr-disc");
+function animateWheel(target, w = TYPE_WHEEL) {
+  const disc = $(w.disc);
   void disc.offsetWidth; // áp vị trí đầu trước khi bắt đầu quay
   disc.style.transition = `transform ${WHEEL_SPIN_MS}ms cubic-bezier(0.15, 0.75, 0.12, 1)`;
   disc.style.transform = `rotate(${target}deg)`;
-  roulette.rotation = target;
-  $("tr-wheel").classList.add("is-spinning");
+  w.state.rotation = target;
+  $(w.wheel).classList.add("is-spinning");
 
   let running = true;
   let last = null;
   const loop = () => {
     if (!running) return;
-    const index = wheelSliceOnScreen();
+    const index = wheelSliceOnScreen(w);
     if (last !== null && index !== last) playTick();
     last = index;
     requestAnimationFrame(loop);
@@ -1731,7 +1744,7 @@ function animateWheel(target) {
       if (finished) return;
       finished = true;
       running = false;
-      $("tr-wheel").classList.remove("is-spinning");
+      $(w.wheel).classList.remove("is-spinning");
       disc.removeEventListener("transitionend", onEnd);
       resolve();
     };
@@ -1739,6 +1752,21 @@ function animateWheel(target) {
     disc.addEventListener("transitionend", onEnd);
     setTimeout(finish, WHEEL_SPIN_MS + 500); // phòng khi transitionend không chạy (vd. tab bị ẩn)
   });
+}
+
+// 5 hàng tỉ lệ gọn (hiếm nhất trên cùng): số Pokémon và tỉ lệ thật mỗi bậc của hòm groups.
+function compactOddsRows(groups) {
+  const chances = effectiveChances(groups);
+  return RARITIES.map((r) => {
+    const count = groups[r.key].length;
+    return `
+      <li class="rarity-row r-${r.key}${count === 0 ? " is-empty" : ""}" style="--p:${chances[r.key]}">
+        <span class="rarity-swatch"></span>
+        <span class="rarity-info"><span class="rarity-name">${r.name}</span></span>
+        <span class="rarity-count" title="Pokémon in this tier">${count}</span>
+        <span class="rarity-chance">${formatPct(chances[r.key])}</span>
+      </li>`;
+  }).reverse().join("");
 }
 
 // Panel tỉ lệ: có hệ thì hiện số Pokémon và tỉ lệ thật mỗi bậc của hệ đó, chưa có thì nhắc quay bánh xe.
@@ -1756,20 +1784,10 @@ function renderTypeOdds(type, note) {
     return;
   }
   const groups = groupByRarity(roulette.pools[type]);
-  const chances = effectiveChances(groups);
   $("tr-odds-title").innerHTML = `<span class="type-chip" style="--t:${TYPE_COLORS[type]}">${typeName(type)}</span> case`;
   $("tr-odds-count").innerHTML = `<strong>${groupsSize(groups)}</strong> <span>Pokémon</span>`;
   $("tr-odds-sub").textContent = `${typeName(type)} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
-  $("tr-odds-list").innerHTML = RARITIES.map((r) => {
-    const count = groups[r.key].length;
-    return `
-      <li class="rarity-row r-${r.key}${count === 0 ? " is-empty" : ""}" style="--p:${chances[r.key]}">
-        <span class="rarity-swatch"></span>
-        <span class="rarity-info"><span class="rarity-name">${r.name}</span></span>
-        <span class="rarity-count" title="Pokémon in this tier">${count}</span>
-        <span class="rarity-chance">${formatPct(chances[r.key])}</span>
-      </li>`;
-  }).reverse().join("");
+  $("tr-odds-list").innerHTML = compactOddsRows(groups);
 }
 
 // Dải thẻ lúc chưa mở hòm: Pokémon của hệ đang chọn, chưa có hệ thì Pokémon bất kỳ trong các gen đã chọn.
