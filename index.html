@@ -171,17 +171,13 @@
     <!-- Khu vực của chế độ đang chọn (mỗi chế độ tự vẽ vào khung riêng của nó) -->
     <div class="mode-stage" id="mode-stage"></div>
 
-    <!-- Nút quay dùng chung cho mọi chế độ -->
+    <!-- Nút hành động của chế độ đang chọn (app.js tạo từ danh sách actions của chế độ) -->
     <div class="spin-area">
-      <button type="button" class="btn btn-spin" id="custom-spin">Spin</button>
+      <div class="action-row" id="custom-actions"></div>
       <div class="spin-actions">
-        <button type="button" class="btn btn-ghost" id="custom-quick" title="Skip the animations">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>
-          Quick spin
-        </button>
         <button type="button" class="btn btn-ghost btn-icon btn-sound">Sound</button>
       </div>
-      <p class="kbd-hint">Press <kbd>Space</kbd> to spin</p>
+      <p class="kbd-hint" id="custom-kbd"></p>
       <p class="hint" id="custom-hint" aria-live="polite"></p>
     </div>
 

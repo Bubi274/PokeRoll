@@ -2214,12 +2214,38 @@ button.mini:focus-visible {
   border-radius: var(--radius-lg);
 }
 
-/* Nút quay trang Custom: biểu tượng bánh xe thay cho ổ khóa */
-#custom-spin::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='8'/%3E%3Cpath d='M12 13V5M12 13l6.9 4M12 13l-6.9 4M12 2v3'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='8'/%3E%3Cpath d='M12 13V5M12 13l6.9 4M12 13l-6.9 4M12 2v3'/%3E%3C/svg%3E");
+/* Nút hành động trang Custom: mỗi hành động = nút chính + nút ⚡ (quick).
+   Nút mà phím Space bấm thì xanh đặc, các nút khác viền xanh. */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
 }
-#custom-quick svg { color: var(--amber); }
+.action-group { display: flex; gap: 6px; flex: 0 1 360px; min-width: 0; }
+.spin-area .action-main {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  letter-spacing: 0.1em;
+}
+.spin-area .action-main::before { content: none; } /* bỏ ổ khóa của nút "Open case" trang Case */
+.action-main svg { flex-shrink: 0; }
+.action-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.action-quick { flex: 0 0 54px; padding: 0; }
+.action-quick svg { color: var(--amber); }
+.action-quick:disabled svg { color: var(--muted); }
+
+.btn-spin.is-secondary:not(:disabled) {
+  color: var(--accent);
+  background: rgba(82, 183, 42, 0.06);
+  border-color: rgba(82, 183, 42, 0.7);
+}
+.btn-spin.is-secondary:hover:not(:disabled) {
+  background: rgba(82, 183, 42, 0.14);
+  box-shadow: 0 0 16px rgba(82, 183, 42, 0.3);
+}
 
 /* Bảng chọn gen bị khóa trong lúc quay (trang Custom) */
 .gen-option:has(input:disabled) { cursor: not-allowed; }
@@ -2437,5 +2463,8 @@ button.mini:focus-visible {
   .mode-desc { font-size: 0.74rem; }
   .mode-placeholder { padding: 48px 16px; }
   .mode-rule-list li { font-size: 0.82rem; padding: 9px 12px 9px 26px; }
+  .action-row { gap: 8px; }
+  .action-group { flex-basis: 100%; }
+  .spin-area .action-main { letter-spacing: 0.06em; font-size: 0.9rem; }
   .mode-rule-list li::before { left: 11px; }
 }
