@@ -428,6 +428,8 @@ function updateSpinButton(label) {
 function onSelectionChanged() {
   saveSelectedGens(state.selectedGens);
   renderPoolStats();
+  // Đổi gen thì vẽ lại dải thẻ theo hòm mới (không đụng vào khi đang quay).
+  if (!state.spinning) renderIdleReel();
 }
 
 // ----- Ảnh -----
@@ -479,6 +481,13 @@ function renderReel(items) {
   strip.style.transform = "translateX(0)";
   strip.replaceChildren(...items.map(createCard));
   $("reel").classList.toggle("is-empty", items.length === 0);
+}
+
+// Dải thẻ lúc chưa quay: vài thẻ ngẫu nhiên trong hòm hiện tại.
+function renderIdleReel() {
+  const idle = [];
+  for (let i = 0; i < IDLE_REEL_SIZE && poolSize() > 0; i++) idle.push(rollOnce(state.groups));
+  renderReel(idle);
 }
 
 // Vị trí translateX để vạch chỉ nằm trên thẻ thắng, lệch ngẫu nhiên trong phạm vi thẻ
@@ -988,10 +997,7 @@ function init() {
   renderRecent();
   updateCollectionTab();
 
-  // Dải thẻ lúc chưa quay: vài thẻ ngẫu nhiên trong hòm hiện tại.
-  const idle = [];
-  for (let i = 0; i < IDLE_REEL_SIZE && poolSize() > 0; i++) idle.push(rollOnce(state.groups));
-  renderReel(idle);
+  renderIdleReel();
 
   $("btn-all").addEventListener("click", () => {
     state.selectedGens = new Set(GENS.map((g) => g.gen));
