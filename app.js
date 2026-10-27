@@ -400,15 +400,15 @@ function renderPoolStats() {
       ? `<span class="rarity-note">None in this case — rolls drop to the next lower tier</span>`
       : "";
     return `
-      <li class="rarity-row r-${r.key}${n === 0 ? " is-empty" : ""}">
+      <li class="rarity-row r-${r.key}${n === 0 ? " is-empty" : ""}" style="--p:${r.chance}">
         <span class="rarity-swatch"></span>
         <span class="rarity-info">
           <span class="rarity-name">${r.name}</span>
           <span class="rarity-rule">${r.rule}</span>
           ${note}
         </span>
-        <span class="rarity-count">${n}</span>
-        <span class="rarity-chance">${r.chance}%</span>
+        <span class="rarity-count" title="Pokémon in this tier">${n}</span>
+        <span class="rarity-chance">${r.chance.toFixed(2)}%</span>
       </li>`;
   }).join("");
 
