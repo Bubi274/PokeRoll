@@ -1,39 +1,39 @@
 # PokéRoll
 
-Mô phỏng mở hòm kiểu CS2 nhưng quay ra Pokémon Gen 1–9. HTML + CSS + JavaScript thuần, không cần backend.
+A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTML + CSS + JavaScript, no backend required.
 
-## Tính năng
+## Features
 
-- Chọn thế hệ (Gen 1–9), xem nội dung hòm và tỉ lệ thực tế của từng Pokémon
-- 5 độ hiếm theo tỉ lệ CS2: Blue 79.92% · Purple 15.98% · Pink 3.2% · Red 0.64% · Gold 0.26%, Shiny 1/100
-- Dải thẻ quay 6 giây, tiếng tick, âm báo kết quả, nút Quick open
-- Popup kết quả, bộ sưu tập (lọc theo gen/độ hiếm, đếm trùng, tiến độ từng gen), lịch sử quay
-- Nơi xuất hiện của từng Pokémon trong modpack Cobbleverse
+- Pick a generation (Gen 1–9), view the case contents and the actual drop rate of each Pokémon
+- 5 rarity tiers using CS2 odds: Blue 79.92% · Purple 15.98% · Pink 3.2% · Red 0.64% · Gold 0.26%, Shiny 1/100
+- 6-second spinning card strip with tick sounds, a result sound, and a Quick open button
+- Result popup, collection (filter by gen/rarity, duplicate counter, per-gen progress), and roll history
+- Spawn locations for each Pokémon in the Cobbleverse modpack
 
-## Chạy
+## Running
 
-**Trên trình duyệt:** double-click `index.html`.
+**In the browser:** double-click `index.html`.
 
-**App desktop (Electron)** — cần [Node.js](https://nodejs.org) bản LTS:
+**Desktop app (Electron)** — requires the LTS version of [Node.js](https://nodejs.org):
 
 ```
 npm install
-npm start              # chạy thử
-npm run dist           # build cho Windows → dist/
-npm run dist:linux     # build cho Linux (AppImage) → dist/
+npm start              # run in development
+npm run dist           # build for Windows → dist/
+npm run dist:linux     # build for Linux (AppImage) → dist/
 ```
 
-## Cập nhật dữ liệu
+## Updating data
 
 ```
-node scripts/build-data.js     # data.js — thông tin Pokémon từ PokeAPI
-node scripts/build-spawns.js   # spawns.js — nơi xuất hiện từ Cobbleverse Wiki
-node scripts/build-images.js   # images/ — ảnh Pokémon có sẵn trong app (không cần mạng)
+node scripts/build-data.js     # data.js — Pokémon info from PokeAPI
+node scripts/build-spawns.js   # spawns.js — spawn locations from the Cobbleverse Wiki
+node scripts/build-images.js   # images/ — Pokémon images bundled with the app (works offline)
 ```
 
-## Nguồn dữ liệu
+## Data sources
 
-- [PokeAPI](https://pokeapi.co) — thông tin và ảnh Pokémon
-- [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) — nơi xuất hiện trong Cobbleverse
+- [PokeAPI](https://pokeapi.co) — Pokémon info and images
+- [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) — spawn locations in Cobbleverse
 
 Created by Bubi
