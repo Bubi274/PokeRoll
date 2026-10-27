@@ -23,6 +23,7 @@
       "data.js",
       "spawns.js",
       "images/**",
+      "fonts/**",
       "build/icon.png"
     ],
     "directories": {

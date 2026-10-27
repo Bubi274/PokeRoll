@@ -466,9 +466,15 @@ function preloadImages(urls, timeoutMs) {
 function createCard(item) {
   const card = document.createElement("div");
   card.className = `card r-${item.rarity}${item.shiny ? " is-shiny" : ""}`;
+  const p = item.pokemon;
   card.innerHTML = `
+    <span class="card-top">
+      <span class="card-id">#${pad4(p.id)}</span>
+      <span class="card-type" style="--t:${TYPE_COLORS[p.types[0]] || "#777"}">${p.types.join("/")}</span>
+    </span>
     <img class="card-img" alt="" draggable="false">
-    <span class="card-name">${item.pokemon.name}</span>
+    <span class="card-name">${p.name}</span>
+    <span class="card-meta">BST ${p.bst}<span class="card-tier"> · ${rarityInfo(item.rarity).name}</span></span>
     ${item.shiny ? `<span class="card-shiny" title="Shiny">★</span>` : ""}`;
   setPokemonImage(card.querySelector("img"), item.pokemon.id, item.shiny);
   return card;
