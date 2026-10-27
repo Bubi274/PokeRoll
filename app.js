@@ -689,13 +689,13 @@ function trackTicks(reel = $("reel")) {
   return () => { running = false; };
 }
 
-// Chạy dải thẻ tới thẻ thắng. Trả về Promise xong khi dải dừng.
-function animateReel(winIndex, reel = $("reel")) {
+// Chạy dải thẻ tới thẻ thắng trong ms mili giây (mặc định SPIN_MS như trang Case). Trả về Promise xong khi dải dừng.
+function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
   const strip = stripOf(reel);
   const target = reelTarget(winIndex, undefined, reel);
 
   void strip.offsetWidth; // ép trình duyệt áp vị trí đầu trước khi bắt đầu chạy
-  strip.style.transition = `transform ${SPIN_MS}ms cubic-bezier(0.08, 0.6, 0, 1)`;
+  strip.style.transition = `transform ${ms}ms cubic-bezier(0.08, 0.6, 0, 1)`;
   strip.style.transform = `translateX(${target}px)`;
   reel.classList.add("is-spinning");
   const stopTicks = trackTicks(reel);
@@ -712,7 +712,7 @@ function animateReel(winIndex, reel = $("reel")) {
     };
     const onEnd = (e) => { if (e.target === strip) finish(); };
     strip.addEventListener("transitionend", onEnd);
-    setTimeout(finish, SPIN_MS + 500); // phòng khi transitionend không chạy (vd. tab bị ẩn)
+    setTimeout(finish, ms + 500); // phòng khi transitionend không chạy (vd. tab bị ẩn)
   });
 }
 
@@ -964,10 +964,26 @@ function recentItem(h) {
       <button type="button" class="recent-item r-${h.rarity}" data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""} title="${p.name}">
         <img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy">
         <span class="recent-name">${p.name}</span>
-        <span class="recent-id">${dexLabel(p)}</span>
+        <span class="recent-id">${dexLabel(p)}${h.mode ? sourceTag(dropSource(h, true)) : ""}</span>
         ${h.shiny ? `<span class="recent-shiny" aria-label="Shiny">★</span>` : ""}
       </button>
     </li>`;
+}
+
+// Nguồn của một lượt quay trong lịch sử. Lượt mở hòm (kể cả lịch sử cũ chưa có trường mode) là "Case";
+// lượt ở trang Custom lấy nhãn do chế độ đặt, vd. "Type Roulette · Fire" (short: "Type · Fire").
+function dropSource(h, short = false) {
+  if (!h.mode) return { label: "Case", color: "" };
+  const mode = CUSTOM_MODES.find((m) => m.key === h.mode);
+  if (!mode) return { label: "Custom", color: "" };
+  return {
+    label: mode.label ? mode.label(h.detail, short) : mode.name,
+    color: mode.tagColor ? mode.tagColor(h.detail) : "",
+  };
+}
+
+function sourceTag(src) {
+  return `<span class="src-tag"${src.color ? ` style="--t:${src.color}"` : ""}>${escHtml(src.label)}</span>`;
 }
 
 // Lịch sử lưu mới nhất trước → lượt mới nhất nằm trên cùng.
@@ -1060,7 +1076,7 @@ function renderCollection() {
             <span class="hist-thumb"><img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy"></span>
             <span class="hist-main">
               <span class="hist-name">${p.name}${h.shiny ? ` <span class="mini-shiny">★ Shiny</span>` : ""}</span>
-              <span class="hist-meta">${isSpecial(p) ? sourceLabel(p) : `#${pad4(p.id)} · Gen ${p.gen}`} · BST ${p.bst}</span>
+              <span class="hist-meta">${isSpecial(p) ? sourceLabel(p) : `#${pad4(p.id)} · Gen ${p.gen}`} · BST ${p.bst} ${sourceTag(dropSource(h))}</span>
             </span>
             <span class="hist-rarity">${rarityInfo(h.rarity).name}</span>
             <time class="hist-time">${fmtTime(h.t)}</time>
@@ -1406,6 +1422,10 @@ function renderCustomControls(label) {
   if (label || !state.spinning) btn.textContent = label || (mode && mode.spinLabel) || "Spin";
   $("custom-hint").textContent = state.spinning ? "" : hint;
   for (const b of $("mode-bar").querySelectorAll(".mode-btn")) b.disabled = state.spinning;
+  // Đang quay: khóa bảng chọn gen của trang Custom, quay xong mới đổi được
+  for (const input of $("custom-gen-grid").querySelectorAll("input")) input.disabled = state.spinning;
+  $("custom-all").disabled = state.spinning;
+  $("custom-none").disabled = state.spinning;
 }
 
 // Bắt đầu / kết thúc một lượt quay của chế độ Custom (khóa cả nút quay của trang Case).
@@ -1470,7 +1490,195 @@ function initCustom() {
 
 const ICON_WHEEL = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V5M12 13l6.9 4M12 13l-6.9 4M12 2v3"/></svg>`;
 
-// Giai đoạn 0: mới có khung, bánh xe sẽ thêm ở giai đoạn 1.
+// 18 hệ theo thứ tự trong game — cũng là thứ tự các ô trên bánh xe (theo chiều kim đồng hồ, bắt đầu từ kim chỉ).
+const TYPE_ORDER = ["normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
+  "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"];
+
+const WHEEL_SPIN_MS = 3600;   // thời gian quay bánh xe
+const WHEEL_TURNS = 5;        // số vòng quay trọn trước khi dừng
+const WHEEL_PAUSE_MS = 450;   // nghỉ một chút sau khi bánh xe dừng rồi mới chạy dải thẻ
+const ROULETTE_REEL_MS = 4000; // dải thẻ ở Type Roulette ngắn hơn trang Case (đã có bánh xe quay trước)
+
+const typeName = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+
+// Pokémon của từng hệ: { fire: [...], water: [...] } — chỉ gồm hệ có Pokémon, theo thứ tự TYPE_ORDER.
+// Pokémon hai hệ nằm trong cả hai nhóm (Gyarados thuộc cả Water lẫn Flying).
+function typePools(pool) {
+  const pools = {};
+  for (const t of TYPE_ORDER) {
+    const list = pool.filter((p) => p.types.includes(t));
+    if (list.length > 0) pools[t] = list;
+  }
+  return pools;
+}
+
+// Ô nằm dưới kim chỉ khi bánh xe đã xoay rotation độ (chiều kim đồng hồ).
+// Bánh xe có n ô bằng nhau; ô i chiếm cung [i·a, (i+1)·a) tính từ kim chỉ, a = 360/n.
+function wheelSliceAt(rotation, n) {
+  const a = 360 / n;
+  const angle = (((-rotation) % 360) + 360) % 360;
+  return Math.min(Math.floor(angle / a), n - 1);
+}
+
+// Góc xoay cuối để kim chỉ dừng trên ô index: quay thêm turns vòng trọn từ góc hiện tại (current),
+// lệch ngẫu nhiên khỏi tâm ô tối đa 40% bề rộng ô (giống dải thẻ) để không lúc nào cũng dừng đúng giữa.
+function wheelTarget(current, index, n, offsetFrac = Math.random() * 2 - 1, turns = WHEEL_TURNS) {
+  const a = 360 / n;
+  const angle = (index + 0.5 + offsetFrac * 0.4) * a; // điểm trên bánh xe cần nằm dưới kim
+  const delta = (((-angle - current) % 360) + 360) % 360;
+  return current + turns * 360 + delta;
+}
+
+// Chữ trên ô màu: tối trên màu sáng, trắng trên màu tối.
+function inkOn(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.5 ? "#12151c" : "#fff";
+}
+
+// Bánh xe SVG: một ô cho mỗi hệ, màu theo hệ, tên hệ chạy dọc bán kính.
+function wheelSvg(types) {
+  const n = types.length, a = 360 / n, R = 97, r0 = 32;
+  const pt = (deg, rad) => {
+    const t = (deg - 90) * Math.PI / 180;
+    return `${(rad * Math.cos(t)).toFixed(3)} ${(rad * Math.sin(t)).toFixed(3)}`;
+  };
+  const slices = types.map((t, i) => {
+    const s = i * a, e = (i + 1) * a, mid = s + a / 2, large = a > 180 ? 1 : 0;
+    const color = TYPE_COLORS[t] || "#777";
+    const d = n === 1
+      ? `M 0 ${-R} A ${R} ${R} 0 1 1 0 ${R} A ${R} ${R} 0 1 1 0 ${-R} Z M 0 ${-r0} A ${r0} ${r0} 0 1 0 0 ${r0} A ${r0} ${r0} 0 1 0 0 ${-r0} Z`
+      : `M ${pt(s, r0)} L ${pt(s, R)} A ${R} ${R} 0 ${large} 1 ${pt(e, R)} L ${pt(e, r0)} A ${r0} ${r0} 0 ${large} 0 ${pt(s, r0)} Z`;
+    // Chữ chạy dọc bán kính, mọi ô cùng chiều (từ tâm ra ngoài) vì bánh xe dừng ở góc bất kỳ
+    return `
+      <g class="wheel-slice" data-type="${t}" data-index="${i}">
+        <path d="${d}" fill="${color}" fill-rule="evenodd"/>
+        <text transform="rotate(${mid - 90}) translate(${(R + r0) / 2} 0)" fill="${inkOn(color)}">${typeName(t)}</text>
+      </g>`;
+  }).join("");
+  return `
+    <svg viewBox="-100 -100 200 200" aria-hidden="true">
+      <circle class="wheel-rim" r="99"/>
+      ${slices}
+    </svg>`;
+}
+
+// Trạng thái riêng của Type Roulette (phần tử giao diện + bánh xe hiện tại).
+const roulette = {
+  types: [],        // các hệ đang có trên bánh xe (đúng thứ tự các ô)
+  pools: {},        // Pokémon của từng hệ (đã lọc theo gen của trang Custom)
+  rotation: 0,      // góc xoay hiện tại của bánh xe (độ, cộng dồn)
+  dirty: false,     // đổi gen trong lúc đang quay → vẽ lại khi quay xong
+};
+
+function renderWheel() {
+  roulette.rotation %= 360;
+  const disc = $("tr-disc");
+  disc.style.transition = "none";
+  disc.style.transform = `rotate(${roulette.rotation}deg)`;
+  disc.innerHTML = roulette.types.length ? wheelSvg(roulette.types) : "";
+  $("tr-wheel").classList.toggle("is-empty", roulette.types.length === 0);
+  $("tr-wheel").classList.remove("has-winner");
+  $("tr-hub").textContent = roulette.types.length ? "?" : "";
+  $("tr-hub").style.removeProperty("--t");
+  const n = roulette.types.length;
+  $("tr-wheel-caption").textContent = n
+    ? `${n} type${n > 1 ? "s" : ""} on the wheel · each 1 in ${n}`
+    : "No types: select at least one generation";
+}
+
+// Làm sáng ô trúng, các ô khác mờ đi; tên hệ hiện ở giữa bánh xe.
+function markWheelWinner(type) {
+  const svg = $("tr-disc").querySelector("svg");
+  const slice = svg.querySelector(`.wheel-slice[data-type="${type}"]`);
+  for (const g of svg.querySelectorAll(".wheel-slice")) g.classList.toggle("is-winner", g === slice);
+  svg.appendChild(slice); // vẽ sau cùng để viền sáng không bị ô bên cạnh che
+  $("tr-wheel").classList.add("has-winner");
+  $("tr-hub").textContent = typeName(type);
+  $("tr-hub").style.setProperty("--t", TYPE_COLORS[type]);
+}
+
+// Ô đang nằm dưới kim chỉ, đọc từ góc xoay thật trên màn hình (để kiểm tra và phát tiếng tick).
+function wheelSliceOnScreen() {
+  const t = getComputedStyle($("tr-disc")).transform;
+  const m = t && t !== "none" ? new DOMMatrixReadOnly(t) : new DOMMatrixReadOnly();
+  const deg = Math.atan2(m.b, m.a) * 180 / Math.PI;
+  return wheelSliceAt(deg, roulette.types.length);
+}
+
+// Quay bánh xe tới góc target. Trả về Promise xong khi bánh xe dừng hẳn.
+function animateWheel(target) {
+  const disc = $("tr-disc");
+  void disc.offsetWidth; // áp vị trí đầu trước khi bắt đầu quay
+  disc.style.transition = `transform ${WHEEL_SPIN_MS}ms cubic-bezier(0.15, 0.75, 0.12, 1)`;
+  disc.style.transform = `rotate(${target}deg)`;
+  roulette.rotation = target;
+  $("tr-wheel").classList.add("is-spinning");
+
+  let running = true;
+  let last = null;
+  const loop = () => {
+    if (!running) return;
+    const index = wheelSliceOnScreen();
+    if (last !== null && index !== last) playTick();
+    last = index;
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+
+  return new Promise((resolve) => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      running = false;
+      $("tr-wheel").classList.remove("is-spinning");
+      disc.removeEventListener("transitionend", onEnd);
+      resolve();
+    };
+    const onEnd = (e) => { if (e.target === disc) finish(); };
+    disc.addEventListener("transitionend", onEnd);
+    setTimeout(finish, WHEEL_SPIN_MS + 500); // phòng khi transitionend không chạy (vd. tab bị ẩn)
+  });
+}
+
+// Panel tỉ lệ: trước khi quay thì giới thiệu, sau khi trúng hệ thì hiện số Pokémon và tỉ lệ thật mỗi bậc.
+function renderTypeOdds(type) {
+  const n = roulette.types.length;
+  if (!type) {
+    $("tr-odds-title").textContent = "Type case";
+    $("tr-odds-count").innerHTML = "";
+    $("tr-odds-list").innerHTML = "";
+    $("tr-odds-sub").textContent = n
+      ? `Spin the wheel. The tiers of the type you land on show here.`
+      : "Select at least one generation below.";
+    return;
+  }
+  const groups = groupByRarity(roulette.pools[type]);
+  const chances = effectiveChances(groups);
+  $("tr-odds-title").innerHTML = `<span class="type-chip" style="--t:${TYPE_COLORS[type]}">${typeName(type)}</span> case`;
+  $("tr-odds-count").innerHTML = `<strong>${groupsSize(groups)}</strong> <span>Pokémon</span>`;
+  $("tr-odds-sub").textContent = `Landed on ${typeName(type)}: 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
+  $("tr-odds-list").innerHTML = RARITIES.map((r) => {
+    const count = groups[r.key].length;
+    return `
+      <li class="rarity-row r-${r.key}${count === 0 ? " is-empty" : ""}" style="--p:${chances[r.key]}">
+        <span class="rarity-swatch"></span>
+        <span class="rarity-info"><span class="rarity-name">${r.name}</span></span>
+        <span class="rarity-count" title="Pokémon in this tier">${count}</span>
+        <span class="rarity-chance">${formatPct(chances[r.key])}</span>
+      </li>`;
+  }).reverse().join("");
+}
+
+// Dải thẻ lúc chưa quay: Pokémon bất kỳ trong các gen đã chọn.
+function resetRoulette() {
+  roulette.pools = typePools(custom.pool);
+  roulette.types = Object.keys(roulette.pools);
+  renderWheel();
+  renderTypeOdds(null);
+  renderIdleReel(groupByRarity(custom.pool), $("tr-reel"));
+}
+
 registerCustomMode({
   key: "type-roulette",
   name: "Type Roulette",
@@ -1483,13 +1691,129 @@ registerCustomMode({
     "A case of only that type opens next, with the same tier odds as the Case page.",
     "Shiny is rolled separately: 1 in 100.",
   ],
+  // Nhãn trong lịch sử: "Type Roulette · Fire", gọn: "Type · Fire"
+  label(detail, short) {
+    const name = TYPE_ORDER.includes(detail) ? typeName(detail) : "?";
+    return short ? `Type · ${name}` : `Type Roulette · ${name}`;
+  },
+  tagColor: (detail) => TYPE_COLORS[detail] || "",
+
   mount(stage) {
-    stage.innerHTML = `<p class="mode-placeholder">The type wheel is being built. It will appear here in the next update.</p>`;
+    stage.innerHTML = `
+      <div class="tr-layout">
+        <div class="tr-wheel-col">
+          <div class="wheel" id="tr-wheel">
+            <div class="wheel-disc" id="tr-disc"></div>
+            <div class="wheel-hub"><span class="wheel-hub-type" id="tr-hub"></span></div>
+            <div class="wheel-pointer" aria-hidden="true"></div>
+          </div>
+          <p class="wheel-caption" id="tr-wheel-caption" aria-live="polite"></p>
+        </div>
+        <div class="tr-side">
+          <section class="reel" id="tr-reel" aria-label="Type case reel">
+            <div class="reel-strip"></div>
+            <div class="reel-marker" aria-hidden="true"></div>
+            <p class="reel-empty">Select at least one generation</p>
+          </section>
+          <section class="panel tr-odds" aria-live="polite">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2 id="tr-odds-title">Type case</h2>
+                <p class="panel-sub" id="tr-odds-sub"></p>
+              </div>
+              <p class="pool-total" id="tr-odds-count"></p>
+            </div>
+            <ul class="rarity-list is-compact" id="tr-odds-list"></ul>
+          </section>
+        </div>
+      </div>`;
   },
+
+  onPoolChanged() {
+    if (state.spinning) { roulette.dirty = true; return; } // đang quay: vẽ lại khi quay xong
+    resetRoulette();
+  },
+
   emptyHint() {
-    return "Type Roulette isn't ready yet.";
+    return roulette.types.length ? "" : "Select at least one generation to spin.";
   },
-  spin() {},
+
+  realign() {
+    realignReel($("tr-reel"));
+  },
+
+  async spin({ quick = false }) {
+    const types = roulette.types;
+    const type = pickRandom(types, Math.random()); // mỗi hệ trên bánh xe có cơ hội như nhau
+    const index = types.indexOf(type);
+    const groups = groupByRarity(roulette.pools[type]); // hòm chỉ gồm Pokémon của hệ trúng
+    const result = rollOnce(groups);
+    if (!result) return;
+
+    // Ghi ngay vào bộ sưu tập (giống trang Case), kèm chế độ và hệ trúng trong lịch sử.
+    const isNew = !state.collection[result.pokemon.id];
+    const entry = recordDrop(state.collection, state.history, result);
+    Object.assign(state.history[0], { mode: "type-roulette", detail: type });
+    saveProgress();
+
+    const reel = $("tr-reel");
+    const items = buildReelItems(result, groups);
+    const target = wheelTarget(roulette.rotation % 360, index, types.length);
+    $("tr-wheel").classList.remove("has-winner");
+    $("tr-hub").textContent = "?";
+
+    if (quick) {
+      setCustomSpinning(true);
+      const disc = $("tr-disc");
+      disc.style.transition = "none";
+      disc.style.transform = `rotate(${target}deg)`;
+      roulette.rotation = target;
+      markWheelWinner(type);
+      renderTypeOdds(type);
+      renderReel(items, reel);
+      jumpReel(WIN_INDEX, undefined, reel);
+    } else {
+      setCustomSpinning(true, "Spinning…");
+      audio(); // mở âm thanh ngay trong lúc bấm
+      // Tải trước ảnh trong lúc bánh xe quay
+      const visible = items.filter((_, i) => i < IDLE_REEL_SIZE || Math.abs(i - WIN_INDEX) <= 6);
+      const preload = preloadImages([...new Set(visible.map((it) => imageUrl(it.pokemon, it.shiny)))], PRELOAD_TIMEOUT_MS);
+
+      // Bắt đầu từ góc hiện tại thu về 0–360° (nhìn không đổi) để số không lớn dần
+      const disc = $("tr-disc");
+      disc.style.transition = "none";
+      disc.style.transform = `rotate(${roulette.rotation % 360}deg)`;
+      await animateWheel(target);
+      const landed = types[wheelSliceOnScreen()];
+      if (landed !== type) console.error(`Wheel stopped on ${landed}, expected ${type}`);
+      markWheelWinner(type);
+      renderTypeOdds(type);
+      playTick();
+
+      await preload;
+      setCustomSpinning(true, "Opening…");
+      renderReel(items, reel);
+      await sleep(WHEEL_PAUSE_MS);
+      await animateReel(WIN_INDEX, reel, ROULETTE_REEL_MS);
+    }
+
+    stripOf(reel).children[WIN_INDEX].classList.add("is-winner");
+    setCustomSpinning(false);
+    renderRecent();
+    updateCollectionTab();
+    if (state.view === "collection") renderCollection();
+    if (roulette.dirty) { roulette.dirty = false; resetRoulette(); }
+    const n = types.length;
+    showResultModal(result, {
+      isNew, count: entry.count, groups,
+      again: () => runCustomSpin(),
+      canAgain: roulette.types.length > 0,
+      extra: `
+        <div class="result-note mode-note" style="--t:${TYPE_COLORS[type]}">
+          Type Roulette landed on <b>${typeName(type)}</b> (1 in ${n} on the wheel). The odds above are within the ${typeName(type)} case.
+        </div>`,
+    });
+  },
 });
 
 function init() {
@@ -1631,5 +1955,5 @@ if (typeof document !== "undefined") {
   module.exports = { RARITIES, SHINY_CHANCE, getRarity, filterByGens, groupByRarity,
     rollRarityKey, resolveRarity, effectiveChances, rollOnce, buildReelItems, simulateRolls,
     recordDrop, genProgress, filterCollection, matchesSearch, sortCollection, dropOdds, oneIn, rarityProgress,
-    specialProgress, parseId };
+    specialProgress, parseId, TYPE_ORDER, typePools, wheelSliceAt, wheelTarget };
 }
