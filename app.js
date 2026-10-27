@@ -668,6 +668,31 @@ function typeChips(types) {
     `<span class="type-chip" style="--t:${TYPE_COLORS[t] || "#777"}">${t}</span>`).join("");
 }
 
+// Thanh 5 nấc độ hiếm, nấc của Pokémon này sáng lên (chỉ để trình bày).
+function tierLadder(rarity) {
+  return `
+    <div class="tier-ladder" aria-hidden="true">
+      ${RARITIES.map((r) => `<span class="rung r-${r.key}${r.key === rarity ? " is-current" : ""}"><i></i>${r.name}</span>`).join("")}
+    </div>`;
+}
+
+// Khung thông tin độ hiếm: tên bậc, quy tắc xếp bậc và tỉ lệ của bậc (lấy từ RARITIES).
+function tierPanel(rarity, shiny) {
+  const r = rarityInfo(rarity);
+  return `
+    <div class="tier-panel">
+      <div>
+        <div class="result-rarity">${r.name}${shiny ? ` <span class="shiny-tag">★ Shiny</span>` : ""}</div>
+        <p class="tier-rule">${r.rule}</p>
+      </div>
+      <p class="tier-odds"><b>${r.chance.toFixed(2)}%</b> tier odds</p>
+    </div>`;
+}
+
+function regionOf(p) {
+  return GENS.find((g) => g.gen === p.gen).region;
+}
+
 function showResultModal(result, { isNew, count }) {
   const { pokemon: p, rarity, shiny, downgraded } = result;
   const epic = rarity === "red" || rarity === "gold";
@@ -675,22 +700,38 @@ function showResultModal(result, { isNew, count }) {
   modal.className = `modal modal-narrow result-modal r-${rarity}${epic ? " is-epic" : ""}`;
 
   $("result-body").innerHTML = `
-    <div class="reveal${shiny ? " is-shiny" : ""}">
-      <div class="reveal-rays"></div>
-      <div class="reveal-glow"></div>
-      ${shiny ? `<span class="sparkle"></span><span class="sparkle"></span><span class="sparkle"></span><span class="sparkle"></span><span class="sparkle"></span>` : ""}
-      <img class="reveal-img" alt="${p.name}">
-      <span class="reveal-badge ${isNew ? "is-new" : ""}">${isNew ? "New!" : `Duplicate · ×${count}`}</span>
-    </div>
-    <div class="reveal-info">
-      <div class="result-rarity">${rarityInfo(rarity).name}${shiny ? ` <span class="shiny-tag">★ Shiny</span>` : ""}</div>
-      <h2 class="reveal-name" id="result-name">${p.name}</h2>
-      <div class="result-meta">#${pad4(p.id)} · Gen ${p.gen} · BST ${p.bst}</div>
-      <div class="type-chips">${typeChips(p.types)}</div>
-      ${downgraded ? `<div class="result-note">Rolled a higher tier with no Pokémon in this case — dropped to ${rarityInfo(rarity).name}.</div>` : ""}
-    </div>
-    <h3 class="detail-section">Where to find in Cobbleverse</h3>
-    ${renderSpawnSection(p)}`;
+    <div class="showcase">
+      <div class="slab${shiny ? " is-shiny" : ""}">
+        <div class="slab-head">
+          <span class="slab-tier">${rarityInfo(rarity).name}</span>
+          ${shiny ? `<span class="slab-shiny">★ Shiny</span>` : ""}
+          <span class="slab-id">#${pad4(p.id)}</span>
+        </div>
+        <div class="reveal${shiny ? " is-shiny" : ""}">
+          <div class="reveal-rays"></div>
+          <div class="reveal-glow"></div>
+          ${shiny ? `<span class="sparkle"></span><span class="sparkle"></span><span class="sparkle"></span><span class="sparkle"></span><span class="sparkle"></span>` : ""}
+          <img class="reveal-img" alt="${p.name}">
+          <span class="reveal-badge ${isNew ? "is-new" : ""}">${isNew ? "New!" : `Duplicate · ×${count}`}</span>
+        </div>
+        <div class="slab-foot">
+          <h2 class="reveal-name" id="result-name">${p.name}</h2>
+          <div class="type-chips">${typeChips(p.types)}</div>
+        </div>
+      </div>
+      <div class="reveal-info">
+        ${tierPanel(rarity, shiny)}
+        ${downgraded ? `<div class="result-note">Rolled a higher tier with no Pokémon in this case — dropped to ${rarityInfo(rarity).name}.</div>` : ""}
+        <dl class="facts">
+          <div><dt>Generation</dt><dd>Gen ${p.gen} · ${regionOf(p)}</dd></div>
+          <div><dt>Base stat total</dt><dd>${p.bst}</dd></div>
+          <div><dt>In collection</dt><dd>×${count}</dd></div>
+        </dl>
+        ${tierLadder(rarity)}
+        <h3 class="detail-section">Where to find in Cobbleverse</h3>
+        ${renderSpawnSection(p)}
+      </div>
+    </div>`;
   setPokemonImage($("result-body").querySelector("img"), p.id, shiny);
 
   $("result-again").disabled = poolSize() === 0;
@@ -925,18 +966,31 @@ function ownedLine(p) {
 function openPokemonDetail(p, shiny = false) {
   const r = rarityInfo(p.rarity);
   $("detail-body").innerHTML = `
-    <div class="detail-top r-${p.rarity}">
-      <img class="detail-img" alt="${p.name}">
-      <div>
-        <div class="result-rarity">${r.name}${shiny ? ` <span class="shiny-tag">★ Shiny</span>` : ""}</div>
-        <div class="detail-name">${p.name}</div>
-        <div class="result-meta">#${pad4(p.id)} · Gen ${p.gen} · BST ${p.bst}</div>
-        <div class="type-chips">${typeChips(p.types)}</div>
-        ${ownedLine(p)}
+    <div class="showcase r-${p.rarity}">
+      <div class="slab${shiny ? " is-shiny" : ""}">
+        <div class="slab-head">
+          <span class="slab-tier">${r.name}</span>
+          ${shiny ? `<span class="slab-shiny">★ Shiny</span>` : ""}
+          <span class="slab-id">#${pad4(p.id)}</span>
+        </div>
+        <div class="slab-art"><img class="detail-img" alt="${p.name}"></div>
+        <div class="slab-foot">
+          <div class="detail-name">${p.name}</div>
+          <div class="type-chips">${typeChips(p.types)}</div>
+        </div>
       </div>
-    </div>
-    <h3 class="detail-section">Where to find in Cobbleverse</h3>
-    ${renderSpawnSection(p)}`;
+      <div class="reveal-info">
+        ${tierPanel(p.rarity, shiny)}
+        <dl class="facts">
+          <div><dt>Generation</dt><dd>Gen ${p.gen} · ${regionOf(p)}</dd></div>
+          <div><dt>Base stat total</dt><dd>${p.bst}</dd></div>
+        </dl>
+        ${ownedLine(p)}
+        ${tierLadder(p.rarity)}
+        <h3 class="detail-section">Where to find in Cobbleverse</h3>
+        ${renderSpawnSection(p)}
+      </div>
+    </div>`;
   setPokemonImage($("detail-body").querySelector("img"), p.id, shiny);
   $("detail-modal").showModal();
   $("detail-body").parentElement.scrollTop = 0;
