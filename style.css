@@ -683,6 +683,25 @@ button.mini:focus-visible { outline: 2px solid var(--accent-hover); outline-offs
   .spawn-label { display: block; min-width: 0; }
 }
 
+/* ===== Chân trang: credit & disclaimer ===== */
+.site-footer {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px 16px 24px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+.site-footer p { margin: 0 0 4px; }
+.site-footer a { color: inherit; text-decoration: underline; }
+.site-footer a:hover { color: var(--text); }
+
+@media (max-width: 480px) {
+  .site-footer { padding: 14px 12px 20px; font-size: 0.7rem; }
+}
+
 /* ===== Thanh chuyển trang ===== */
 .tabs {
   display: flex;
