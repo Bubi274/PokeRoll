@@ -225,6 +225,21 @@ function filterCollection(pokemon, collection, filters) {
   });
 }
 
+// Bỏ dấu và viết thường, để gõ "flabebe" vẫn tìm ra "Flabébé".
+const foldText = (str) => str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// Ô tìm kiếm trong bộ sưu tập. Mỗi từ gõ vào phải khớp một trong:
+// tên (một phần tên), số Pokédex (đúng số, có thể gõ kèm # và số 0 ở đầu), hệ (phần đầu tên hệ).
+// Ví dụ: "pika", "25", "#0025", "fire", "fire flying".
+function matchesSearch(p, query) {
+  const terms = foldText(query).split(/\s+/).filter(Boolean);
+  return terms.every((t) => {
+    const num = t.replace(/^#/, "");
+    if (/^\d+$/.test(num)) return p.id === Number(num);
+    return foldText(p.name).includes(t) || p.types.some((type) => type.startsWith(t));
+  });
+}
+
 function artworkUrl(id, shiny) {
   return shiny ? `${LOCAL_ARTWORK}/shiny/${id}.webp` : `${LOCAL_ARTWORK}/${id}.webp`;
 }
@@ -817,12 +832,15 @@ function renderCollection() {
       <span class="bar"><span style="width:${pct(g.owned, g.total)}%"></span></span>
     </button>`).join("");
 
-  const list = filterCollection(state.pokemon, col, collectionFilters());
+  const query = $("coll-search").value.trim();
+  const list = filterCollection(state.pokemon, col, collectionFilters()).filter((p) => matchesSearch(p, query));
   $("coll-count").textContent = `${list.length} Pokémon`;
   $("coll-grid").innerHTML = list.map((p) => {
     const e = col[p.id];
     return miniTile(p, e ? { count: e.count, shinyCount: e.shiny } : { missing: true });
-  }).join("") || `<p class="hint">No Pokémon match these filters.</p>`;
+  }).join("") || `<p class="hint">${query
+    ? `No Pokémon match “${escHtml(query)}” with these filters.`
+    : "No Pokémon match these filters."}</p>`;
 
   $("history-count").textContent = state.history.length
     ? `Last ${state.history.length} opens` : "";
@@ -1120,6 +1138,7 @@ function init() {
   for (const id of ["f-gen", "f-rarity", "f-status"]) {
     $(id).addEventListener("change", renderCollection);
   }
+  $("coll-search").addEventListener("input", renderCollection);
   $("gen-progress").addEventListener("click", (e) => {
     const card = e.target.closest(".gp");
     if (!card) return;
@@ -1149,5 +1168,5 @@ if (typeof document !== "undefined") {
 } else if (typeof module !== "undefined") {
   module.exports = { RARITIES, SHINY_CHANCE, getRarity, filterByGens, groupByRarity,
     rollRarityKey, resolveRarity, effectiveChances, rollOnce, buildReelItems, simulateRolls,
-    recordDrop, genProgress, filterCollection };
+    recordDrop, genProgress, filterCollection, matchesSearch };
 }

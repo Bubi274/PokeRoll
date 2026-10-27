@@ -1741,6 +1741,10 @@ button.mini:focus-visible {
 .gp-region { color: var(--muted); font-family: var(--font-body); font-size: 0.8rem; }
 .gp-count { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); }
 
+/* Ô tìm kiếm bộ sưu tập (dùng chung kiểu với ô tìm trong popup nội dung hòm) */
+.coll-search { margin-bottom: 14px; }
+.contents-grid > .hint { grid-column: 1 / -1; padding: 28px 0; }
+
 /* Bộ lọc */
 .filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .filters select {
