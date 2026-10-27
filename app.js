@@ -753,11 +753,17 @@ function saveProgress() {
 function miniTile(p, { shiny = false, count = 0, shinyCount = 0, missing = false } = {}) {
   return `
     <button type="button" class="mini r-${p.rarity}${missing ? " is-missing" : ""}" data-pokemon="${p.id}"${shiny ? ` data-shiny="1"` : ""}>
+      <span class="mini-top">
+        <span class="mini-id">#${pad4(p.id)}</span>
+        ${shiny || shinyCount
+          ? `<span class="mini-shiny">★${shinyCount > 1 ? shinyCount : ""}</span>`
+          : `<span class="mini-tier">${missing ? "Missing" : rarityInfo(p.rarity).name}</span>`}
+      </span>
       <img class="mini-img" src="${spriteUrl(p.id, shiny)}" alt="" loading="lazy">
-      <span class="mini-name">${p.name}</span>
-      <span class="mini-id">#${pad4(p.id)}</span>
-      ${count > 1 ? `<span class="mini-count">×${count}</span>` : ""}
-      ${shiny || shinyCount ? `<span class="mini-shiny">★${shinyCount > 1 ? shinyCount : ""}</span>` : ""}
+      <span class="mini-foot">
+        <span class="mini-name">${p.name}</span>
+        ${count > 1 ? `<span class="mini-count">×${count}</span>` : ""}
+      </span>
     </button>`;
 }
 
@@ -797,7 +803,7 @@ function renderCollection() {
       ${bar !== undefined ? `<span class="bar"><span style="width:${bar}%"></span></span>` : ""}
     </div>`;
   $("coll-summary").innerHTML =
-    stat("Pokédex", `${owned}<small>/${total}</small>`, pct(owned, total)) +
+    stat("Pokédex", `${owned}<small>/${total}</small><span class="stat-pct">${pct(owned, total).toFixed(1)}%</span>`, pct(owned, total)) +
     stat("Cases opened", opened) +
     stat("Shiny drops", `★ ${shinies}`) +
     stat("Gold collected", `${goldOwned}<small>/${golds.length}</small>`, pct(goldOwned, golds.length));
@@ -827,14 +833,17 @@ function renderCollection() {
       return `
         <li>
           <button type="button" class="hist r-${h.rarity}" data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""}>
-            <img class="mini-img" src="${spriteUrl(p.id, h.shiny)}" alt="" loading="lazy">
-            <span class="hist-name">${p.name}${h.shiny ? ` <span class="mini-shiny">★</span>` : ""}</span>
+            <span class="hist-thumb"><img class="mini-img" src="${spriteUrl(p.id, h.shiny)}" alt="" loading="lazy"></span>
+            <span class="hist-main">
+              <span class="hist-name">${p.name}${h.shiny ? ` <span class="mini-shiny">★ Shiny</span>` : ""}</span>
+              <span class="hist-meta">#${pad4(p.id)} · Gen ${p.gen} · BST ${p.bst}</span>
+            </span>
             <span class="hist-rarity">${rarityInfo(h.rarity).name}</span>
             <time class="hist-time">${fmtTime(h.t)}</time>
           </button>
         </li>`;
     }).join("")
-    : `<li class="hint">No cases opened yet.</li>`;
+    : `<li class="hint">No cases opened yet. Open your first case on the Case tab.</li>`;
 }
 
 function clearData() {
