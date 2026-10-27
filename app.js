@@ -163,6 +163,31 @@ function effectiveChances(groups) {
   return result;
 }
 
+// Xác suất thật của một kết quả quay, tính theo hòm lúc quay (groups):
+//   tier       = ra đúng bậc này (đã cộng phần bị hạ từ các bậc cao hơn không có Pokémon)
+//   pokemon    = ra đúng Pokémon này (mỗi Pokémon trong bậc có cơ hội như nhau)
+//   final      = như pokemon, nhân thêm tỉ lệ shiny nếu kết quả là shiny
+//   foldedFrom = các bậc trống đã bị hạ xuống bậc này
+function dropOdds(result, groups) {
+  const total = RARITIES.reduce((sum, r) => sum + r.chance, 0);
+  const tier = effectiveChances(groups)[result.rarity] / total;
+  const pokemon = tier / groups[result.rarity].length;
+  return {
+    tier,
+    pokemon,
+    final: result.shiny ? pokemon * SHINY_CHANCE : pokemon,
+    foldedFrom: RARITIES
+      .filter((r) => r.key !== result.rarity && resolveRarity(r.key, groups) === result.rarity)
+      .map((r) => r.key),
+  };
+}
+
+// Xác suất p → chữ "N" trong "1 in N" (vd. 0.0064 → "156", 0.7992 → "1.3").
+function oneIn(p) {
+  const n = 1 / p;
+  return n < 10 ? String(Number(n.toFixed(1))) : Math.round(n).toLocaleString("en-US");
+}
+
 function pickRandom(list, rand) {
   return list[Math.floor(rand * list.length)];
 }
@@ -721,7 +746,29 @@ function regionOf(p) {
   return GENS.find((g) => g.gen === p.gen).region;
 }
 
-function showResultModal(result, { isNew, count }) {
+// Khung "1 in N": cơ hội ra đúng Pokémon này (và shiny, nếu có) trong hòm lúc quay.
+function oddsBlock(result, groups) {
+  const { pokemon: p, rarity, shiny } = result;
+  const odds = dropOdds(result, groups);
+  const tierName = rarityInfo(rarity).name;
+  const folded = odds.foldedFrom.map((k) => rarityInfo(k).name);
+  const foldNote = folded.length
+    ? ` (includes ${folded.join(", ")}, which ${folded.length > 1 ? "have" : "has"} no Pokémon in this case)`
+    : "";
+  return `
+    <div class="odds">
+      <span class="odds-label">Odds of pulling ${shiny ? "a shiny " : ""}${p.name}</span>
+      <span class="odds-value">1 in ${oneIn(odds.final)}</span>
+      <span class="odds-note">
+        <span>${tierName} tier: 1 in ${oneIn(odds.tier)}${foldNote}</span>
+        <span>1 of ${groups[rarity].length} ${tierName} Pokémon in this case</span>
+        ${shiny ? `<span>Shiny: 1 in ${oneIn(SHINY_CHANCE)}</span>` : ""}
+      </span>
+    </div>`;
+}
+
+// groups: Pokémon trong hòm lúc quay (để "1 in N" đúng kể cả khi đổi gen trong lúc dải đang chạy).
+function showResultModal(result, { isNew, count, groups = state.groups }) {
   const { pokemon: p, rarity, shiny, downgraded } = result;
   const epic = rarity === "red" || rarity === "gold";
   const modal = $("result-modal");
@@ -749,6 +796,7 @@ function showResultModal(result, { isNew, count }) {
       </div>
       <div class="reveal-info">
         ${tierPanel(rarity, shiny)}
+        ${oddsBlock(result, groups)}
         ${downgraded ? `<div class="result-note">Rolled a higher tier with no Pokémon in this case — dropped to ${rarityInfo(rarity).name}.</div>` : ""}
         <dl class="facts">
           <div><dt>Generation</dt><dd>Gen ${p.gen} · ${regionOf(p)}</dd></div>
@@ -1043,7 +1091,8 @@ function openPokemonDetail(p, shiny = false) {
 // quick = true: "Quick open" — bỏ qua hiệu ứng dải thẻ, ra kết quả ngay.
 async function spin({ quick = false } = {}) {
   if (state.spinning) return;
-  const result = rollOnce(state.groups);
+  const groups = state.groups; // hòm lúc quay
+  const result = rollOnce(groups);
   if (!result) return;
 
   // Ghi vào bộ sưu tập ngay (không mất kết quả nếu lỡ đóng app giữa chừng),
@@ -1077,7 +1126,7 @@ async function spin({ quick = false } = {}) {
   renderRecent();
   updateCollectionTab();
   if (state.view === "collection") renderCollection();
-  showResultModal(result, { isNew, count: entry.count });
+  showResultModal(result, { isNew, count: entry.count, groups });
 }
 
 function init() {
@@ -1197,5 +1246,5 @@ if (typeof document !== "undefined") {
 } else if (typeof module !== "undefined") {
   module.exports = { RARITIES, SHINY_CHANCE, getRarity, filterByGens, groupByRarity,
     rollRarityKey, resolveRarity, effectiveChances, rollOnce, buildReelItems, simulateRolls,
-    recordDrop, genProgress, filterCollection, matchesSearch, sortCollection };
+    recordDrop, genProgress, filterCollection, matchesSearch, sortCollection, dropOdds, oneIn };
 }

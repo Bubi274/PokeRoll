@@ -1326,6 +1326,39 @@ button.mini:focus-visible {
 }
 .tier-odds b { font-size: 1.15rem; color: var(--c); letter-spacing: 0; }
 
+/* Khung "1 in N" */
+.odds {
+  display: grid;
+  gap: 2px;
+  padding: 14px 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c);
+  border-radius: var(--radius);
+}
+.odds-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.odds-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--c);
+}
+.is-epic .odds-value { text-shadow: 0 0 16px color-mix(in srgb, var(--c) 55%, transparent); }
+.odds-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 .shiny-tag {
   padding: 2px 8px;
   border-radius: 2px;
@@ -1548,6 +1581,9 @@ button.mini:focus-visible {
   .reveal-name, .detail-name { font-size: 1.45rem; }
   .tier-panel { padding: 13px 14px; gap: 10px; }
   .result-rarity { font-size: 1.15rem; }
+  .odds { padding: 12px 14px; }
+  .result-actions .kbd-hint { display: none; }
+  .odds-value { font-size: 1.35rem; }
   .facts { grid-template-columns: 1fr 1fr; }
   .rung { font-size: 0.56rem; letter-spacing: 0.02em; }
   .result-actions .btn { flex: 1; }
