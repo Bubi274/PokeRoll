@@ -1472,6 +1472,16 @@ button.mini:focus-visible {
 }
 .result-actions .btn-ghost { padding: 11px 20px; }
 
+/* Ô vừa được tìm tới bằng "View in collection": viền vàng nháy 2 lần rồi mờ dần */
+.mini.is-located {
+  z-index: 1;
+  animation: locate-pulse 1.6s ease-out 2;
+}
+@keyframes locate-pulse {
+  0%, 45% { box-shadow: inset 0 -3px 0 var(--c), 0 0 0 2px var(--amber), 0 0 22px 2px rgba(255, 184, 46, 0.7); }
+  100% { box-shadow: inset 0 -3px 0 var(--c), 0 0 0 2px rgba(255, 184, 46, 0), 0 0 22px 2px rgba(255, 184, 46, 0); }
+}
+
 /* ===== Nơi xuất hiện trong Cobbleverse ===== */
 .detail-section {
   margin: 6px 0 -4px;
@@ -1562,6 +1572,7 @@ button.mini:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mini.is-located { animation: none; box-shadow: inset 0 -3px 0 var(--c), 0 0 0 2px var(--amber); }
   .is-epic .reveal-rays, .is-epic .reveal-glow, .sparkle, .reveal-img, .result-modal[open] { animation: none; }
 }
 
@@ -1586,7 +1597,9 @@ button.mini:focus-visible {
   .odds-value { font-size: 1.35rem; }
   .facts { grid-template-columns: 1fr 1fr; }
   .rung { font-size: 0.56rem; letter-spacing: 0.02em; }
+  .result-actions { flex-wrap: wrap; }
   .result-actions .btn { flex: 1; }
+  #result-view { flex-basis: 100%; }
   .result-modal, .detail-modal { width: calc(100% - 16px); max-width: calc(100% - 16px); }
   .btn-again { padding: 11px 12px; font-size: 0.82rem; letter-spacing: 0.06em; white-space: nowrap; }
   .facts > div:last-child:nth-child(odd) { grid-column: 1 / -1; }

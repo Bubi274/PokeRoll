@@ -811,6 +811,7 @@ function showResultModal(result, { isNew, count, groups = state.groups }) {
   setPokemonImage($("result-body").querySelector("img"), p.id, shiny);
 
   $("result-again").disabled = poolSize() === 0;
+  $("result-view").dataset.target = p.id; // nút "View in collection" biết cần tìm Pokémon nào
   modal.showModal();
   playReveal(rarity, shiny);
   $("result-body").scrollTop = 0;
@@ -935,6 +936,26 @@ function clearData() {
   renderRecent();
   updateCollectionTab();
   renderCollection();
+}
+
+// "View in collection": mở trang bộ sưu tập, cuộn tới ô của Pokémon này và nháy sáng ô đó.
+// Nếu bộ lọc hoặc ô tìm kiếm đang làm ẩn Pokémon này thì đưa chúng về mặc định (giữ nguyên cách sắp xếp).
+function locateInCollection(id) {
+  showView("collection");
+  const find = () => $("coll-grid").querySelector(`[data-pokemon="${id}"]`);
+  if (!find()) {
+    $("coll-search").value = "";
+    for (const f of ["f-gen", "f-rarity", "f-status"]) $(f).value = "all";
+    renderCollection();
+  }
+  const tile = find();
+  if (!tile) return;
+  const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  tile.scrollIntoView({ block: "center", behavior: smooth ? "smooth" : "auto" });
+  tile.focus({ preventScroll: true }); // dùng bàn phím: Enter/Space trên ô này mở chi tiết
+  tile.classList.remove("is-located");
+  void tile.offsetWidth; // chạy lại hiệu ứng nháy nếu bấm nhiều lần
+  tile.classList.add("is-located");
 }
 
 function showView(view) {
@@ -1211,6 +1232,10 @@ function init() {
     tab.addEventListener("click", () => showView(tab.dataset.view));
   }
   $("btn-see-collection").addEventListener("click", () => showView("collection"));
+  $("result-view").addEventListener("click", () => {
+    resultModal.close();
+    locateInCollection(Number($("result-view").dataset.target));
+  });
 
   // Trang bộ sưu tập
   for (const id of ["f-gen", "f-rarity", "f-status", "f-sort"]) {
