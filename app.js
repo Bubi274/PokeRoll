@@ -99,6 +99,8 @@ const STORAGE_KEY_GENS = "pokeroll.selectedGens";
 const STORAGE_KEY_COLLECTION = "pokeroll.collection"; // { [id]: { count, shiny, first } }
 const STORAGE_KEY_HISTORY = "pokeroll.history";       // [{ id, rarity, shiny, t }], mới nhất trước
 const STORAGE_KEY_MUTED = "pokeroll.muted";
+const STORAGE_KEY_CUSTOM_GENS = "pokeroll.custom.gens"; // gen đã chọn ở trang Custom (riêng với trang Case)
+const STORAGE_KEY_CUSTOM_MODE = "pokeroll.custom.mode"; // chế độ Custom đang chọn
 
 // Âm báo kết quả: các nốt nhạc (tần số Hz) chơi nối tiếp, bậc càng hiếm càng dài và cao.
 const REVEAL_NOTES = {
@@ -462,7 +464,7 @@ const state = {
   collection: {},       // bộ sưu tập: { [id]: { count, shiny, first } }
   history: [],          // lịch sử quay, mới nhất trước
   saveFailed: false,    // true nếu không lưu được vào localStorage
-  view: "case",         // trang đang xem: "case" hoặc "collection"
+  view: "case",         // trang đang xem: "case", "collection" hoặc "custom"
   resultAgain: null,    // nút "Open again" trong popup kết quả sẽ chạy hàm này
 };
 
@@ -554,6 +556,7 @@ function updateSpinButton(label) {
   $("btn-contents").disabled = empty;
   if (label || !state.spinning) btn.textContent = label || "Open case";
   $("spin-hint").textContent = empty && !state.spinning ? "Select at least one generation to open the case." : "";
+  if (custom.ready) renderCustomControls(); // đang quay ở trang này thì nút quay trang Custom cũng khóa
 }
 
 function onSelectionChanged() {
@@ -789,11 +792,13 @@ function playReveal(rarity, shiny) {
 const ICON_SOUND_ON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>`;
 const ICON_SOUND_OFF = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m23 9-6 6M17 9l6 6"/></svg>`;
 
+// Nút Sound có ở cả trang Case và trang Custom (class .btn-sound).
 function renderSoundButton() {
-  const btn = $("btn-sound");
-  btn.innerHTML = sound.muted ? `${ICON_SOUND_OFF} Muted` : `${ICON_SOUND_ON} Sound`;
-  btn.setAttribute("aria-pressed", String(!sound.muted));
-  btn.title = sound.muted ? "Turn sound on" : "Mute";
+  for (const btn of document.querySelectorAll(".btn-sound")) {
+    btn.innerHTML = sound.muted ? `${ICON_SOUND_OFF} Muted` : `${ICON_SOUND_ON} Sound`;
+    btn.setAttribute("aria-pressed", String(!sound.muted));
+    btn.title = sound.muted ? "Turn sound on" : "Mute";
+  }
 }
 
 function toggleSound() {
@@ -1095,16 +1100,18 @@ function locateInCollection(id) {
   tile.classList.add("is-located");
 }
 
+const VIEWS = ["case", "collection", "custom"];
+
 function showView(view) {
   state.view = view;
-  $("view-case").hidden = view !== "case";
-  $("view-collection").hidden = view !== "collection";
+  for (const v of VIEWS) $(`view-${v}`).hidden = view !== v;
   for (const tab of document.querySelectorAll(".tab")) {
     const active = tab.dataset.view === view;
     tab.classList.toggle("is-active", active);
     tab.setAttribute("aria-selected", String(active));
   }
   if (view === "collection") renderCollection();
+  if (view === "custom") showCustomMode(); // trang vừa hiện ra mới đo được kích thước để căn dải quay
   window.scrollTo(0, 0);
 }
 
@@ -1307,6 +1314,184 @@ async function spin({ quick = false } = {}) {
   showResultModal(result, { isNew, count: entry.count, groups });
 }
 
+// =====================================================================
+// TRANG CUSTOM: khung chung cho các chế độ quay vui
+// =====================================================================
+
+// Mỗi chế độ là một đối tượng, đăng ký bằng registerCustomMode({...}). Thêm chế độ mới chỉ cần
+// đăng ký thêm một mục — thanh chọn chế độ, nút quay, phím Space và panel "How it works" tự có.
+//   key            mã chế độ (lưu trong localStorage và lịch sử quay)
+//   name, desc     tên và mô tả một dòng trên thanh chọn chế độ
+//   icon           SVG nhỏ cạnh tên
+//   rules          các dòng trong panel "How it works"
+//   spinLabel      chữ trên nút quay (mặc định "Spin")
+//   mount(stage)   vẽ giao diện vào khung riêng của chế độ (chạy một lần)
+//   onShow()       chế độ vừa hiện ra (chọn chế độ / mở tab Custom)          — tuỳ chọn
+//   onPoolChanged() đổi gen ở trang Custom, custom.pool đã cập nhật           — tuỳ chọn
+//   emptyHint()    câu báo vì sao chưa quay được, "" nếu quay được           — tuỳ chọn
+//   spin({ quick }) quay một lần; trả về Promise xong khi hiện popup kết quả
+//   realign()      căn lại hiệu ứng khi đổi cỡ cửa sổ                       — tuỳ chọn
+const CUSTOM_MODES = [];
+
+const custom = {
+  gens: new Set(),  // gen đã chọn ở trang Custom
+  pool: [],         // Pokémon thuộc các gen đó (đã gắn độ hiếm), dùng chung cho mọi chế độ
+  active: null,     // chế độ đang chọn
+  ready: false,     // true khi trang Custom đã dựng xong
+};
+
+function registerCustomMode(mode) {
+  CUSTOM_MODES.push(mode);
+  if (!custom.ready) return; // initCustom sẽ dựng các chế độ đăng ký trước đó
+  mountCustomMode(mode);
+  renderModeBar();
+  if (!custom.active) selectCustomMode(mode.key, { save: false });
+}
+
+function mountCustomMode(mode) {
+  const panel = document.createElement("section");
+  panel.className = "mode-panel";
+  panel.id = `mode-${mode.key}`;
+  panel.setAttribute("role", "tabpanel");
+  panel.setAttribute("aria-label", mode.name);
+  panel.hidden = true;
+  $("mode-stage").appendChild(panel);
+  mode.root = panel;
+  mode.mount(panel);
+}
+
+function renderModeBar() {
+  $("mode-bar").innerHTML = CUSTOM_MODES.map((m) => `
+    <button type="button" class="mode-btn" role="tab" data-mode="${m.key}" aria-controls="mode-${m.key}"
+      aria-selected="${m === custom.active}">
+      <span class="mode-icon" aria-hidden="true">${m.icon || ""}</span>
+      <span class="mode-name">${m.name}</span>
+      <span class="mode-desc">${m.desc}</span>
+    </button>`).join("");
+  renderCustomControls();
+}
+
+function selectCustomMode(key, { save = true } = {}) {
+  const mode = CUSTOM_MODES.find((m) => m.key === key);
+  if (!mode || state.spinning) return;
+  custom.active = mode;
+  for (const m of CUSTOM_MODES) m.root.hidden = m !== mode;
+  for (const btn of $("mode-bar").querySelectorAll(".mode-btn")) {
+    btn.setAttribute("aria-selected", String(btn.dataset.mode === key));
+  }
+  if (save) saveJson(STORAGE_KEY_CUSTOM_MODE, key);
+  $("mode-rules-name").textContent = mode.name;
+  $("mode-rule-list").innerHTML = (mode.rules || []).map((r) => `<li>${r}</li>`).join("");
+  if (state.view === "custom") showCustomMode();
+  renderCustomControls();
+}
+
+// Tab Custom hoặc chế độ vừa hiện ra.
+function showCustomMode() {
+  const mode = custom.active;
+  if (!mode) return;
+  if (mode.onShow) mode.onShow();
+  if (mode.realign) mode.realign();
+}
+
+// Nút quay của trang Custom. Khóa quay dùng chung với trang Case (state.spinning).
+// label: chữ hiện trên nút trong lúc quay (vd. "Spinning…").
+function renderCustomControls(label) {
+  const mode = custom.active;
+  const hint = mode ? (mode.emptyHint ? mode.emptyHint() : "") : "No modes available yet.";
+  const blocked = state.spinning || Boolean(hint);
+  const btn = $("custom-spin");
+  btn.disabled = blocked;
+  $("custom-quick").disabled = blocked;
+  if (label || !state.spinning) btn.textContent = label || (mode && mode.spinLabel) || "Spin";
+  $("custom-hint").textContent = state.spinning ? "" : hint;
+  for (const b of $("mode-bar").querySelectorAll(".mode-btn")) b.disabled = state.spinning;
+}
+
+// Bắt đầu / kết thúc một lượt quay của chế độ Custom (khóa cả nút quay của trang Case).
+function setCustomSpinning(on, label) {
+  state.spinning = on;
+  updateSpinButton();
+  renderCustomControls(label);
+}
+
+function runCustomSpin({ quick = false } = {}) {
+  const mode = custom.active;
+  if (!mode || state.spinning || (mode.emptyHint && mode.emptyHint())) return;
+  return mode.spin({ quick });
+}
+
+function onCustomGensChanged() {
+  saveSelectedGens(custom.gens, STORAGE_KEY_CUSTOM_GENS);
+  updateCustomPool();
+}
+
+function updateCustomPool() {
+  custom.pool = filterByGens(state.pokemon, custom.gens);
+  $("custom-pool-count").textContent = custom.pool.length;
+  for (const m of CUSTOM_MODES) if (m.onPoolChanged) m.onPoolChanged();
+  renderCustomControls();
+}
+
+function initCustom() {
+  custom.gens = loadSelectedGens(STORAGE_KEY_CUSTOM_GENS);
+  const grid = $("custom-gen-grid");
+  buildGenGrid({ grid, selected: custom.gens, onChange: onCustomGensChanged });
+  $("custom-all").addEventListener("click", () => {
+    for (const key of allSourceKeys()) custom.gens.add(key);
+    syncCheckboxes(grid, custom.gens);
+    onCustomGensChanged();
+  });
+  $("custom-none").addEventListener("click", () => {
+    custom.gens.clear();
+    syncCheckboxes(grid, custom.gens);
+    onCustomGensChanged();
+  });
+
+  custom.ready = true;
+  for (const m of CUSTOM_MODES) mountCustomMode(m);
+  renderModeBar();
+  updateCustomPool();
+  const saved = loadJson(STORAGE_KEY_CUSTOM_MODE, null, (v) => typeof v === "string");
+  const first = CUSTOM_MODES.find((m) => m.key === saved) || CUSTOM_MODES[0];
+  if (first) selectCustomMode(first.key, { save: false });
+
+  $("mode-bar").addEventListener("click", (e) => {
+    const btn = e.target.closest(".mode-btn");
+    if (btn) selectCustomMode(btn.dataset.mode);
+  });
+  $("custom-spin").addEventListener("click", () => runCustomSpin());
+  $("custom-quick").addEventListener("click", () => runCustomSpin({ quick: true }));
+}
+
+// =====================================================================
+// CHẾ ĐỘ CUSTOM: Type Roulette
+// =====================================================================
+
+const ICON_WHEEL = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V5M12 13l6.9 4M12 13l-6.9 4M12 2v3"/></svg>`;
+
+// Giai đoạn 0: mới có khung, bánh xe sẽ thêm ở giai đoạn 1.
+registerCustomMode({
+  key: "type-roulette",
+  name: "Type Roulette",
+  desc: "Spin the wheel for a type, then open a case of only that type",
+  icon: ICON_WHEEL,
+  spinLabel: "Spin the wheel",
+  rules: [
+    "The wheel holds every type that has Pokémon in your selected generations. Each type has the same chance.",
+    "Dual-type Pokémon count for both types: Gyarados can drop from Water or Flying.",
+    "A case of only that type opens next, with the same tier odds as the Case page.",
+    "Shiny is rolled separately: 1 in 100.",
+  ],
+  mount(stage) {
+    stage.innerHTML = `<p class="mode-placeholder">The type wheel is being built. It will appear here in the next update.</p>`;
+  },
+  emptyHint() {
+    return "Type Roulette isn't ready yet.";
+  },
+  spin() {},
+});
+
 function init() {
   if (typeof POKEMON_DATA === "undefined") {
     document.querySelector("main").innerHTML =
@@ -1332,6 +1517,7 @@ function init() {
   updateCollectionTab();
 
   renderIdleReel();
+  initCustom();
 
   $("btn-all").addEventListener("click", () => {
     for (const key of allSourceKeys()) state.selectedGens.add(key);
@@ -1347,12 +1533,15 @@ function init() {
 
   $("btn-spin").addEventListener("click", () => spin());
   $("btn-quick").addEventListener("click", () => spin({ quick: true }));
-  $("btn-sound").addEventListener("click", toggleSound);
+  for (const btn of document.querySelectorAll(".btn-sound")) btn.addEventListener("click", toggleSound);
   renderSoundButton();
   let resizeTimer;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => realignReel(), 100);
+    resizeTimer = setTimeout(() => {
+      realignReel();
+      if (state.view === "custom" && custom.active && custom.active.realign) custom.active.realign();
+    }, 100);
   });
 
   // Danh sách nội dung hòm
@@ -1375,7 +1564,8 @@ function init() {
     state.resultAgain();
   });
 
-  // Phím Space: mở hòm ở trang Case, hoặc "Open again" khi đang xem popup kết quả.
+  // Phím Space: mở hòm ở trang Case, quay chế độ đang chọn ở trang Custom,
+  // hoặc "Open again" khi đang xem popup kết quả (quay lại đúng chế độ vừa ra kết quả).
   // Bấm giống hệt bấm nút (nút đang khóa thì không làm gì).
   document.addEventListener("keydown", (e) => {
     if (e.code !== "Space" || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
@@ -1383,7 +1573,7 @@ function init() {
     if (e.target.closest("button, a, input, select, textarea, summary, [contenteditable]")) return;
     let btn = null;
     if (resultModal.open) btn = $("result-again");
-    else if (state.view === "case" && !document.querySelector("dialog[open]")) btn = $("btn-spin");
+    else if (!document.querySelector("dialog[open]")) btn = { case: $("btn-spin"), custom: $("custom-spin") }[state.view] || null;
     if (!btn) return;
     e.preventDefault(); // không cuộn trang
     if (!btn.disabled) btn.click();

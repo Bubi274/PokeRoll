@@ -757,7 +757,7 @@ button.mini:focus-visible {
   .logo { font-size: 1.7rem; }
   .logo-mark { width: 26px; height: 26px; }
   .logo-mark svg { width: 15px; height: 15px; }
-  .tabs { gap: 18px; }
+  .tabs { gap: 14px; padding: 0 8px; }
   .tab { font-size: 0.78rem; gap: 6px; }
 
   .container { padding: 16px var(--page-gutter) 32px; gap: 14px; }
@@ -2139,4 +2139,129 @@ button.mini:focus-visible {
   .hist-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.62rem; }
   .hist-rarity { align-self: end; justify-self: end; }
   .hist-time { align-self: start; font-size: 0.62rem; }
+}
+
+/* ===== Trang Custom ===== */
+
+/* Thanh chọn chế độ: mỗi chế độ đã đăng ký là một nút; nhiều chế độ thì cuộn ngang */
+.mode-bar {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 2px;
+}
+
+.mode-btn {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "icon name" "icon desc";
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 1px;
+  flex: 0 1 380px;
+  min-width: 250px;
+  padding: 11px 16px 11px 11px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mode-btn:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.18); }
+.mode-btn:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+.mode-btn:disabled { cursor: not-allowed; }
+.mode-btn:disabled:not([aria-selected="true"]) { opacity: 0.5; }
+
+.mode-icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--muted);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+.mode-name { grid-area: name; font-family: var(--font-display); font-size: 1rem; font-weight: 600; }
+.mode-desc { grid-area: desc; font-size: 0.8rem; color: var(--muted); }
+
+/* Chế độ đang chọn: viền và biểu tượng màu hổ phách, giống tab đang mở */
+.mode-btn[aria-selected="true"] {
+  background: rgba(255, 184, 46, 0.06);
+  border-color: var(--amber);
+}
+.mode-btn[aria-selected="true"] .mode-icon {
+  color: var(--amber);
+  border-color: var(--amber);
+  background: rgba(255, 184, 46, 0.1);
+}
+
+.mode-stage, .mode-panel { min-width: 0; }
+.mode-panel[hidden] { display: none; }
+
+/* Chỗ trống tạm cho chế độ chưa có giao diện */
+.mode-placeholder {
+  margin: 0;
+  padding: 72px 16px;
+  text-align: center;
+  color: var(--muted);
+  background: #0d1117;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+}
+
+/* Nút quay trang Custom: biểu tượng bánh xe thay cho ổ khóa */
+#custom-spin::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='8'/%3E%3Cpath d='M12 13V5M12 13l6.9 4M12 13l-6.9 4M12 2v3'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='8'/%3E%3Cpath d='M12 13V5M12 13l6.9 4M12 13l-6.9 4M12 2v3'/%3E%3C/svg%3E");
+}
+#custom-quick svg { color: var(--amber); }
+
+/* Panel "How it works": luật của chế độ đang chọn */
+.mode-rule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.mode-rule-list li {
+  position: relative;
+  padding: 10px 14px 10px 30px;
+  font-size: 0.88rem;
+  background: var(--bg-2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius);
+}
+.mode-rule-list li::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: calc(10px + 0.5em);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+@media (min-width: 1024px) {
+  .mode-rules { display: flex; flex-direction: column; }
+}
+
+/* Điện thoại nhỏ: 3 tab không đủ chỗ → bỏ biểu tượng, giữ chữ */
+@media (max-width: 400px) {
+  .tab-icon { display: none; }
+}
+
+@media (max-width: 480px) {
+  .mode-btn { min-width: 230px; padding: 9px 12px 9px 9px; column-gap: 10px; }
+  .mode-icon { width: 34px; height: 34px; }
+  .mode-desc { font-size: 0.74rem; }
+  .mode-placeholder { padding: 48px 16px; }
+  .mode-rule-list li { font-size: 0.82rem; padding: 9px 12px 9px 26px; }
+  .mode-rule-list li::before { left: 11px; }
 }
