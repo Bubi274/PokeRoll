@@ -228,6 +228,14 @@ function recordDrop(collection, history, result, time = Date.now()) {
   return entry;
 }
 
+// Tiến độ mỗi độ hiếm, hiếm nhất trước: [{ key, name, owned, total }]
+function rarityProgress(pokemon, collection) {
+  return [...RARITIES].reverse().map(({ key, name }) => {
+    const list = pokemon.filter((p) => p.rarity === key);
+    return { key, name, total: list.length, owned: list.filter((p) => collection[p.id]).length };
+  });
+}
+
 // Tiến độ mỗi gen: [{ gen, region, owned, total }]
 function genProgress(pokemon, collection) {
   return GENS.map(({ gen, region }) => {
@@ -886,6 +894,13 @@ function renderCollection() {
     stat("Gold collected", `${goldOwned}<small>/${golds.length}</small>`, pct(goldOwned, golds.length));
   $("save-warning").hidden = !state.saveFailed;
 
+  const activeRarity = $("f-rarity").value;
+  $("rarity-progress").innerHTML = rarityProgress(state.pokemon, col).map((r) => `
+    <button type="button" class="rp r-${r.key}${r.key === activeRarity ? " is-active" : ""}${r.owned === r.total ? " is-done" : ""}" data-rarity="${r.key}">
+      <span class="rp-top"><span class="rp-name">${r.name}</span><span class="rp-count"><b>${r.owned}</b>/${r.total}</span></span>
+      <span class="bar"><span style="width:${pct(r.owned, r.total)}%"></span></span>
+    </button>`).join("");
+
   const activeGen = $("f-gen").value;
   $("gen-progress").innerHTML = genProgress(state.pokemon, col).map((g) => `
     <button type="button" class="gp${String(g.gen) === activeGen ? " is-active" : ""}${g.owned === g.total ? " is-done" : ""}" data-gen="${g.gen}">
@@ -1249,6 +1264,13 @@ function init() {
     f.value = f.value === card.dataset.gen ? "all" : card.dataset.gen; // bấm lần nữa để bỏ lọc
     renderCollection();
   });
+  $("rarity-progress").addEventListener("click", (e) => {
+    const card = e.target.closest(".rp");
+    if (!card) return;
+    const f = $("f-rarity");
+    f.value = f.value === card.dataset.rarity ? "all" : card.dataset.rarity; // bấm lần nữa để bỏ lọc
+    renderCollection();
+  });
   $("btn-clear").addEventListener("click", clearData);
 
   // Bấm vào bất kỳ Pokémon nào (danh sách hòm, recent drops, bộ sưu tập, lịch sử) → xem chi tiết
@@ -1271,5 +1293,5 @@ if (typeof document !== "undefined") {
 } else if (typeof module !== "undefined") {
   module.exports = { RARITIES, SHINY_CHANCE, getRarity, filterByGens, groupByRarity,
     rollRarityKey, resolveRarity, effectiveChances, rollOnce, buildReelItems, simulateRolls,
-    recordDrop, genProgress, filterCollection, matchesSearch, sortCollection, dropOdds, oneIn };
+    recordDrop, genProgress, filterCollection, matchesSearch, sortCollection, dropOdds, oneIn, rarityProgress };
 }
