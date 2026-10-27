@@ -1,0 +1,15 @@
+// File này được sinh tự động bởi scripts/build-special.js — đừng sửa tay.
+// Nguồn: file mod trong special-src/. Ngày tạo: 2026-10-27
+const SPECIAL_GROUPS = [
+  {"key":"kazeran","name":"Kazeran","title":"Kazeran Eeveelutions","author":"Kazerio","version":"1.6.1","url":"https://modrinth.com/datapack/kazeran-eeveelutions","license":"CC-BY-NC-4.0"}
+];
+const SPECIAL_DATA = [
+  {"id":"kazeran-vaporeon","name":"Kazeran Vaporeon","gen":"kazeran","group":"kazeran","baseId":134,"baseName":"Vaporeon","types":["water","fairy"],"bst":525,"isLegendary":false,"isMythical":false,"image":"images/special/kazeran-vaporeon.gif","evolution":{"how":"Use a Water Gem on Eevee","conditions":["While Eevee holds a Fairy Feather"]}},
+  {"id":"kazeran-jolteon","name":"Kazeran Jolteon","gen":"kazeran","group":"kazeran","baseId":135,"baseName":"Jolteon","types":["electric","ground"],"bst":525,"isLegendary":false,"isMythical":false,"image":"images/special/kazeran-jolteon.gif","evolution":{"how":"Use an Electric Gem on Eevee","conditions":["In a Desert biome (where Desert Pyramids generate)"]}},
+  {"id":"kazeran-flareon","name":"Kazeran Flareon","gen":"kazeran","group":"kazeran","baseId":136,"baseName":"Flareon","types":["fire","dragon"],"bst":525,"isLegendary":false,"isMythical":false,"image":"images/special/kazeran-flareon.gif","evolution":{"how":"Use a Fire Gem on Eevee","conditions":["While Eevee holds a Dragon Scale"]}},
+  {"id":"kazeran-espeon","name":"Kazeran Espeon","gen":"kazeran","group":"kazeran","baseId":196,"baseName":"Espeon","types":["psychic","steel"],"bst":525,"isLegendary":false,"isMythical":false,"image":"images/special/kazeran-espeon.gif","evolution":{"how":"Use a Metal Coat on Eevee","conditions":["During the day","160+ friendship"]}},
+  {"id":"kazeran-umbreon","name":"Kazeran Umbreon","gen":"kazeran","group":"kazeran","baseId":197,"baseName":"Umbreon","types":["dark","flying"],"bst":525,"isLegendary":false,"isMythical":false,"image":"images/special/kazeran-umbreon.gif","evolution":{"how":"Use a Sun Stone on Eevee","conditions":["At night","160+ friendship"]}},
+  {"id":"kazeran-leafeon","name":"Kazeran Leafeon","gen":"kazeran","group":"kazeran","baseId":470,"baseName":"Leafeon","types":["grass","ghost"],"bst":525,"isLegendary":false,"isMythical":false,"image":"images/special/kazeran-leafeon.gif","evolution":{"how":"Use a Dusk Stone on Eevee","conditions":["In a Dark Forest biome (where Woodland Mansions generate)"]}},
+  {"id":"kazeran-glaceon","name":"Kazeran Glaceon","gen":"kazeran","group":"kazeran","baseId":471,"baseName":"Glaceon","types":["ice","fire"],"bst":525,"isLegendary":false,"isMythical":false,"image":"images/special/kazeran-glaceon.gif","evolution":{"how":"Use an Ice Gem on Eevee","conditions":["In the Nether"]}},
+  {"id":"kazeran-sylveon","name":"Kazeran Sylveon","gen":"kazeran","group":"kazeran","baseId":700,"baseName":"Sylveon","types":["fairy","poison"],"bst":525,"isLegendary":false,"isMythical":false,"image":"images/special/kazeran-sylveon.gif","evolution":{"how":"Use a Toxic Orb on Eevee","conditions":["160+ friendship","Eevee knows a Fairy-type move"]}}
+];

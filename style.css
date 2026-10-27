@@ -682,6 +682,7 @@ button.mini:focus-visible {
 }
 
 .gen-option { cursor: pointer; }
+.gen-option.is-special { grid-column: 1 / -1; } /* nhóm Special nằm riêng một hàng dưới 9 gen */
 
 /* Ẩn checkbox gốc nhưng vẫn dùng được bằng bàn phím */
 .gen-option input {
@@ -1564,6 +1565,22 @@ button.mini:focus-visible {
 .modal-credit a { color: #8fb4ff; }
 
 .spawn-link { display: inline-block; font-size: 0.84rem; }
+
+/* Cách tiến hóa (Pokémon Special) — cùng kiểu khung với mục nơi xuất hiện */
+.evo {
+  padding: 11px 13px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.86rem;
+}
+.evo-how { margin: 0 0 6px; font-weight: 600; }
+.evo-list { margin: 0; padding-left: 18px; color: var(--text); }
+.evo-list li + li { margin-top: 3px; }
+.evo-list li::marker { color: var(--muted); }
+
+/* Ảnh GIF của Pokémon Special: ảnh to thu nhỏ lại nên làm mịn thay vì giữ pixel như sprite 96px */
+.mini-img[src$=".gif"] { image-rendering: auto; object-fit: contain; }
 
 .modal-credit {
   margin: 16px 8px 0;

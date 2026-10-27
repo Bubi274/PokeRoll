@@ -16,6 +16,11 @@ const GENS = [
   { gen: 9, region: "Paldea" },
 ];
 
+// Nhóm "Special": Pokémon custom từ addon (dữ liệu ở special.js, tạo bằng scripts/build-special.js).
+// Mỗi nhóm là một ô chọn riêng; Pokémon trong nhóm có gen = key của nhóm (vd "kazeran") và id dạng chữ.
+const SPECIAL_GROUP_LIST = typeof SPECIAL_GROUPS !== "undefined" ? SPECIAL_GROUPS : [];
+const SPECIAL_POKEMON = typeof SPECIAL_DATA !== "undefined" ? SPECIAL_DATA : [];
+
 // Thứ tự từ thấp đến cao. chance = tỉ lệ % kiểu CS2.
 const RARITIES = [
   { key: "blue",   name: "Blue",   rule: "Base stat total < 400",   chance: 79.92 },
@@ -244,11 +249,26 @@ function genProgress(pokemon, collection) {
   });
 }
 
+// Tiến độ mỗi nhóm Special: [{ key, name, owned, total }]
+function specialProgress(pokemon, collection, groups = SPECIAL_GROUP_LIST) {
+  return groups.map(({ key, name }) => {
+    const list = pokemon.filter((p) => p.group === key);
+    return { key, name, total: list.length, owned: list.filter((p) => collection[p.id]).length };
+  });
+}
+
+const isSpecial = (p) => Boolean(p.group);
+
+// Id trong localStorage / thuộc tính data-* luôn là chữ: "25" → 25 (Pokédex), "kazeran-vaporeon" giữ nguyên.
+function parseId(raw) {
+  return /^\d+$/.test(String(raw)) ? Number(raw) : String(raw);
+}
+
 // Lọc danh sách cho trang bộ sưu tập. filters = { gen, rarity, status } ("all" = không lọc)
 function filterCollection(pokemon, collection, filters) {
   return pokemon.filter((p) => {
     const entry = collection[p.id];
-    if (filters.gen !== "all" && p.gen !== Number(filters.gen)) return false;
+    if (filters.gen !== "all" && String(p.gen) !== filters.gen) return false;
     if (filters.rarity !== "all" && p.rarity !== filters.rarity) return false;
     if (filters.status === "owned" && !entry) return false;
     if (filters.status === "missing" && entry) return false;
@@ -263,12 +283,13 @@ const foldText = (str) => str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
 
 // Ô tìm kiếm trong bộ sưu tập. Mỗi từ gõ vào phải khớp một trong:
 // tên (một phần tên), số Pokédex (đúng số, có thể gõ kèm # và số 0 ở đầu), hệ (phần đầu tên hệ).
+// Pokémon Special khớp theo số Pokédex của dạng gốc (gõ "134" ra cả Kazeran Vaporeon).
 // Ví dụ: "pika", "25", "#0025", "fire", "fire flying".
 function matchesSearch(p, query) {
   const terms = foldText(query).split(/\s+/).filter(Boolean);
   return terms.every((t) => {
     const num = t.replace(/^#/, "");
-    if (/^\d+$/.test(num)) return p.id === Number(num);
+    if (/^\d+$/.test(num)) return p.id === Number(num) || p.baseId === Number(num);
     return foldText(p.name).includes(t) || p.types.some((type) => type.startsWith(t));
   });
 }
@@ -276,14 +297,16 @@ function matchesSearch(p, query) {
 // Sắp xếp danh sách bộ sưu tập (trả về mảng mới, không sửa mảng gốc).
 // sort: "dex" = số Pokédex tăng dần, "rarity" = hiếm nhất trước (Gold → Blue),
 //       "count" = nhiều bản nhất trước (chưa có = 0 bản, nằm cuối). Bằng nhau thì xếp theo số Pokédex.
+// Pokémon Special xếp sau #1025 (sort ổn định nên giữ thứ tự trong special.js).
 function sortCollection(list, collection, sort) {
   const rank = (p) => RARITIES.findIndex((r) => r.key === p.rarity);
   const copies = (p) => (collection[p.id] ? collection[p.id].count : 0);
+  const dexOrder = (p) => (typeof p.id === "number" ? p.id : Infinity);
   const compare = {
     rarity: (a, b) => rank(b) - rank(a),
     count: (a, b) => copies(b) - copies(a),
   }[sort] || (() => 0);
-  return [...list].sort((a, b) => compare(a, b) || a.id - b.id);
+  return [...list].sort((a, b) => compare(a, b) || dexOrder(a) - dexOrder(b) || 0);
 }
 
 function artworkUrl(id, shiny) {
@@ -298,8 +321,31 @@ function spriteUrl(id, shiny = false) {
   return shiny ? `${LOCAL_SPRITE}/shiny/${id}.png` : `${LOCAL_SPRITE}/${id}.png`;
 }
 
+// Pokémon Special chỉ có một ảnh GIF (không có ảnh shiny riêng) — dùng cho cả ảnh lớn lẫn ảnh nhỏ.
+function imageUrl(p, shiny) {
+  return isSpecial(p) ? p.image : artworkUrl(p.id, shiny);
+}
+
+function thumbUrl(p, shiny = false) {
+  return isSpecial(p) ? p.image : spriteUrl(p.id, shiny);
+}
+
 function rarityInfo(key) {
   return RARITIES.find((r) => r.key === key);
+}
+
+function specialGroup(key) {
+  return SPECIAL_GROUP_LIST.find((g) => g.key === key);
+}
+
+// Nhãn số ở góc thẻ: "#0025", hoặc "Special" cho Pokémon custom.
+function dexLabel(p) {
+  return isSpecial(p) ? "Special" : `#${pad4(p.id)}`;
+}
+
+// "Gen 1 · Kanto" hoặc "Special · Kazeran"
+function sourceLabel(p) {
+  return isSpecial(p) ? `Special · ${specialGroup(p.group).name}` : `Gen ${p.gen} · ${regionOf(p)}`;
 }
 
 // Mô phỏng n lần quay và in bảng tỉ lệ ra console để so với tỉ lệ lý thuyết.
@@ -356,10 +402,17 @@ function saveJson(key, value) {
   }
 }
 
+// Tất cả nhóm có thể chọn vào hòm: số gen 1–9 và key các nhóm Special.
+function allSourceKeys() {
+  return [...GENS.map((g) => g.gen), ...SPECIAL_GROUP_LIST.map((g) => g.key)];
+}
+
+// Người đã lưu lựa chọn thì giữ nguyên (nhóm Special mới thêm sẽ chưa được chọn).
 function loadSelectedGens() {
   const saved = loadJson(STORAGE_KEY_GENS, null, Array.isArray);
-  if (saved) return new Set(saved.filter((g) => GENS.some((x) => x.gen === g)));
-  return new Set(GENS.map((g) => g.gen)); // mặc định: chọn tất cả
+  const valid = allSourceKeys();
+  if (saved) return new Set(saved.filter((g) => valid.includes(g)));
+  return new Set(valid); // mặc định: chọn tất cả, kể cả Special
 }
 
 function saveSelectedGens(gens) {
@@ -373,7 +426,7 @@ function loadCollection(validIds) {
   const raw = loadJson(STORAGE_KEY_COLLECTION, {}, isPlainObject);
   const clean = {};
   for (const [id, e] of Object.entries(raw)) {
-    if (validIds.has(Number(id)) && e && Number.isInteger(e.count) && e.count > 0) {
+    if (validIds.has(parseId(id)) && e && Number.isInteger(e.count) && e.count > 0) {
       clean[id] = { count: e.count, shiny: Number.isInteger(e.shiny) ? e.shiny : 0, first: e.first || 0 };
     }
   }
@@ -399,8 +452,9 @@ const escHtml = (str) => String(str ?? "").replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const state = {
-  pokemon: [],          // toàn bộ Pokémon (đã gắn sẵn độ hiếm)
-  byId: new Map(),      // tra Pokémon theo số Pokédex
+  pokemon: [],          // toàn bộ Pokémon, gồm cả Special (đã gắn sẵn độ hiếm)
+  dex: [],              // chỉ Pokédex chính #1–#1025 (để tính tiến độ X/1025)
+  byId: new Map(),      // tra Pokémon theo id (số Pokédex, hoặc id chữ của Special)
   selectedGens: new Set(),
   groups: groupByRarity([]), // Pokémon trong hòm hiện tại, chia theo độ hiếm
   spinning: false,
@@ -418,16 +472,22 @@ const pad4 = (id) => String(id).padStart(4, "0");
 function buildGenGrid() {
   const grid = $("gen-grid");
   grid.innerHTML = "";
-  for (const { gen, region } of GENS) {
-    const total = state.pokemon.filter((p) => p.gen === gen).length;
+  const count = (gen) => state.pokemon.filter((p) => p.gen === gen).length;
+  const options = [
+    ...GENS.map(({ gen, region }) => ({ gen, name: `Gen ${gen}`, region, note: `${count(gen)} Pokémon` })),
+    // Ô Special: "Kazeran · 8 Pokémon", dòng dưới ghi tên addon và tác giả
+    ...SPECIAL_GROUP_LIST.map((g) => ({ gen: g.key, name: "Special", region: `${g.name} · ${count(g.key)} Pokémon`,
+      note: `${g.title} by ${g.author}`, special: true })),
+  ];
+  for (const { gen, name, region, note, special } of options) {
     const label = document.createElement("label");
-    label.className = "gen-option";
+    label.className = `gen-option${special ? " is-special" : ""}`;
     label.innerHTML = `
       <input type="checkbox" value="${gen}">
       <span class="gen-card">
-        <span class="gen-name">Gen ${gen}</span>
+        <span class="gen-name">${name}</span>
         <span class="gen-region">${region}</span>
-        <span class="gen-count">${total} Pokémon</span>
+        <span class="gen-count">${note}</span>
       </span>`;
     const input = label.querySelector("input");
     input.checked = state.selectedGens.has(gen);
@@ -442,7 +502,7 @@ function buildGenGrid() {
 
 function syncCheckboxes() {
   for (const input of $("gen-grid").querySelectorAll("input")) {
-    input.checked = state.selectedGens.has(Number(input.value));
+    input.checked = state.selectedGens.has(parseId(input.value));
   }
 }
 
@@ -496,7 +556,14 @@ function onSelectionChanged() {
 // ----- Ảnh -----
 
 // Gắn ảnh Pokémon cho thẻ <img>: ảnh local → ảnh CDN → (shiny) ảnh thường trên CDN → ảnh dự phòng.
-function setPokemonImage(img, id, shiny) {
+// Pokémon Special: ảnh GIF trong images/special/ (shiny dùng chung ảnh thường) → ảnh dự phòng.
+function setPokemonImage(img, p, shiny) {
+  if (isSpecial(p)) {
+    img.onerror = () => { img.onerror = null; img.src = FALLBACK_IMG; };
+    img.src = p.image;
+    return;
+  }
+  const id = p.id;
   img.onerror = () => {
     if (!img.dataset.step) {
       img.dataset.step = "cdn";
@@ -526,18 +593,19 @@ function preloadImages(urls, timeoutMs) {
 
 function createCard(item) {
   const card = document.createElement("div");
-  card.className = `card r-${item.rarity}${item.shiny ? " is-shiny" : ""}`;
   const p = item.pokemon;
+  card.className = `card r-${item.rarity}${item.shiny ? " is-shiny" : ""}${isSpecial(p) ? " is-special" : ""}`;
+  if (isSpecial(p)) card.title = `${sourceLabel(p)} — base form #${p.baseId} ${p.baseName}`;
   card.innerHTML = `
     <span class="card-top">
-      <span class="card-id">#${pad4(p.id)}</span>
+      <span class="card-id">${dexLabel(p)}</span>
       <span class="card-type" style="--t:${TYPE_COLORS[p.types[0]] || "#777"}">${p.types.join("/")}</span>
     </span>
     <img class="card-img" alt="" draggable="false">
     <span class="card-name">${p.name}</span>
     <span class="card-meta">BST ${p.bst}<span class="card-tier"> · ${rarityInfo(item.rarity).name}</span></span>
     ${item.shiny ? `<span class="card-shiny" title="Shiny">★</span>` : ""}`;
-  setPokemonImage(card.querySelector("img"), item.pokemon.id, item.shiny);
+  setPokemonImage(card.querySelector("img"), p, item.shiny);
   return card;
 }
 
@@ -754,6 +822,21 @@ function regionOf(p) {
   return GENS.find((g) => g.gen === p.gen).region;
 }
 
+// Dòng "Generation" trong popup; Pokémon Special thay bằng nhóm và dạng gốc.
+function originFacts(p) {
+  if (!isSpecial(p)) return `<div><dt>Generation</dt><dd>${sourceLabel(p)}</dd></div>`;
+  return `
+    <div><dt>Group</dt><dd>${sourceLabel(p)}</dd></div>
+    <div><dt>Base form</dt><dd>#${p.baseId} ${p.baseName}</dd></div>`;
+}
+
+// Mục cuối popup: nơi xuất hiện trong Cobbleverse, hoặc cách tiến hóa (Pokémon Special).
+function findSection(p) {
+  return isSpecial(p)
+    ? `<h3 class="detail-section">How to evolve</h3>${renderEvolutionSection(p)}`
+    : `<h3 class="detail-section">Where to find in Cobbleverse</h3>${renderSpawnSection(p)}`;
+}
+
 // Khung "1 in N": cơ hội ra đúng Pokémon này (và shiny, nếu có) trong hòm lúc quay.
 function oddsBlock(result, groups) {
   const { pokemon: p, rarity, shiny } = result;
@@ -788,7 +871,7 @@ function showResultModal(result, { isNew, count, groups = state.groups }) {
         <div class="slab-head">
           <span class="slab-tier">${rarityInfo(rarity).name}</span>
           ${shiny ? `<span class="slab-shiny">★ Shiny</span>` : ""}
-          <span class="slab-id">#${pad4(p.id)}</span>
+          <span class="slab-id">${dexLabel(p)}</span>
         </div>
         <div class="reveal${shiny ? " is-shiny" : ""}">
           <div class="reveal-rays"></div>
@@ -807,16 +890,15 @@ function showResultModal(result, { isNew, count, groups = state.groups }) {
         ${oddsBlock(result, groups)}
         ${downgraded ? `<div class="result-note">Rolled a higher tier with no Pokémon in this case — dropped to ${rarityInfo(rarity).name}.</div>` : ""}
         <dl class="facts">
-          <div><dt>Generation</dt><dd>Gen ${p.gen} · ${regionOf(p)}</dd></div>
+          ${originFacts(p)}
           <div><dt>Base stat total</dt><dd>${p.bst}</dd></div>
           <div><dt>In collection</dt><dd>×${count}</dd></div>
         </dl>
         ${tierLadder(rarity)}
-        <h3 class="detail-section">Where to find in Cobbleverse</h3>
-        ${renderSpawnSection(p)}
+        ${findSection(p)}
       </div>
     </div>`;
-  setPokemonImage($("result-body").querySelector("img"), p.id, shiny);
+  setPokemonImage($("result-body").querySelector("img"), p, shiny);
 
   $("result-again").disabled = poolSize() === 0;
   $("result-view").dataset.target = p.id; // nút "View in collection" biết cần tìm Pokémon nào
@@ -839,12 +921,12 @@ function miniTile(p, { shiny = false, count = 0, shinyCount = 0, missing = false
   return `
     <button type="button" class="mini r-${p.rarity}${missing ? " is-missing" : ""}" data-pokemon="${p.id}"${shiny ? ` data-shiny="1"` : ""}>
       <span class="mini-top">
-        <span class="mini-id">#${pad4(p.id)}</span>
+        <span class="mini-id">${dexLabel(p)}</span>
         ${shiny || shinyCount
           ? `<span class="mini-shiny">★${shinyCount > 1 ? shinyCount : ""}</span>`
           : `<span class="mini-tier">${missing ? "Missing" : rarityInfo(p.rarity).name}</span>`}
       </span>
-      <img class="mini-img" src="${spriteUrl(p.id, shiny)}" alt="" loading="lazy">
+      <img class="mini-img" src="${thumbUrl(p, shiny)}" alt="" loading="lazy">
       <span class="mini-foot">
         <span class="mini-name">${p.name}</span>
         ${count > 1 ? `<span class="mini-count">×${count}</span>` : ""}
@@ -862,9 +944,13 @@ function renderRecent() {
 
 // ----- Trang bộ sưu tập -----
 
+// Tab và thẻ "Pokédex" chỉ đếm Pokédex chính (X/1025); Special có tiến độ riêng.
+function dexOwned() {
+  return state.dex.filter((p) => state.collection[p.id]).length;
+}
+
 function updateCollectionTab() {
-  const owned = Object.keys(state.collection).length;
-  $("tab-collection-count").textContent = `${owned}/${state.pokemon.length}`;
+  $("tab-collection-count").textContent = `${dexOwned()}/${state.dex.length}`;
 }
 
 function collectionFilters() {
@@ -873,11 +959,11 @@ function collectionFilters() {
 
 function renderCollection() {
   const col = state.collection;
-  const owned = Object.keys(col).length;
-  const total = state.pokemon.length;
+  const owned = dexOwned();
+  const total = state.dex.length;
   const opened = Object.values(col).reduce((sum, e) => sum + e.count, 0);
   const shinies = Object.values(col).reduce((sum, e) => sum + e.shiny, 0);
-  const golds = state.pokemon.filter((p) => p.rarity === "gold");
+  const golds = state.dex.filter((p) => p.rarity === "gold");
   const goldOwned = golds.filter((p) => col[p.id]).length;
   const pct = (a, b) => (b ? (a / b) * 100 : 0);
 
@@ -895,7 +981,7 @@ function renderCollection() {
   $("save-warning").hidden = !state.saveFailed;
 
   const activeRarity = $("f-rarity").value;
-  $("rarity-progress").innerHTML = rarityProgress(state.pokemon, col).map((r) => `
+  $("rarity-progress").innerHTML = rarityProgress(state.dex, col).map((r) => `
     <button type="button" class="rp r-${r.key}${r.key === activeRarity ? " is-active" : ""}${r.owned === r.total ? " is-done" : ""}" data-rarity="${r.key}">
       <span class="rp-top"><span class="rp-name">${r.name}</span><span class="rp-count"><b>${r.owned}</b>/${r.total}</span></span>
       <span class="bar"><span style="width:${pct(r.owned, r.total)}%"></span></span>
@@ -905,6 +991,11 @@ function renderCollection() {
   $("gen-progress").innerHTML = genProgress(state.pokemon, col).map((g) => `
     <button type="button" class="gp${String(g.gen) === activeGen ? " is-active" : ""}${g.owned === g.total ? " is-done" : ""}" data-gen="${g.gen}">
       <span class="gp-top"><b>Gen ${g.gen}</b> <span class="gp-region">${g.region}</span></span>
+      <span class="gp-count">Owned ${g.owned}/${g.total}</span>
+      <span class="bar"><span style="width:${pct(g.owned, g.total)}%"></span></span>
+    </button>`).join("") + specialProgress(state.pokemon, col).map((g) => `
+    <button type="button" class="gp gp-special${g.key === activeGen ? " is-active" : ""}${g.owned === g.total ? " is-done" : ""}" data-gen="${g.key}">
+      <span class="gp-top"><b>Special</b> <span class="gp-region">${g.name}</span></span>
       <span class="gp-count">Owned ${g.owned}/${g.total}</span>
       <span class="bar"><span style="width:${pct(g.owned, g.total)}%"></span></span>
     </button>`).join("");
@@ -930,10 +1021,10 @@ function renderCollection() {
       return `
         <li>
           <button type="button" class="hist r-${h.rarity}" data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""}>
-            <span class="hist-thumb"><img class="mini-img" src="${spriteUrl(p.id, h.shiny)}" alt="" loading="lazy"></span>
+            <span class="hist-thumb"><img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy"></span>
             <span class="hist-main">
               <span class="hist-name">${p.name}${h.shiny ? ` <span class="mini-shiny">★ Shiny</span>` : ""}</span>
-              <span class="hist-meta">#${pad4(p.id)} · Gen ${p.gen} · BST ${p.bst}</span>
+              <span class="hist-meta">${isSpecial(p) ? sourceLabel(p) : `#${pad4(p.id)} · Gen ${p.gen}`} · BST ${p.bst}</span>
             </span>
             <span class="hist-rarity">${rarityInfo(h.rarity).name}</span>
             <time class="hist-time">${fmtTime(h.t)}</time>
@@ -1004,10 +1095,10 @@ function openContents() {
     if (list.length === 0) return "";
     const each = chances[r.key] / list.length;
     const tiles = list.map((p) => `
-      <button type="button" class="mini" data-pokemon="${p.id}" data-search="${p.name.toLowerCase()} ${p.id}">
-        <img class="mini-img" src="${spriteUrl(p.id)}" alt="" loading="lazy">
+      <button type="button" class="mini" data-pokemon="${p.id}" data-search="${p.name.toLowerCase()} ${p.baseId || p.id}">
+        <img class="mini-img" src="${thumbUrl(p)}" alt="" loading="lazy">
         <span class="mini-name">${p.name}</span>
-        <span class="mini-id">#${pad4(p.id)}</span>
+        <span class="mini-id">${dexLabel(p)}</span>
       </button>`).join("");
     return `
       <section class="contents-group r-${r.key}">
@@ -1083,6 +1174,26 @@ function renderSpawnSection(p) {
       Spawn odds & build guide on Cobbleverse Wiki ↗</a>`;
 }
 
+// Cách tiến hóa của Pokémon Special (dữ liệu lấy từ file mod, xem scripts/build-special.js).
+function renderEvolutionSection(p) {
+  const g = specialGroup(p.group);
+  return `
+    <div class="evo">
+      <p class="evo-how">${escHtml(p.evolution.how)}</p>
+      <ul class="evo-list">${p.evolution.conditions.map((c) => `<li>${escHtml(c)}</li>`).join("")}</ul>
+    </div>
+    <a class="spawn-link" href="${g.url}" target="_blank" rel="noopener">${escHtml(g.title)} on Modrinth ↗</a>`;
+}
+
+// Dòng nguồn dữ liệu cuối popup chi tiết.
+function detailCredit(p) {
+  if (!isSpecial(p)) {
+    return `Spawn data: <a href="${WIKI_URL}/" target="_blank" rel="noopener">Cobbleverse Wiki</a>`;
+  }
+  const g = specialGroup(p.group);
+  return `<a href="${g.url}" target="_blank" rel="noopener">${escHtml(g.title)}</a> by ${escHtml(g.author)}, licensed ${g.license}`;
+}
+
 function ownedLine(p) {
   const e = state.collection[p.id];
   if (!e) return `<div class="owned-line">Not collected yet</div>`;
@@ -1097,7 +1208,7 @@ function openPokemonDetail(p, shiny = false) {
         <div class="slab-head">
           <span class="slab-tier">${r.name}</span>
           ${shiny ? `<span class="slab-shiny">★ Shiny</span>` : ""}
-          <span class="slab-id">#${pad4(p.id)}</span>
+          <span class="slab-id">${dexLabel(p)}</span>
         </div>
         <div class="slab-art"><img class="detail-img" alt="${p.name}"></div>
         <div class="slab-foot">
@@ -1108,16 +1219,16 @@ function openPokemonDetail(p, shiny = false) {
       <div class="reveal-info">
         ${tierPanel(p.rarity, shiny)}
         <dl class="facts">
-          <div><dt>Generation</dt><dd>Gen ${p.gen} · ${regionOf(p)}</dd></div>
+          ${originFacts(p)}
           <div><dt>Base stat total</dt><dd>${p.bst}</dd></div>
         </dl>
         ${ownedLine(p)}
         ${tierLadder(p.rarity)}
-        <h3 class="detail-section">Where to find in Cobbleverse</h3>
-        ${renderSpawnSection(p)}
+        ${findSection(p)}
       </div>
     </div>`;
-  setPokemonImage($("detail-body").querySelector("img"), p.id, shiny);
+  $("detail-credit").innerHTML = detailCredit(p);
+  setPokemonImage($("detail-body").querySelector("img"), p, shiny);
   $("detail-modal").showModal();
   $("detail-body").parentElement.scrollTop = 0;
 }
@@ -1148,7 +1259,7 @@ async function spin({ quick = false } = {}) {
     audio(); // mở âm thanh ngay trong lúc bấm (trình duyệt chỉ cho phát tiếng sau thao tác của người dùng)
     // Chỉ chờ các thẻ thấy được lúc bắt đầu và lúc dừng; thẻ ở giữa tải trong lúc dải đang chạy.
     const visible = items.filter((_, i) => i < IDLE_REEL_SIZE || Math.abs(i - WIN_INDEX) <= 6);
-    const urls = [...new Set(visible.map((it) => artworkUrl(it.pokemon.id, it.shiny)))];
+    const urls = [...new Set(visible.map((it) => imageUrl(it.pokemon, it.shiny)))];
     await preloadImages(urls, PRELOAD_TIMEOUT_MS);
 
     renderReel(items);
@@ -1172,12 +1283,17 @@ function init() {
     return;
   }
 
-  state.pokemon = POKEMON_DATA.map((p) => ({ ...p, rarity: getRarity(p) }));
+  state.pokemon = [...POKEMON_DATA, ...SPECIAL_POKEMON].map((p) => ({ ...p, rarity: getRarity(p) }));
+  state.dex = state.pokemon.filter((p) => !isSpecial(p));
   state.byId = new Map(state.pokemon.map((p) => [p.id, p]));
   state.selectedGens = loadSelectedGens();
   const validIds = new Set(state.byId.keys());
   state.collection = loadCollection(validIds);
   state.history = loadHistory(validIds);
+
+  // Bộ lọc nhóm trong bộ sưu tập: thêm một mục cho mỗi nhóm Special
+  $("f-gen").insertAdjacentHTML("beforeend",
+    SPECIAL_GROUP_LIST.map((g) => `<option value="${g.key}">Special · ${g.name}</option>`).join(""));
 
   buildGenGrid();
   renderPoolStats();
@@ -1187,7 +1303,7 @@ function init() {
   renderIdleReel();
 
   $("btn-all").addEventListener("click", () => {
-    state.selectedGens = new Set(GENS.map((g) => g.gen));
+    state.selectedGens = new Set(allSourceKeys());
     syncCheckboxes();
     onSelectionChanged();
   });
@@ -1249,7 +1365,7 @@ function init() {
   $("btn-see-collection").addEventListener("click", () => showView("collection"));
   $("result-view").addEventListener("click", () => {
     resultModal.close();
-    locateInCollection(Number($("result-view").dataset.target));
+    locateInCollection(parseId($("result-view").dataset.target));
   });
 
   // Trang bộ sưu tập
@@ -1276,7 +1392,7 @@ function init() {
   // Bấm vào bất kỳ Pokémon nào (danh sách hòm, recent drops, bộ sưu tập, lịch sử) → xem chi tiết
   document.addEventListener("click", (e) => {
     const tile = e.target.closest("[data-pokemon]");
-    if (tile) openPokemonDetail(state.byId.get(Number(tile.dataset.pokemon)), tile.dataset.shiny === "1");
+    if (tile) openPokemonDetail(state.byId.get(parseId(tile.dataset.pokemon)), tile.dataset.shiny === "1");
   });
   // Ảnh nhỏ bị lỗi: ảnh local → ảnh CDN → ảnh dự phòng
   document.addEventListener("error", (e) => {
@@ -1293,5 +1409,6 @@ if (typeof document !== "undefined") {
 } else if (typeof module !== "undefined") {
   module.exports = { RARITIES, SHINY_CHANCE, getRarity, filterByGens, groupByRarity,
     rollRarityKey, resolveRarity, effectiveChances, rollOnce, buildReelItems, simulateRolls,
-    recordDrop, genProgress, filterCollection, matchesSearch, sortCollection, dropOdds, oneIn, rarityProgress };
+    recordDrop, genProgress, filterCollection, matchesSearch, sortCollection, dropOdds, oneIn, rarityProgress,
+    specialProgress, parseId };
 }
