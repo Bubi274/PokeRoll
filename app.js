@@ -934,12 +934,26 @@ function miniTile(p, { shiny = false, count = 0, shinyCount = 0, missing = false
     </button>`;
 }
 
+// Một dòng trong Recent drops: ảnh nhỏ, tên, số # (hoặc "Special"), vạch màu độ hiếm, ★ nếu shiny.
+function recentItem(h) {
+  const p = state.byId.get(h.id);
+  return `
+    <li>
+      <button type="button" class="recent-item r-${h.rarity}" data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""} title="${p.name}">
+        <img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy">
+        <span class="recent-name">${p.name}</span>
+        <span class="recent-id">${dexLabel(p)}</span>
+        ${h.shiny ? `<span class="recent-shiny" aria-label="Shiny">★</span>` : ""}
+      </button>
+    </li>`;
+}
+
+// Lịch sử lưu mới nhất trước → lượt mới nhất nằm trên cùng.
 function renderRecent() {
   const recent = state.history.slice(0, RECENT_DROPS);
-  $("recent-panel").hidden = recent.length === 0;
-  $("recent-row").innerHTML = recent
-    .map((h) => miniTile({ ...state.byId.get(h.id), rarity: h.rarity }, { shiny: h.shiny }))
-    .join("");
+  $("recent-row").innerHTML = recent.length
+    ? recent.map(recentItem).join("")
+    : `<li class="recent-empty">Chưa có lượt mở nào</li>`;
 }
 
 // ----- Trang bộ sưu tập -----

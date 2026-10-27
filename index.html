@@ -32,6 +32,9 @@
 
   <!-- ===== Trang mở hòm ===== -->
   <main class="container view" id="view-case">
+    <!-- Khu vực mở hòm + Recent drops: màn hình rộng xếp 2 cột 80/20, màn hình nhỏ xếp chồng -->
+    <div class="case-top">
+    <div class="case-stage">
     <!-- Dải thẻ quay -->
     <section class="reel" id="reel" aria-label="Case reel">
       <div class="reel-strip" id="reel-strip"></div>
@@ -56,18 +59,21 @@
       <p class="kbd-hint">Press <kbd>Space</kbd> to open</p>
       <p class="hint" id="spin-hint" aria-live="polite"></p>
     </div>
+    </div>
 
-    <!-- Những lần quay gần đây -->
-    <section class="panel" id="recent-panel" hidden aria-labelledby="recent-title">
+    <!-- Những lần quay gần đây (mới nhất ở trên) -->
+    <section class="panel recent-panel" id="recent-panel" aria-labelledby="recent-title">
       <div class="panel-head">
         <h2 id="recent-title">Recent drops</h2>
-        <button type="button" class="btn btn-ghost" id="btn-see-collection">View collection</button>
       </div>
-      <div class="recent-row" id="recent-row"></div>
+      <ol class="recent-row" id="recent-row"></ol>
+      <button type="button" class="btn btn-ghost recent-more" id="btn-see-collection">View collection</button>
     </section>
+    </div>
 
-    <!-- Chọn thế hệ -->
-    <section class="panel" aria-labelledby="gen-title">
+    <!-- Chọn thế hệ + hòm hiện tại: màn hình rộng xếp 2 cột, màn hình nhỏ xếp chồng -->
+    <div class="case-setup">
+    <section class="panel panel-gens" aria-labelledby="gen-title">
       <div class="panel-head">
         <div class="panel-title">
           <h2 id="gen-title">Select generations</h2>
@@ -82,7 +88,7 @@
     </section>
 
     <!-- Thống kê hòm hiện tại -->
-    <section class="panel" aria-labelledby="pool-title">
+    <section class="panel panel-pool" aria-labelledby="pool-title">
       <div class="panel-head">
         <div class="panel-title">
           <h2 id="pool-title">Current case</h2>
@@ -92,6 +98,7 @@
       </div>
       <ul class="rarity-list" id="rarity-list"></ul>
     </section>
+    </div>
   </main>
 
   <!-- ===== Trang bộ sưu tập ===== -->

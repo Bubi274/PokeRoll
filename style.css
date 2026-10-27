@@ -77,6 +77,10 @@
   --font-body: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
 
+  /* Khung nội dung chung cho header, trang Case và trang Collection — mọi khối dùng chung để thẳng mép */
+  --content-max: 1600px;    /* Đổi số này để chỉnh độ rộng trang */
+  --page-gutter: 32px;      /* khoảng cách hai bên mép màn hình (màn hình ≤760px: 16px) */
+
   --radius: 4px;
   --radius-lg: 8px;
 }
@@ -102,7 +106,7 @@ h1, h2 { margin: 0; }
 /* ===== Thanh đầu trang ===== */
 .topbar {
   position: relative;
-  padding: 22px 16px 14px;
+  padding: 22px var(--page-gutter) 14px;
   text-align: center;
 }
 
@@ -139,10 +143,11 @@ h1, h2 { margin: 0; }
   font-size: 0.82rem;
 }
 
-/* Dòng "Created by" ở góc phải, không làm lệch logo ở giữa */
+/* Dòng "Created by" ở góc phải, không làm lệch logo ở giữa.
+   Thẳng mép phải với khung nội dung: max(lề trang, phần dư hai bên khi màn hình rộng hơn --content-max) */
 .credit {
   position: absolute;
-  right: 28px;
+  right: max(var(--page-gutter), (100% - var(--content-max)) / 2);
   top: 50%;
   transform: translateY(-50%);
   margin: 0;
@@ -197,9 +202,9 @@ h1, h2 { margin: 0; }
 
 /* ===== Bố cục ===== */
 .container {
-  max-width: 1040px;
+  max-width: calc(var(--content-max) + 2 * var(--page-gutter));
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: 24px var(--page-gutter) 48px;
   display: grid;
   gap: 20px;
 }
@@ -207,8 +212,31 @@ h1, h2 { margin: 0; }
 /* Không cho nội dung rộng (vd. hàng Recent drops) kéo giãn cả trang */
 .container > * { min-width: 0; }
 
-/* Trang mở hòm: các panel hẹp hơn dải quay để dồn mắt vào dải quay */
-#view-case > .panel { width: 100%; max-width: 900px; justify-self: center; }
+/* Khu vực mở hòm (dải quay + nút) và Recent drops: màn hình nhỏ xếp chồng như cũ */
+.case-top,
+.case-stage { display: grid; gap: inherit; min-width: 0; }
+.case-stage > * { min-width: 0; }
+
+/* Khối "Select generations" + "Current case": màn hình nhỏ xếp chồng, khoảng cách bằng khoảng cách giữa các panel */
+.case-setup { display: grid; gap: inherit; min-width: 0; }
+.case-setup > .panel { min-width: 0; }
+
+/* Màn hình rộng: 2 cột 50/50, dải quay và Recent drops thẳng hàng với khối 2 cột */
+@media (min-width: 1024px) {
+  /* Hàng trên: khu vực mở hòm 80% | Recent drops 20%, cao bằng nhau, cùng mép với khối 2 cột bên dưới */
+  .case-top { grid-template-columns: 4fr 1fr; align-items: stretch; }
+  .case-setup { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .panel-gens { container-type: inline-size; } /* để lưới gen tự chuyển 2 cột khi cột hẹp */
+
+  /* Cột hẹp hơn trước: giữ tiêu đề và nút / số Pokémon trên cùng một hàng, dòng mô tả tự xuống dòng */
+  .case-setup .panel-head { flex-wrap: nowrap; align-items: flex-start; }
+  .case-setup .panel-title { flex: 1 1 auto; }
+  .case-setup .panel-head > :last-child { flex-shrink: 0; }
+
+  /* Bảng tỉ lệ giãn đều các hàng để lấp hết chiều cao panel */
+  .panel-pool { display: flex; flex-direction: column; }
+  .panel-pool .rarity-list { flex: 1; grid-auto-rows: 1fr; }
+}
 
 .panel {
   background: var(--glass);
@@ -553,16 +581,97 @@ h1, h2 { margin: 0; }
   100% { transform: scale(1.04); }
 }
 
-/* ===== Recent drops ===== */
+/* ===== Recent drops =====
+   Màn hình rộng: danh sách dọc trong cột hẹp, cuộn bên trong panel.
+   Màn hình nhỏ: hàng ngang cuộn được, nút "View collection" lên góc phải tiêu đề. */
+.recent-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "head more" "list list";
+  align-items: center;
+  column-gap: 12px;
+}
+.recent-panel > .panel-head { grid-area: head; margin-bottom: 0; }
+.recent-more { grid-area: more; }
+
 .recent-row {
+  grid-area: list;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 100px;
-  gap: 8px;
+  grid-auto-columns: 168px;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0 0 6px;
+  list-style: none;
   overflow-x: auto;
-  padding: 2px 2px 6px;
   scrollbar-width: thin;
   scrollbar-color: #3a4250 transparent;
+}
+
+/* Một lượt: ảnh | tên / số, ★ bên phải; vạch màu độ hiếm bên trái (màu lấy từ lớp r-*) */
+.recent-item {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-areas: "img name star" "img id star";
+  align-items: center;
+  column-gap: 9px;
+  width: 100%;
+  padding: 5px 9px 5px 10px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--c, var(--muted)) 14%, transparent), transparent 70%),
+    var(--bg-2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius);
+  box-shadow: inset 3px 0 0 var(--c, var(--muted));
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.recent-item:hover { border-color: color-mix(in srgb, var(--c, var(--muted)) 55%, transparent); }
+.recent-item:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+.recent-item .mini-img { grid-area: img; width: 38px; height: 38px; object-fit: contain; }
+.recent-name {
+  grid-area: name;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.recent-id { grid-area: id; font-family: var(--font-mono); font-size: 0.66rem; color: var(--muted); }
+.recent-shiny { grid-area: star; color: var(--amber); font-size: 0.9rem; }
+
+.recent-empty {
+  padding: 10px 2px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+@media (min-width: 1024px) {
+  /* Cột 20%: tiêu đề trên, danh sách lấp phần giữa (cuộn khi nhiều), nút ở cuối full chiều rộng */
+  .recent-panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "head" "list" "more";
+    align-items: stretch;
+    row-gap: 12px;
+    padding: 16px 14px;
+  }
+  .recent-row {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    align-content: start;
+    height: 0;          /* không cho danh sách dài kéo cao panel; hàng lưới tự giãn theo khu vực bên trái */
+    min-height: 100%;
+    margin: 0;
+    padding: 0 4px 0 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .recent-more { width: 100%; padding: 8px 10px; font-size: 0.75rem; }
 }
 
 /* ===== Thẻ nhỏ (recent drops, nội dung hòm, bộ sưu tập) ===== */
@@ -638,19 +747,20 @@ button.mini:focus-visible {
 
 /* Màn hình hẹp: đưa "Created by" xuống dưới dòng mô tả để không đè lên logo */
 @media (max-width: 760px) {
+  :root { --page-gutter: 16px; }
   .credit { position: static; transform: none; margin-top: 4px; font-size: 0.78rem; }
 }
 
 /* ===== Điện thoại ===== */
 @media (max-width: 480px) {
-  .topbar { padding: 16px 12px 10px; }
+  .topbar { padding: 16px var(--page-gutter) 10px; }
   .logo { font-size: 1.7rem; }
   .logo-mark { width: 26px; height: 26px; }
   .logo-mark svg { width: 15px; height: 15px; }
   .tabs { gap: 18px; }
   .tab { font-size: 0.78rem; gap: 6px; }
 
-  .container { padding: 16px 12px 32px; gap: 14px; }
+  .container { padding: 16px var(--page-gutter) 32px; gap: 14px; }
   .panel { padding: 14px; }
   .panel-head { margin-bottom: 12px; }
 
@@ -665,7 +775,7 @@ button.mini:focus-visible {
   .btn-spin { padding: 14px 20px; font-size: 0.95rem; }
   .spin-actions { width: 100%; }
   .spin-actions .btn { flex: 1 1 auto; padding: 9px 10px; }
-  .recent-row { grid-auto-columns: 86px; }
+  .recent-row { grid-auto-columns: 150px; }
   .mini-img { width: 60px; height: 60px; }
   .site-footer { padding: 20px 12px 24px; font-size: 0.7rem; }
 }
@@ -683,6 +793,11 @@ button.mini:focus-visible {
 
 .gen-option { cursor: pointer; }
 .gen-option.is-special { grid-column: 1 / -1; } /* nhóm Special nằm riêng một hàng dưới 9 gen */
+
+/* Cột chọn gen quá hẹp (dưới ~400px khi chia 2 cột): 3 ô một hàng sẽ chật chữ → chuyển 2 cột */
+@container (max-width: 400px) {
+  .gen-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 /* Ẩn checkbox gốc nhưng vẫn dùng được bằng bàn phím */
 .gen-option input {
@@ -1837,10 +1952,14 @@ button.mini:focus-visible {
 .rp:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
 
 /* Tiến độ từng gen (bấm để lọc) */
+/* 9 gen + Special = 10 ô: chia đều 2 hàng × 5, màn hình đủ rộng thì 1 hàng × 10 (không để ô nào nằm lẻ) */
 .gen-progress {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
+}
+@media (min-width: 1440px) {
+  .gen-progress { grid-template-columns: repeat(10, 1fr); }
 }
 
 .gp {
@@ -1864,7 +1983,7 @@ button.mini:focus-visible {
   box-shadow: inset 0 0 16px -8px rgba(82, 183, 42, 0.7);
 }
 .gp.is-done .bar > span { background: linear-gradient(90deg, #e6b800, var(--r-gold)); box-shadow: 0 0 8px rgba(255, 215, 0, 0.6); }
-.gp-top { display: flex; align-items: baseline; gap: 6px; font-family: var(--font-mono); font-size: 0.82rem; }
+.gp-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; font-family: var(--font-mono); font-size: 0.82rem; }
 .gp-top b { font-weight: 600; }
 .gp-region { color: var(--muted); font-family: var(--font-body); font-size: 0.8rem; }
 .gp-count { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); }
@@ -2001,7 +2120,7 @@ button.mini:focus-visible {
   .rp { grid-column: span 2; padding: 9px 10px; }
   .rp:nth-child(n + 4) { grid-column: span 3; } /* 3 ô trên, 2 ô dưới */
   .rp-count b { font-size: 1.05rem; }
-  .gen-progress { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .gen-progress { grid-template-columns: repeat(2, 1fr); gap: 6px; } /* 10 ô → 5 hàng đều nhau */
   .gp { padding: 8px; gap: 5px; }
   .gp-top { flex-wrap: wrap; gap: 0 5px; font-size: 0.76rem; }
   .gp-region { font-size: 0.7rem; }
