@@ -1143,6 +1143,20 @@ function init() {
     spin();
   });
 
+  // Phím Space: mở hòm ở trang Case, hoặc "Open again" khi đang xem popup kết quả.
+  // Bấm giống hệt bấm nút (nút đang khóa thì không làm gì).
+  document.addEventListener("keydown", (e) => {
+    if (e.code !== "Space" || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    // Đang ở nút, ô nhập, ô chọn, link... thì để Space làm việc mặc định của nó.
+    if (e.target.closest("button, a, input, select, textarea, summary, [contenteditable]")) return;
+    let btn = null;
+    if (resultModal.open) btn = $("result-again");
+    else if (state.view === "case" && !document.querySelector("dialog[open]")) btn = $("btn-spin");
+    if (!btn) return;
+    e.preventDefault(); // không cuộn trang
+    if (!btn.disabled) btn.click();
+  });
+
   // Chuyển trang Case / Collection
   for (const tab of document.querySelectorAll(".tab")) {
     tab.addEventListener("click", () => showView(tab.dataset.view));

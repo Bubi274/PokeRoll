@@ -352,6 +352,29 @@ h1, h2 { margin: 0; }
   background: rgba(235, 75, 75, 0.1);
 }
 
+/* Gợi ý phím tắt (chỉ hiện khi có bàn phím + chuột, ẩn trên điện thoại/máy tính bảng) */
+.kbd-hint {
+  display: none;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #6b7380;
+}
+.kbd-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  font: inherit;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .kbd-hint { display: block; }
+}
+.result-actions .kbd-hint { align-self: center; margin-right: auto; }
+
 /* ===== Dải thẻ quay ===== */
 .reel {
   --card-w: 156px;
