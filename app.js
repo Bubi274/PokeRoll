@@ -240,6 +240,19 @@ function matchesSearch(p, query) {
   });
 }
 
+// Sắp xếp danh sách bộ sưu tập (trả về mảng mới, không sửa mảng gốc).
+// sort: "dex" = số Pokédex tăng dần, "rarity" = hiếm nhất trước (Gold → Blue),
+//       "count" = nhiều bản nhất trước (chưa có = 0 bản, nằm cuối). Bằng nhau thì xếp theo số Pokédex.
+function sortCollection(list, collection, sort) {
+  const rank = (p) => RARITIES.findIndex((r) => r.key === p.rarity);
+  const copies = (p) => (collection[p.id] ? collection[p.id].count : 0);
+  const compare = {
+    rarity: (a, b) => rank(b) - rank(a),
+    count: (a, b) => copies(b) - copies(a),
+  }[sort] || (() => 0);
+  return [...list].sort((a, b) => compare(a, b) || a.id - b.id);
+}
+
 function artworkUrl(id, shiny) {
   return shiny ? `${LOCAL_ARTWORK}/shiny/${id}.webp` : `${LOCAL_ARTWORK}/${id}.webp`;
 }
@@ -833,7 +846,9 @@ function renderCollection() {
     </button>`).join("");
 
   const query = $("coll-search").value.trim();
-  const list = filterCollection(state.pokemon, col, collectionFilters()).filter((p) => matchesSearch(p, query));
+  const list = sortCollection(
+    filterCollection(state.pokemon, col, collectionFilters()).filter((p) => matchesSearch(p, query)),
+    col, $("f-sort").value);
   $("coll-count").textContent = `${list.length} Pokémon`;
   $("coll-grid").innerHTML = list.map((p) => {
     const e = col[p.id];
@@ -1135,7 +1150,7 @@ function init() {
   $("btn-see-collection").addEventListener("click", () => showView("collection"));
 
   // Trang bộ sưu tập
-  for (const id of ["f-gen", "f-rarity", "f-status"]) {
+  for (const id of ["f-gen", "f-rarity", "f-status", "f-sort"]) {
     $(id).addEventListener("change", renderCollection);
   }
   $("coll-search").addEventListener("input", renderCollection);
@@ -1168,5 +1183,5 @@ if (typeof document !== "undefined") {
 } else if (typeof module !== "undefined") {
   module.exports = { RARITIES, SHINY_CHANCE, getRarity, filterByGens, groupByRarity,
     rollRarityKey, resolveRarity, effectiveChances, rollOnce, buildReelItems, simulateRolls,
-    recordDrop, genProgress, filterCollection, matchesSearch };
+    recordDrop, genProgress, filterCollection, matchesSearch, sortCollection };
 }

@@ -1874,7 +1874,7 @@ button.mini:focus-visible {
   .gp-top { flex-wrap: wrap; gap: 0 5px; font-size: 0.76rem; }
   .gp-region { font-size: 0.7rem; }
   .gp-count { font-size: 0.62rem; }
-  .filters { width: 100%; }
+  .filters { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .filters select { flex: 1 1 0; min-width: 0; padding: 8px 24px 8px 9px; font-size: 0.7rem; text-overflow: ellipsis; background-position: right 6px center, 0 0; }
   #view-collection #coll-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
   #view-collection #coll-grid .mini { padding: 6px 4px 8px; }
