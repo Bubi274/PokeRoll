@@ -2429,6 +2429,33 @@ button.mini:focus-visible {
 }
 .mode-note b { color: var(--t); }
 
+/* ===== Biome Roulette ===== */
+/* Nhãn tên nhóm biome (màu nền theo nhóm, màu chữ do app.js chọn cho đủ tương phản) */
+.biome-chip {
+  padding: 3px 9px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--t);
+  border-radius: 2px;
+}
+
+/* Dòng liệt kê các biome Cobbleverse của nhóm đang chọn */
+.br-tags {
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.br-tags-label {
+  margin-right: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text);
+}
+
 /* Nhãn nguồn lượt quay (Recent drops, Roll history): "Case" hoặc "Type · Fire" */
 .src-tag {
   --t: var(--muted);

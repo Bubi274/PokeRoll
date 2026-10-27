@@ -1431,10 +1431,21 @@ function selectCustomMode(key, { save = true } = {}) {
   if (state.view === "custom") showCustomMode();
 }
 
+// Thanh chọn chế độ cuộn ngang (điện thoại / nhiều chế độ): cuộn để nút đang chọn nằm trọn trong khung.
+function revealActiveModeButton() {
+  const bar = $("mode-bar");
+  const btn = bar.querySelector('.mode-btn[aria-selected="true"]');
+  if (!btn) return;
+  const b = bar.getBoundingClientRect(), a = btn.getBoundingClientRect();
+  if (a.left < b.left) bar.scrollLeft -= b.left - a.left;
+  else if (a.right > b.right) bar.scrollLeft += a.right - b.right;
+}
+
 // Tab Custom hoặc chế độ vừa hiện ra.
 function showCustomMode() {
   const mode = custom.active;
   if (!mode) return;
+  revealActiveModeButton();
   if (mode.onShow) mode.onShow();
   if (mode.realign) mode.realign();
 }
@@ -1590,6 +1601,29 @@ function typePools(pool) {
   return pools;
 }
 
+// Bậc "thường": nhóm (hệ / biome) phải có ít nhất 1 Pokémon ở một trong các bậc này mới được lên bánh xe.
+const COMMON_TIERS = ["blue", "purple", "pink"];
+
+// Lọc các nhóm được lên bánh xe. Nhóm chỉ có Pokémon Red và/hoặc Gold bị bỏ (giống nhóm không có Pokémon),
+// vì hòm đó luôn ra Pokémon hiếm (bậc trống bị hạ/nâng về bậc còn Pokémon).
+// Trả về { pools: các nhóm được giữ (giữ thứ tự), rareOnly: mã các nhóm bị bỏ vì chỉ có Pokémon hiếm }.
+function wheelPools(pools) {
+  const kept = {};
+  const rareOnly = [];
+  for (const [key, list] of Object.entries(pools)) {
+    if (list.some((p) => COMMON_TIERS.includes(p.rarity))) kept[key] = list;
+    else rareOnly.push(key);
+  }
+  return { pools: kept, rareOnly };
+}
+
+// Câu báo khi nhóm đang chọn bị bỏ vì đổi gen. rare = bị bỏ vì chỉ còn Pokémon hiếm.
+function lostGroupMessage(name, rare, again) {
+  return rare
+    ? `${name} only has rare Pokémon in these generations. Spin again.`
+    : `${name} has no Pokémon in these generations. ${again}`;
+}
+
 // Ô nằm dưới kim chỉ khi bánh xe đã xoay rotation độ (chiều kim đồng hồ).
 // Bánh xe có n ô bằng nhau; ô i chiếm cung [i·a, (i+1)·a) tính từ kim chỉ, a = 360/n.
 function wheelSliceAt(rotation, n) {
@@ -1653,6 +1687,7 @@ const roulette = {
   rotation: 0,      // góc xoay hiện tại của bánh xe (độ, cộng dồn)
   selected: null,   // hệ đang chọn (trúng ở lần quay bánh xe gần nhất); null = chưa quay
   lost: null,       // hệ vừa bị bỏ vì đổi gen làm hệ đó hết Pokémon (để báo người dùng)
+  lostRare: false,  // true nếu hệ đó bị bỏ vì chỉ còn Pokémon hiếm (Red/Gold)
 };
 
 // Các hàm bánh xe bên dưới nhận w = bánh xe nào: id các phần tử (khung, phần quay, tâm), trạng thái
@@ -1779,7 +1814,7 @@ function renderTypeOdds(type, note) {
     $("tr-odds-sub").textContent = note || (!n
       ? "Select at least one generation below."
       : roulette.lost
-        ? `${typeName(roulette.lost)} has no Pokémon in the selected generations. Spin the wheel again.`
+        ? lostGroupMessage(typeName(roulette.lost), roulette.lostRare, "Spin the wheel again.")
         : "Spin the wheel to pick a type. Its tiers show here.");
     return;
   }
@@ -1796,13 +1831,16 @@ function renderRouletteIdleReel() {
   renderIdleReel(groupByRarity(pool), $("tr-reel"));
 }
 
-// Đổi gen: dựng lại bánh xe. Hệ đang chọn hết Pokémon thì bỏ hệ đó và báo người dùng quay lại.
+// Đổi gen (và lúc tải trang): dựng lại bánh xe. Hệ đang chọn không còn trên bánh xe (hết Pokémon,
+// hoặc chỉ còn Pokémon hiếm) thì bỏ hệ đó và báo người dùng quay lại.
 // Chưa chọn gen nào (vd. vừa bấm None để chọn lại) thì vẫn giữ hệ — lúc đó các nút đều khóa.
 function refreshRoulette() {
-  roulette.pools = typePools(custom.pool);
-  roulette.types = Object.keys(roulette.pools);
-  if (roulette.selected && roulette.types.length > 0 && !roulette.pools[roulette.selected]) {
+  const { pools, rareOnly } = wheelPools(typePools(custom.pool));
+  roulette.pools = pools;
+  roulette.types = Object.keys(pools);
+  if (roulette.selected && custom.pool.length > 0 && !roulette.pools[roulette.selected]) {
     roulette.lost = roulette.selected;
+    roulette.lostRare = rareOnly.includes(roulette.selected);
     selectType(null);
   }
   renderWheel();
@@ -1897,6 +1935,7 @@ registerCustomMode({
   icon: ICON_WHEEL,
   rules: [
     "Spin wheel picks a type. The wheel holds every type with Pokémon in your selected generations, each with the same chance.",
+    "A type only goes on the wheel if it has at least one Blue, Purple or Pink Pokémon in your generations. Types with only Red or Gold Pokémon are left off, since every case would be a rare drop.",
     "Open case opens a case of only that type, with the same tier odds as the Case page. Open it as many times as you like.",
     "Your type stays until you spin the wheel again, even after reloading the page. If a generation change leaves it with no Pokémon, spin again.",
     "Dual-type Pokémon count for both types: Gyarados can drop from Water or Flying.",
@@ -1930,7 +1969,7 @@ registerCustomMode({
   defaultAction: () => (roulette.selected ? "open" : "wheel"),
   status() {
     if (!roulette.types.length) return "Select at least one generation to spin.";
-    if (roulette.lost) return `${typeName(roulette.lost)} has no Pokémon in these generations. Spin the wheel again.`;
+    if (roulette.lost) return lostGroupMessage(typeName(roulette.lost), roulette.lostRare, "Spin the wheel again.");
     if (!roulette.selected) return "Spin the wheel first.";
     return "";
   },
@@ -1972,6 +2011,352 @@ registerCustomMode({
 
   realign() {
     realignReel($("tr-reel"));
+  },
+});
+
+// =====================================================================
+// CHẾ ĐỘ CUSTOM: Biome Roulette (dữ liệu spawn Cobbleverse trong spawns.js)
+// =====================================================================
+
+// 129 tag biome trong dữ liệu spawn được gộp thành 18 nhóm dễ hiểu — đúng 18 ô trên bánh xe.
+// Thứ tự ở đây là thứ tự các ô trên bánh xe (theo chiều kim đồng hồ, bắt đầu từ kim chỉ).
+const BIOME_GROUPS = [
+  { key: "ocean", name: "Ocean", color: "#1f5fbf",
+    tags: ["Ocean", "Warm Ocean", "Lukewarm Ocean", "Cold Ocean", "Deep Ocean", "Frozen Ocean"] },
+  { key: "beach", name: "Beach", color: "#efd9a0",
+    tags: ["Beach", "Coast", "Island", "Tropical Island", "Snowy Beach"] },
+  { key: "river", name: "River", color: "#3fb0e0",
+    tags: ["Freshwater", "River", "Frozen River"] },
+  { key: "swamp", name: "Swamp", color: "#66783a",
+    tags: ["Swamp", "Mud"] },
+  { key: "plains", name: "Plains", color: "#a9cf55",
+    tags: ["Plains", "Grassland", "Temperate", "Floral", "Floral Meadow", "Sunflower Plains", "Blooming Valley", "Steppe",
+      "Shrubland", "Highlands", "Secret Garden", "The Bumblezone", "Pollinated Fields"] },
+  { key: "forest", name: "Forest", color: "#2e8b4f",
+    tags: ["Forest", "Taiga", "Dark Forest", "Flower Forest", "Windswept Forest", "Cherry Grove", "Cherry Blossom",
+      "Sakura Grove", "Sakura Valley", "Pale Garden", "Overgrowth"] },
+  { key: "jungle", name: "Jungle", color: "#14b38a",
+    tags: ["Jungle", "Bamboo", "Bamboo Jungle", "Lush"] },
+  { key: "savanna", name: "Savanna", color: "#d4a03c",
+    tags: ["Savanna"] },
+  { key: "desert", name: "Desert", color: "#e2763f",
+    tags: ["Desert", "Badlands", "Arid", "Sandy", "Wasteland", "Warped Desert"] },
+  { key: "mountain", name: "Mountain", color: "#8e929e",
+    tags: ["Hills", "Mountain", "Peak", "Plateau", "White Cliffs", "Crystal Canyon", "Volcanic", "Thermal"] },
+  { key: "snowy", name: "Snowy", color: "#e4eef7",
+    tags: ["Freezing", "Snowy Forest", "Snowy Taiga", "Tundra", "Glacial", "Frozen", "Snowy", "Snowy Plains",
+      "Snowy Slopes", "Ice Spikes", "Frozen Peaks", "Cold"] },
+  { key: "cave", name: "Cave", color: "#4b5068",
+    tags: ["Cave", "Deep Dark", "Dripstone", "Dripstone Caves", "Lush Caves", "Crystalline Chasm", "Quartz"] },
+  { key: "mystic", name: "Mystic", color: "#b45cd6",
+    tags: ["Mushroom", "Mushroom Fields", "Fungus", "Magical", "Spooky"] },
+  { key: "nether", name: "Nether", color: "#b3302c",
+    tags: ["Nether", "Basalt", "Basalt Deltas", "Crimson", "Crimson Forest", "Warped", "Soul Sand", "Soul Sand Valley", "Soul Fire"] },
+  { key: "end", name: "End", color: "#5b3f99",
+    tags: ["End"] },
+  { key: "sky", name: "Sky", color: "#9cc9ff",
+    tags: ["Aether", "Sky", "Skyroot Forest", "Skyroot Woodland", "Skyroot Grove", "Skyroot Meadow"] },
+  { key: "overworld", name: "Overworld", color: "#8a6a4b",
+    tags: ["Overworld"] },
+  { key: "legendary", name: "Legendary", color: "#ffc233",
+    tags: ["Custom Spawn", "Howling Constructs", "Split Decision Temple", "Articuno Tower", "Zapdos Tower", "Moltres Tower",
+      "Team Rocket Radio", "Origin Temple", "Whirl Island", "Bell Tower", "Ilex Shrine", "Regirock Temple", "Regice Temple",
+      "Registeel Temple", "Kyogre Temple", "Groudon Vulcano", "Sky Pillar", "Jirachi Structure", "Deoxys Meteorite",
+      "Newmoon Island", "Flower Paradise", "Sinnoh Temple", "Eternatus Cocoon", "Crown Spire", "Crown Cemetery",
+      "Grasswither Shrine", "Icerend Shrine", "Groundblight Shrine", "Firescoruge Shrine"] },
+];
+
+const biomeInfo = (key) => BIOME_GROUPS.find((g) => g.key === key);
+
+// Tag biome → mã nhóm, vd. "Dark Forest" → "forest"
+const BIOME_TAG_GROUP = Object.fromEntries(BIOME_GROUPS.flatMap((g) => g.tags.map((t) => [t, g.key])));
+
+// Các nhóm biome mà Pokémon spawn (theo mọi lượt spawn trong dữ liệu, kể cả câu cá / dưới nước).
+// Không có dữ liệu spawn (hoặc là Pokémon Special) → không thuộc nhóm nào.
+function biomeGroupsOf(p, spawns = typeof SPAWN_DATA !== "undefined" ? SPAWN_DATA : {}) {
+  const info = isSpecial(p) ? null : spawns[p.id];
+  const groups = new Set();
+  if (info) for (const e of info.entries) for (const tag of e.in || []) if (BIOME_TAG_GROUP[tag]) groups.add(BIOME_TAG_GROUP[tag]);
+  return groups;
+}
+
+// Pokémon của từng nhóm biome: { forest: [...], ... } — chỉ gồm nhóm có Pokémon, theo thứ tự BIOME_GROUPS.
+// Pokémon spawn ở nhiều nhóm nằm trong tất cả các nhóm đó.
+function biomePools(pool, spawns) {
+  const pools = {};
+  const memberships = pool.map((p) => [p, biomeGroupsOf(p, spawns)]);
+  for (const g of BIOME_GROUPS) {
+    const list = memberships.filter(([, groups]) => groups.has(g.key)).map(([p]) => p);
+    if (list.length > 0) pools[g.key] = list;
+  }
+  return pools;
+}
+
+const STORAGE_KEY_BIOME = "pokeroll.custom.biomeRoulette.biome"; // nhóm biome đang chọn
+
+const ICON_BIOME = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2 20h20L15 8l-4 6-2-3-7 9z"/><circle cx="17" cy="5" r="2"/></svg>`;
+
+// Trạng thái riêng của Biome Roulette. types = các nhóm đang có trên bánh xe (tên trường dùng chung với hàm bánh xe).
+const biome = {
+  types: [],        // mã các nhóm biome đang có trên bánh xe (đúng thứ tự các ô)
+  pools: {},        // Pokémon của từng nhóm (đã lọc theo gen của trang Custom)
+  rotation: 0,      // góc xoay hiện tại của bánh xe
+  selected: null,   // nhóm đang chọn; null = chưa quay
+  lost: null,       // nhóm vừa bị bỏ vì đổi gen làm nhóm đó hết Pokémon
+  lostRare: false,  // true nếu nhóm đó bị bỏ vì chỉ còn Pokémon hiếm (Red/Gold)
+};
+
+const BIOME_WHEEL = {
+  wheel: "br-wheel",
+  disc: "br-disc",
+  hub: "br-hub",
+  state: biome,
+  color: (key) => biomeInfo(key).color,
+  label: (key) => biomeInfo(key).name,
+};
+
+function selectBiome(key) {
+  biome.selected = key;
+  saveJson(STORAGE_KEY_BIOME, key);
+}
+
+// Vẽ lại bánh xe theo các nhóm hiện có; đang có nhóm thì kim chỉ vào giữa ô của nhóm đó.
+function renderBiomeWheel() {
+  const n = biome.types.length;
+  setWheelRotation(biome.rotation % 360, BIOME_WHEEL);
+  $("br-disc").innerHTML = n ? wheelSvg(biome.types, BIOME_WHEEL) : "";
+  $("br-wheel").classList.toggle("is-empty", n === 0);
+  $("br-wheel").classList.remove("has-winner");
+  $("br-hub").textContent = n ? "?" : "";
+  $("br-hub").style.removeProperty("--t");
+  $("br-wheel-caption").textContent = n
+    ? `${n} biome${n > 1 ? "s" : ""} on the wheel · each 1 in ${n}`
+    : "No biomes: select at least one generation";
+  if (biome.pools[biome.selected]) {
+    setWheelRotation(wheelTarget(0, biome.types.indexOf(biome.selected), n, 0, 0), BIOME_WHEEL);
+    markWheelWinner(biome.selected, BIOME_WHEEL);
+  }
+}
+
+function biomeChip(key) {
+  const g = biomeInfo(key);
+  return `<span class="biome-chip" style="--t:${g.color};color:${inkOn(g.color)}">${g.name}</span>`;
+}
+
+// Panel tỉ lệ: số Pokémon và tỉ lệ thật mỗi bậc của nhóm đang chọn, kèm các biome Cobbleverse trong nhóm.
+function renderBiomeOdds(key, note) {
+  const n = biome.types.length;
+  if (!key) {
+    $("br-odds-title").textContent = "Biome case";
+    $("br-odds-count").innerHTML = "";
+    $("br-odds-list").innerHTML = "";
+    $("br-tags").hidden = true;
+    $("br-odds-sub").textContent = note || (!n
+      ? "Select at least one generation below."
+      : biome.lost
+        ? lostGroupMessage(biomeInfo(biome.lost).name, biome.lostRare, "Spin the biome again.")
+        : "Spin the biome wheel to pick a biome. Its tiers show here.");
+    return;
+  }
+  const g = biomeInfo(key);
+  const groups = groupByRarity(biome.pools[key]);
+  $("br-odds-title").innerHTML = `${biomeChip(key)} case`;
+  $("br-odds-count").innerHTML = `<strong>${groupsSize(groups)}</strong> <span>Pokémon</span>`;
+  $("br-odds-sub").textContent = `${g.name} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
+  $("br-odds-list").innerHTML = compactOddsRows(groups);
+  $("br-tags").hidden = false;
+  $("br-tags").innerHTML = `<span class="br-tags-label">Cobbleverse biomes</span> ${g.tags.map(escHtml).join(", ")}`;
+}
+
+// Dải thẻ lúc chưa mở hòm: Pokémon của nhóm đang chọn, chưa có nhóm thì Pokémon bất kỳ có trong các nhóm.
+function renderBiomeIdleReel() {
+  const pool = biome.pools[biome.selected] || [...new Set(Object.values(biome.pools).flat())];
+  renderIdleReel(groupByRarity(pool), $("br-reel"));
+}
+
+// Đổi gen (và lúc tải trang): dựng lại bánh xe. Nhóm đang chọn không còn trên bánh xe (hết Pokémon,
+// hoặc chỉ còn Pokémon hiếm) thì bỏ nhóm đó và báo người dùng quay lại.
+// Chưa chọn gen nào (vd. vừa bấm None để chọn lại) thì vẫn giữ nhóm — lúc đó các nút đều khóa.
+function refreshBiome() {
+  const { pools, rareOnly } = wheelPools(biomePools(custom.pool));
+  biome.pools = pools;
+  biome.types = Object.keys(pools);
+  if (biome.selected && custom.pool.length > 0 && !biome.pools[biome.selected]) {
+    biome.lost = biome.selected;
+    biome.lostRare = rareOnly.includes(biome.selected);
+    selectBiome(null);
+  }
+  renderBiomeWheel();
+  renderBiomeOdds(biome.pools[biome.selected] ? biome.selected : null);
+  renderBiomeIdleReel();
+}
+
+// Hành động 1: quay bánh xe ra một nhóm biome (mỗi nhóm trên bánh xe có cơ hội như nhau). Không mở hòm.
+async function spinBiomeWheel({ quick = false }) {
+  const keys = biome.types;
+  const key = pickRandom(keys, Math.random());
+  const target = wheelTarget(biome.rotation % 360, keys.indexOf(key), keys.length);
+  // Lưu ngay kết quả (tải lại trang giữa chừng vẫn giữ), nhưng chỉ hiện ra khi bánh xe dừng
+  biome.selected = null;
+  biome.lost = null;
+  saveJson(STORAGE_KEY_BIOME, key);
+  $("br-wheel").classList.remove("has-winner");
+  $("br-hub").textContent = "?";
+  $("br-hub").style.removeProperty("--t");
+
+  if (quick) {
+    setCustomSpinning(true);
+    setWheelRotation(target, BIOME_WHEEL);
+  } else {
+    setCustomSpinning(true, "Spinning…");
+    audio(); // mở âm thanh ngay trong lúc bấm
+    renderBiomeOdds(null, "Spinning the biome wheel…");
+    setWheelRotation(biome.rotation % 360, BIOME_WHEEL); // thu góc về 0–360° (nhìn không đổi)
+    await animateWheel(target, BIOME_WHEEL);
+    const landed = keys[wheelSliceOnScreen(BIOME_WHEEL)];
+    if (landed !== key) console.error(`Biome wheel stopped on ${landed}, expected ${key}`);
+  }
+
+  biome.selected = key;
+  markWheelWinner(key, BIOME_WHEEL);
+  renderBiomeOdds(key);
+  renderBiomeIdleReel();
+  setCustomSpinning(false);
+  playReveal("blue", false);
+}
+
+// Hành động 2: mở hòm chỉ gồm Pokémon spawn ở nhóm biome đang chọn (tỉ lệ độ hiếm và hạ bậc như trang Case).
+async function openBiomeCase({ quick = false }) {
+  const key = biome.selected;
+  const groups = groupByRarity(biome.pools[key]);
+  const result = rollOnce(groups);
+  if (!result) return;
+
+  // Ghi ngay vào bộ sưu tập (giống trang Case), kèm chế độ và nhóm biome trong lịch sử.
+  const isNew = !state.collection[result.pokemon.id];
+  const entry = recordDrop(state.collection, state.history, result);
+  Object.assign(state.history[0], { mode: "biome-roulette", detail: key });
+  saveProgress();
+
+  const reel = $("br-reel");
+  const items = buildReelItems(result, groups);
+  if (quick) {
+    setCustomSpinning(true);
+    renderReel(items, reel);
+    jumpReel(WIN_INDEX, undefined, reel);
+  } else {
+    setCustomSpinning(true, "Loading…");
+    audio();
+    const visible = items.filter((_, i) => i < IDLE_REEL_SIZE || Math.abs(i - WIN_INDEX) <= 6);
+    await preloadImages([...new Set(visible.map((it) => imageUrl(it.pokemon, it.shiny)))], PRELOAD_TIMEOUT_MS);
+    renderReel(items, reel);
+    setCustomSpinning(true, "Opening…");
+    await animateReel(WIN_INDEX, reel, ROULETTE_REEL_MS);
+  }
+
+  stripOf(reel).children[WIN_INDEX].classList.add("is-winner");
+  setCustomSpinning(false);
+  renderRecent();
+  updateCollectionTab();
+  if (state.view === "collection") renderCollection();
+  const g = biomeInfo(key);
+  showResultModal(result, {
+    isNew, count: entry.count, groups,
+    again: () => runCustomAction("open"),
+    canAgain: biome.selected === key,
+    extra: `
+      <div class="result-note mode-note" style="--t:${g.color}">
+        Biome Roulette · <b>${g.name}</b> case. The odds above are within the ${g.name} case; ${g.name} is 1 in ${biome.types.length} on the wheel.
+      </div>`,
+  });
+}
+
+registerCustomMode({
+  key: "biome-roulette",
+  name: "Biome Roulette",
+  desc: "Spin for a Cobbleverse biome, then open cases of Pokémon that spawn there",
+  icon: ICON_BIOME,
+  rules: [
+    "Spin biome picks a biome group. The wheel holds every group with Pokémon in your selected generations, each with the same chance.",
+    "A biome only goes on the wheel if it has at least one Blue, Purple or Pink Pokémon in your generations. Biomes with only Red or Gold Pokémon are left off, since every case would be a rare drop.",
+    "Each group covers several Cobbleverse biomes: Forest also covers Taiga, Dark Forest and more. The biomes of your group are listed under its odds.",
+    "Open case opens a case of only Pokémon that spawn there, with the same tier odds as the Case page. Open it as many times as you like.",
+    "A Pokémon that spawns in several groups belongs to all of them. Pokémon without Cobbleverse spawn data, and Special forms, are not included.",
+    "Your biome stays until you spin again, even after reloading the page. If a generation change leaves it with no Pokémon, spin again.",
+    "Shiny is rolled separately: 1 in 100.",
+  ],
+  // Nhãn trong lịch sử: "Biome Roulette · Forest", gọn: "Biome · Forest"
+  label(detail, short) {
+    const name = biomeInfo(detail) ? biomeInfo(detail).name : "?";
+    return short ? `Biome · ${name}` : `Biome Roulette · ${name}`;
+  },
+  tagColor: (detail) => (biomeInfo(detail) ? biomeInfo(detail).color : ""),
+
+  actions: [
+    {
+      key: "biome",
+      label: () => "Spin biome",
+      icon: ICON_WHEEL_BTN,
+      hotkey: "B",
+      hint: () => (biome.types.length ? "" : "Select at least one generation."),
+      run: spinBiomeWheel,
+    },
+    {
+      key: "open",
+      label: () => (biome.selected ? `Open ${biomeInfo(biome.selected).name} case` : "Open case"),
+      icon: ICON_CASE,
+      hint: () => (!biome.types.length ? "Select at least one generation." : biome.selected ? "" : "Spin the biome first."),
+      run: openBiomeCase,
+    },
+  ],
+  // Space: mở hòm nếu đã có nhóm biome, chưa có thì quay bánh xe
+  defaultAction: () => (biome.selected ? "open" : "biome"),
+  status() {
+    if (typeof SPAWN_DATA === "undefined") return "Spawn data not found — make sure spawns.js is next to index.html.";
+    if (!biome.types.length) return "Select at least one generation to spin.";
+    if (biome.lost) return lostGroupMessage(biomeInfo(biome.lost).name, biome.lostRare, "Spin the biome again.");
+    if (!biome.selected) return "Spin the biome first.";
+    return "";
+  },
+
+  mount(stage) {
+    biome.selected = loadJson(STORAGE_KEY_BIOME, null, (v) => Boolean(biomeInfo(v)));
+    stage.innerHTML = `
+      <div class="tr-layout">
+        <div class="tr-wheel-col">
+          <div class="wheel" id="br-wheel">
+            <div class="wheel-disc" id="br-disc"></div>
+            <div class="wheel-hub"><span class="wheel-hub-type" id="br-hub"></span></div>
+            <div class="wheel-pointer" aria-hidden="true"></div>
+          </div>
+          <p class="wheel-caption" id="br-wheel-caption" aria-live="polite"></p>
+        </div>
+        <div class="tr-side">
+          <section class="reel" id="br-reel" aria-label="Biome case reel">
+            <div class="reel-strip"></div>
+            <div class="reel-marker" aria-hidden="true"></div>
+            <p class="reel-empty">Select at least one generation</p>
+          </section>
+          <section class="panel tr-odds" aria-live="polite">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2 id="br-odds-title">Biome case</h2>
+                <p class="panel-sub" id="br-odds-sub"></p>
+              </div>
+              <p class="pool-total" id="br-odds-count"></p>
+            </div>
+            <ul class="rarity-list is-compact" id="br-odds-list"></ul>
+            <p class="br-tags" id="br-tags" hidden></p>
+          </section>
+        </div>
+      </div>`;
+  },
+
+  // Bảng chọn gen bị khóa trong lúc quay nên ở đây không bao giờ đang quay
+  onPoolChanged: refreshBiome,
+
+  realign() {
+    realignReel($("br-reel"));
   },
 });
 
@@ -2023,6 +2408,7 @@ function init() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       realignReel();
+      if (state.view === "custom") revealActiveModeButton();
       if (state.view === "custom" && custom.active && custom.active.realign) custom.active.realign();
     }, 100);
   });
@@ -2120,5 +2506,6 @@ if (typeof document !== "undefined") {
   module.exports = { RARITIES, SHINY_CHANCE, getRarity, filterByGens, groupByRarity,
     rollRarityKey, resolveRarity, effectiveChances, rollOnce, buildReelItems, simulateRolls,
     recordDrop, genProgress, filterCollection, matchesSearch, sortCollection, dropOdds, oneIn, rarityProgress,
-    specialProgress, parseId, TYPE_ORDER, typePools, wheelSliceAt, wheelTarget };
+    specialProgress, parseId, TYPE_ORDER, typePools, wheelSliceAt, wheelTarget,
+    BIOME_GROUPS, BIOME_TAG_GROUP, biomeGroupsOf, biomePools, wheelPools, COMMON_TIERS };
 }
