@@ -10,14 +10,15 @@
     "start": "electron .",
     "images": "node scripts/build-images.js",
     "test": "node tests/run.js",
-    "dist": "electron-builder --win --x64",
-    "dist:linux": "electron-builder --linux --x64"
+    "dist": "electron-builder --win --x64 --publish never",
+    "dist:linux": "electron-builder --linux --x64 --publish never"
   },
   "build": {
     "appId": "com.bubi.pokeroll",
     "productName": "PokeRoll",
     "files": [
       "main.js",
+      "preload.js",
       "index.html",
       "style.css",
       "app.js",
@@ -31,16 +32,33 @@
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Bubi274",
+        "repo": "PokeRoll",
+        "releaseType": "release"
+      }
+    ],
     "win": {
       "target": [
-        "portable",
-        "zip"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "icon": "build/icon.png",
-      "artifactName": "PokeRoll-${version}-win.${ext}"
+      "icon": "build/icon.png"
     },
-    "portable": {
-      "artifactName": "PokeRoll-Portable-${version}.exe"
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "PokeRoll-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -57,5 +75,8 @@
     "electron": "^44.9.3",
     "electron-builder": "^26.18.0",
     "sharp": "^0.35.5"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.12"
   }
 }

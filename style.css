@@ -726,9 +726,25 @@ button.mini:hover { border-color: color-mix(in srgb, var(--c) 60%, transparent);
   line-height: 1.6;
 }
 .site-footer p { max-width: 680px; margin: 0 auto 4px; }
-.site-footer p:last-child { margin-top: 10px; }
+.site-footer p:last-of-type { margin-top: 10px; }
 .site-footer a { color: inherit; text-decoration: underline; text-decoration-color: rgba(255, 255, 255, 0.25); text-underline-offset: 3px; }
 .site-footer a:hover { color: var(--text); }
+/* Bản desktop: số phiên bản + nút kiểm tra cập nhật (trông như link) */
+.app-version { margin-top: 10px; font-family: var(--font-mono); font-size: 0.72rem; }
+.app-version[hidden], #app-update[hidden] { display: none; }
+.link-btn {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.25);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.link-btn:hover:not(:disabled) { color: var(--text); }
+.link-btn:disabled { cursor: progress; }
 
 /* ===== Trạng thái focus bằng bàn phím ===== */
 button { -webkit-tap-highlight-color: transparent; }
