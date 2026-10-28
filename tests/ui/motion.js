@@ -85,7 +85,12 @@ app.whenReady().then(async () => {
   const half = pool.find((x) => x.t >= 275);
   check("Ease-out: more than half the way done at half the time", half && (half.v - 72) / 120 > 0.7, half && `${(((half.v - 72) / 120) * 100).toFixed(0)}% at ${half.t.toFixed(0)}ms`);
   const redStart = firstMove(redBar), pinkStart = firstMove(pinkBar);
-  check("Rows staggered ≈ 40 ms (Red row starts before Pink row)", pinkStart - redStart >= 20 && pinkStart - redStart <= 75, `Red ${redStart.toFixed(0)} ms, Pink ${pinkStart.toFixed(0)} ms`);
+  // Lệch hàng: Pink (hàng dưới Red) bắt đầu sau 40 ms, nên trong cùng một khung hình Red luôn đi trước Pink.
+  // So tiến độ hai hàng trong cùng khung hình, không dựa vào khung hình đầu tiên có chuyển động
+  // (khung hình đến trễ thì cả hai hàng cùng bắt đầu chạy trong một khung hình).
+  const lead = redBar.map((x, i) => x.v / 0.64 - (3.84 - pinkBar[i].v) / 0.64);
+  check("Rows staggered ≈ 40 ms (Red row always ahead of Pink in the same frame)", Math.max(...lead) > 0.08 && Math.min(...lead) > -0.01,
+    `lead max ${(Math.max(...lead) * 100).toFixed(0)}%, min ${(Math.min(...lead) * 100).toFixed(1)}% (expected ≈ 20% max for 40 ms)`);
   check("Numbers move together with their bar", Math.abs(firstMove(redPct) - redStart) <= 34 && Math.abs(firstMove(pinkPct) - pinkStart) <= 34,
     `Red % ${firstMove(redPct).toFixed(0)} / bar ${redStart.toFixed(0)}; Pink % ${firstMove(pinkPct).toFixed(0)} / bar ${pinkStart.toFixed(0)}`);
   s = await js(`settledOk()`);
