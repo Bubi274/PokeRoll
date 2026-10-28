@@ -3,6 +3,12 @@
 #   2. build:   Windows (installer NSIS) và Linux (AppImage) chạy song song, chưa đăng gì.
 #   3. release: gom file của cả hai rồi tạo một GitHub Release, kèm latest.yml / latest-linux.yml cho electron-updater.
 # App không ký số: electron-builder bỏ qua bước ký khi không có chứng chỉ.
+#
+# Bảo mật:
+#   - Chỉ chạy khi push tag v*.*.*; không có secret nào ngoài GITHUB_TOKEN do Actions cấp cho mỗi lượt chạy.
+#   - Quyền mặc định chỉ đọc; riêng job release được ghi (contents: write) để tạo Release.
+#   - Action ghim theo commit SHA (comment ghi phiên bản); checkout không lưu token lại trong .git.
+#   - Giá trị từ ${{ }} đi qua biến môi trường, không chèn thẳng vào lệnh shell.
 name: Release
 
 on:
@@ -19,9 +25,12 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 22
           cache: npm
@@ -57,18 +66,23 @@ jobs:
               dist/*.AppImage
               dist/latest-linux.yml
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - name: Build
-        run: npx electron-builder ${{ matrix.target }} --publish never
+        shell: bash
+        run: npx electron-builder $TARGET --publish never
         env:
+          TARGET: ${{ matrix.target }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: dist-${{ matrix.os }}
           path: ${{ matrix.files }}
@@ -77,10 +91,11 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: dist
           merge-multiple: true
