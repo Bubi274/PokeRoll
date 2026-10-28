@@ -2228,17 +2228,6 @@ button.mini:focus-visible {
 .mode-stage, .mode-panel { min-width: 0; }
 .mode-panel[hidden] { display: none; }
 
-/* Chỗ trống tạm cho chế độ chưa có giao diện */
-.mode-placeholder {
-  margin: 0;
-  padding: 72px 16px;
-  text-align: center;
-  color: var(--muted);
-  background: #0d1117;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-lg);
-}
-
 /* Nút hành động trang Custom: mỗi hành động = nút chính + nút ⚡ (quick).
    Nút mà phím Space bấm thì xanh đặc, các nút khác viền xanh. */
 .action-row {
@@ -2513,7 +2502,6 @@ button.mini:focus-visible {
   .mode-btn { min-width: 230px; padding: 9px 12px 9px 9px; column-gap: 10px; }
   .mode-icon { width: 34px; height: 34px; }
   .mode-desc { font-size: 0.74rem; }
-  .mode-placeholder { padding: 48px 16px; }
   .mode-rule-list li { font-size: 0.82rem; padding: 9px 12px 9px 26px; }
   .action-row { gap: 8px; }
   .action-group { flex-basis: 100%; }
