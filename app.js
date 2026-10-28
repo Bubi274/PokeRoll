@@ -66,6 +66,7 @@ const WIN_INDEX = 49;           // vị trí thẻ thắng (thẻ thứ 50)
 const IDLE_REEL_SIZE = 12;      // số thẻ hiển thị lúc chưa quay
 const SPIN_MS = 6000;           // thời gian quay
 const PRELOAD_TIMEOUT_MS = 5000; // chờ tải ảnh tối đa bấy nhiêu rồi quay luôn
+const REEL_START_WAIT_MS = 2000; // dải chưa báo bắt đầu chạy thì đồng hồ dự phòng chờ thêm bấy nhiêu
 
 // Nơi xuất hiện trong modpack Cobbleverse (dữ liệu ở spawns.js)
 const WIKI_URL = "https://thenolan1234.github.io/cobbleverse-wiki";
@@ -821,19 +822,31 @@ function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
   reel.classList.add("is-spinning");
   const stopTicks = trackTicks(reel);
 
+  // Dải dừng khi trình duyệt báo transitionend. Phòng khi không báo (vd. tab bị ẩn) có đồng hồ dự phòng ms + 500,
+  // tính từ lúc dải thực sự bắt đầu chạy (transitionstart): máy chậm có thể bắt đầu trễ, tính từ lúc bấm thì popup
+  // hiện khi dải còn đang trượt. Không nhận được cả transitionstart thì vẫn kết thúc, chậm hơn REEL_START_WAIT_MS.
   return new Promise((resolve) => {
     let finished = false;
+    let fallback = null;
     const finish = () => {
       if (finished) return;
       finished = true;
+      clearTimeout(fallback);
       stopTicks();
       reel.classList.remove("is-spinning");
+      strip.removeEventListener("transitionstart", onStart);
       strip.removeEventListener("transitionend", onEnd);
       resolve();
     };
+    const onStart = (e) => {
+      if (e.target !== strip || e.propertyName !== "transform") return;
+      clearTimeout(fallback);
+      fallback = setTimeout(finish, ms + 500);
+    };
     const onEnd = (e) => { if (e.target === strip) finish(); };
+    strip.addEventListener("transitionstart", onStart);
     strip.addEventListener("transitionend", onEnd);
-    setTimeout(finish, ms + 500); // phòng khi transitionend không chạy (vd. tab bị ẩn)
+    fallback = setTimeout(finish, ms + 500 + REEL_START_WAIT_MS);
   });
 }
 
