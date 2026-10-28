@@ -1,7 +1,7 @@
 {
   "name": "pokeroll",
   "productName": "PokeRoll",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "CS2-style Pokémon case opening",
   "author": "Bubi",
   "private": true,
