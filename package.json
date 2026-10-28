@@ -9,6 +9,7 @@
   "scripts": {
     "start": "electron .",
     "images": "node scripts/build-images.js",
+    "test": "node tests/run.js",
     "dist": "electron-builder --win --x64",
     "dist:linux": "electron-builder --linux --x64"
   },

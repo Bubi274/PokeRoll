@@ -24,6 +24,18 @@ npm run dist           # build for Windows → dist/
 npm run dist:linux     # build for Linux (AppImage) → dist/
 ```
 
+## Testing
+
+Requires `npm install` (the UI tests run the app in a hidden Electron window).
+
+```
+npm test                  # run every test suite
+npm test -- roulette      # only suites whose name contains "roulette"
+npm test -- -v            # print every check, not just failures
+```
+
+`tests/logic/` checks the rolling logic and odds in Node; `tests/ui/` drives the app in Electron. Test data and screenshots go to a temporary folder (`pokeroll-tests` in the system temp directory), never to your own save data.
+
 ## Updating data
 
 ```
