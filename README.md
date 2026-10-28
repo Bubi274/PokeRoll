@@ -17,6 +17,17 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
 - **Special** group: the 8 Kazeran forms from the Cobblemon addon [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions), with their evolution methods. Ranked by the same BST rules, tracked separately in the collection (X/8)
 - Animated odds table, page and popup transitions. Turned off when your system asks for reduced motion, or by opening `index.html?nomotion`
 
+## Installing
+
+Download the latest version from the [Releases page](https://github.com/Bubi274/PokeRoll/releases/latest):
+
+- **Windows:** `PokeRoll-Setup-x.y.z.exe`. The installer lets you choose the install folder and adds Desktop and Start Menu shortcuts; uninstall from *Settings → Apps*.
+- **Linux:** `PokeRoll-x.y.z-linux-x86_64.AppImage`. Make it executable (`chmod +x`) and run it.
+
+The app isn't code-signed, so Windows SmartScreen may warn the first time: click **More info → Run anyway**.
+
+After that the app updates itself. A few seconds after it starts, it checks for a new version and asks before downloading and before restarting to install. You can also click **Check for updates** at the bottom of the page. Your collection and roll history are kept across updates (and even if you uninstall).
+
 ## Running
 
 **In the browser:** double-click `index.html`.
@@ -25,10 +36,22 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
 
 ```
 npm install
-npm start              # run in development
-npm run dist           # build for Windows → dist/
-npm run dist:linux     # build for Linux (AppImage) → dist/
+npm start              # run in development (no update checks)
+npm run dist           # build the Windows installer → dist/
+npm run dist:linux     # build the Linux AppImage → dist/
 ```
+
+## Releasing
+
+```
+npm run release -- patch    # 1.1.0 → 1.1.1  (fixes)
+npm run release -- minor    # 1.1.0 → 1.2.0  (new features)
+npm run release -- major    # 1.1.0 → 2.0.0
+```
+
+Run it on `main` with everything committed and pushed. It bumps the version in `package.json`, commits, tags `vX.Y.Z` and pushes. The new version must be higher than every existing tag, so a version is never reused.
+
+The tag starts the **Release** workflow on GitHub Actions: it runs the tests, builds the Windows installer and the Linux AppImage, and publishes them as a GitHub Release together with `latest.yml` and `latest-linux.yml`, which the installed apps read to find updates. If the tests fail, nothing is published. Progress: [Actions tab](https://github.com/Bubi274/PokeRoll/actions).
 
 ## Testing
 
