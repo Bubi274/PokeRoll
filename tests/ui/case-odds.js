@@ -23,7 +23,7 @@ app.whenReady().then(async () => {
   const js = (code) => win.webContents.executeJavaScript(code);
   const shot = async (name) => fs.writeFileSync(path.join(SHOTS, name), (await win.webContents.capturePage()).toPNG());
 
-  await win.loadFile(PAGE);
+  await win.loadFile(PAGE, { query: { nomotion: "1" } });
   await js(`localStorage.clear()`); await win.reload(); await sleep(400);
 
   // ---- 1. Recent drops chưa có lượt nào ----
@@ -36,13 +36,13 @@ app.whenReady().then(async () => {
       pct: li.querySelector(".rarity-chance").textContent.trim(),
       count: li.querySelector(".rarity-count").textContent.trim(),
       p: Number(li.style.getPropertyValue("--p")),
-      bar: getComputedStyle(li).backgroundImage !== "none",
+      bar: Number(li.style.getPropertyValue("--p")) > 0,
       rule: (li.querySelector(".rarity-rule") || {}).textContent || null,
       fold: (li.querySelector(".rarity-fold") || {}).textContent || null,
       empty: li.classList.contains("is-empty"),
       dim: Number(getComputedStyle(li.querySelector(".rarity-chance")).opacity) < 1,
     }));
-    window.hintOf = (sel = "#rarity-list") => (document.querySelector(sel + " .odds-hint") || {}).textContent || null;
+    window.hintOf = (sel = "#rarity-list") => { const h = document.querySelector(sel + " .odds-hint"); return h && !h.hidden ? h.textContent : null; };
     window.checkTable = (sel = "#rarity-list", groups = state.groups, rules = true) => {
       const rows = readTable(sel), eff = effectiveChances(groups), bad = [];
       const fmt = (x) => x === 0 ? "0%" : x.toFixed(2) + "%";

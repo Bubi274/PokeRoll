@@ -80,7 +80,7 @@ app.whenReady().then(async () => {
   const wheelOn = (s) => s.selected && s.geom === s.selected && s.angle === s.selected && s.winnerSlice === s.selected
     && s.hub === cap(s.selected) && s.saved === s.selected && s.openLabel === `Open ${cap(s.selected)} case`;
 
-  await win.loadFile(PAGE);
+  await win.loadFile(PAGE, { query: { nomotion: "1" } });
   await js(`localStorage.clear();
     localStorage.setItem("pokeroll.history", ${JSON.stringify(JSON.stringify(OLD_HISTORY))});
     localStorage.setItem("pokeroll.collection", ${JSON.stringify(JSON.stringify(OLD_COLLECTION))});`);

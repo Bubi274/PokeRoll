@@ -30,7 +30,7 @@ app.whenReady().then(async () => {
   const space = () => js(`document.body.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", key: " ", bubbles: true }))`);
   const $t = (id) => js(`document.getElementById("${id}").textContent.trim()`);
 
-  await win.loadFile(PAGE);
+  await win.loadFile(PAGE, { query: { nomotion: "1" } });
   await js(`localStorage.clear(); localStorage.setItem("pokeroll.selectedGens", "[1]")`); // trang Case chỉ chọn Gen 1
   await win.reload(); await sleep(400);
 

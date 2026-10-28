@@ -11,7 +11,7 @@ const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "
 app.whenReady().then(async () => {
   const win = new BrowserWindow({ width: 1300, height: 900, show: false, webPreferences: { backgroundThrottling: false, offscreen: true } }); win.webContents.setFrameRate(60);
   const js = (code) => win.webContents.executeJavaScript(code);
-  await win.loadFile(PAGE);
+  await win.loadFile(PAGE, { query: { nomotion: "1" } });
   await js("localStorage.clear()"); await win.reload(); await sleep(300);
 
   // Kim (tâm khung reel) nằm trong thẻ thắng? Tên thẻ thắng trùng tên trong popup?

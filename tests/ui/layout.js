@@ -12,7 +12,7 @@ let fails = 0;
 app.whenReady().then(async () => {
   const win = new BrowserWindow({ width: 390, height: 800, show: false, webPreferences: { offscreen: true } });
   const js = (code) => win.webContents.executeJavaScript(code);
-  await win.loadFile(PAGE); await sleep(400);
+  await win.loadFile(PAGE, { query: { nomotion: "1" } }); await sleep(400);
   // Quay một lượt ở trang Custom để dải thẻ, bánh xe và bảng tỉ lệ đều có nội dung
   await js(`showView("custom"); document.querySelector('.action-quick[data-action="wheel"]').click(); document.querySelector('.action-quick[data-action="open"]').click(); document.getElementById("result-modal").close();
     selectCustomMode("biome-roulette"); document.querySelector('.action-quick[data-action="biome"]').click(); document.querySelector('.action-quick[data-action="open"]').click(); document.getElementById("result-modal").close()`); // trang Custom kiểm tra với Biome Roulette đang mở

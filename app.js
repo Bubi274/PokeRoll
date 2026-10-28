@@ -539,38 +539,132 @@ function foldedOddsText({ base, from }) {
   return `base ${pct2(base)} + ${from.map((r) => `${pct2(r.chance)} from ${r.name}`).join(" + ")}`;
 }
 
+// ----- Hiệu ứng chuyển động (chỉ để hiển thị) -----
+// Tắt khi hệ điều hành bật "giảm chuyển động", hoặc khi trang mở với ?nomotion (để test đọc số ngay):
+// lúc đó mọi giá trị hiện ngay giá trị cuối. Phần CSS cũng chỉ bật khi <html> không có class no-motion.
+const MOTION_MS = 550;      // thanh tỉ lệ và số chạy tới giá trị mới trong bấy nhiêu ms
+const MOTION_STAGGER = 40;  // mỗi hàng bảng tỉ lệ bắt đầu trễ hơn hàng trên bấy nhiêu ms
+const motionOff = () => document.documentElement.classList.contains("no-motion")
+  || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const easeOutCubic = (t) => 1 - (1 - t) ** 3; // khớp cubic-bezier(0.33, 1, 0.68, 1) của thanh bên CSS
+const countFrames = new WeakMap();             // phần tử → requestAnimationFrame đang chạy
+
+// Số trong el chạy dần từ giá trị đang hiển thị tới to, cùng nhịp với thanh tỉ lệ.
+// format(x, final): chữ hiển thị. Gọi lại khi đang chạy: chạy tiếp từ giá trị đang hiện, không về 0.
+function countTo(el, to, format, delay = 0) {
+  cancelAnimationFrame(countFrames.get(el));
+  const from = Number(el.dataset.value) || 0;
+  const show = (x, final) => {
+    el.dataset.value = x;
+    el.textContent = format(x, final);
+  };
+  if (motionOff() || from === to) {
+    show(to, true);
+    return;
+  }
+  let start = null; // tính từ khung hình đầu tiên — cùng lúc thanh (CSS transition) bắt đầu chạy
+  const step = (now) => {
+    if (start === null) start = now + delay;
+    const t = Math.min(Math.max((now - start) / MOTION_MS, 0), 1);
+    show(t < 1 ? from + (to - from) * easeOutCubic(t) : to, t === 1);
+    if (t < 1) countFrames.set(el, requestAnimationFrame(step));
+    else countFrames.delete(el);
+  };
+  countFrames.set(el, requestAnimationFrame(step));
+}
+
+// Ô số của hòm rỗng: hiện "—", còn giá trị bên trong vẫn chạy về 0 cùng nhịp với thanh,
+// để chọn lại gen giữa chừng thì số và thanh cùng chạy tiếp từ một chỗ.
+function clearCount(el, delay = 0) {
+  countTo(el, 0, () => "—", delay);
+}
+
+const fmtCount = (x, final) => String(final ? x : Math.round(x));
+
+// % của một hàng bảng tỉ lệ chạy theo đúng thanh của hàng đó: mỗi khung hình đọc --p đang hiển thị
+// (thanh chạy bằng CSS transition), luôn 2 chữ số thập phân; thanh dừng thì hiện đúng giá trị thật.
+// Đọc từ thanh nên số và thanh không thể lệch nhau, kể cả khi đổi gen liên tục giữa chừng.
+function followBar(li, el, target) {
+  cancelAnimationFrame(countFrames.get(el));
+  const done = () => {
+    countFrames.delete(el);
+    el.textContent = pct2(target);
+  };
+  if (motionOff()) {
+    done();
+    return;
+  }
+  const step = () => {
+    // getAnimations() cập nhật style trước, nên thấy được transition vừa tạo ở khung hình này
+    if (!li.getAnimations().some((a) => a.transitionProperty === "--p")) {
+      done();
+      return;
+    }
+    el.textContent = `${parseFloat(getComputedStyle(li).getPropertyValue("--p")).toFixed(2)}%`;
+    countFrames.set(el, requestAnimationFrame(step));
+  };
+  countFrames.set(el, requestAnimationFrame(step));
+}
+
+// Ô "N Pokémon" của panel tỉ lệ bên Custom, số đếm dần.
+function renderCaseCount(el, n) {
+  if (!el.querySelector("strong")) el.innerHTML = `<strong>0</strong> <span>Pokémon</span>`;
+  countTo(el.querySelector("strong"), n, fmtCount);
+}
+
 // Bảng tỉ lệ dùng chung (trang Case, Type Roulette, Biome Roulette): 5 hàng, hiếm nhất trên cùng.
 // Mỗi hàng: tên bậc, số Pokémon, % thật (effectiveChances, đã tính hạ bậc), thanh nền dài theo % thật.
 // Bậc nhận thêm tỉ lệ của bậc trống có dòng "base 3.20% + 0.64% from Red"; bậc trống 0%, chữ mờ.
 // Hòm rỗng (chưa chọn gen nào): "—" thay cho số và %, kèm dòng nhắc chọn gen.
 // rules: hiện dòng quy tắc xếp bậc dưới tên (bảng chính ở trang Case).
-function oddsRows(groups, { rules = false } = {}) {
-  const empty = groupsSize(groups) === 0;
-  const rows = [...RARITIES].reverse().map((r) => {
-    const n = groups[r.key].length;
-    const odds = empty ? null : tierOdds(r.key, groups);
-    const fold = odds && n > 0 && odds.from.length ? `<span class="rarity-fold">${foldedOddsText(odds)}</span>` : "";
-    return `
-      <li class="rarity-row r-${r.key}${n === 0 ? " is-empty" : ""}" style="--p:${odds ? odds.chance : 0}">
+// Các hàng được giữ lại giữa các lần vẽ để thanh (CSS transition), % (followBar) và số Pokémon (countTo)
+// chạy từ giá trị cũ tới giá trị mới; lần đầu (hoặc bảng vừa bị xoá) thì chạy từ 0.
+function renderOddsTable(list, groups, { rules = false } = {}) {
+  const order = [...RARITIES].reverse();
+  if (list.querySelectorAll(".rarity-row").length !== order.length || list.dataset.rules !== String(rules)) {
+    list.dataset.rules = rules;
+    list.innerHTML = order.map((r, i) => `
+      <li class="rarity-row r-${r.key}" data-tier="${r.key}" style="--p:0;--i:${i}">
         <span class="rarity-swatch"></span>
         <span class="rarity-info">
           <span class="rarity-name">${r.name}</span>
           ${rules ? `<span class="rarity-rule">${r.rule}</span>` : ""}
-          ${fold}
+          <span class="rarity-fold" hidden></span>
         </span>
-        <span class="rarity-count" title="Pokémon in this tier">${empty ? "—" : n}</span>
-        <span class="rarity-chance">${odds ? pct2(odds.chance) : "—"}</span>
-      </li>`;
-  }).join("");
-  return empty ? `${rows}<li class="odds-hint">Select at least one generation to see the odds.</li>` : rows;
+        <span class="rarity-count" title="Pokémon in this tier">0</span>
+        <span class="rarity-chance">0%</span>
+      </li>`).join("") + `<li class="odds-hint" hidden>Select at least one generation to see the odds.</li>`;
+    void list.offsetWidth; // áp --p:0 trước để thanh chạy từ 0
+  }
+  const empty = groupsSize(groups) === 0;
+  order.forEach((r, i) => {
+    const li = list.querySelector(`[data-tier="${r.key}"]`);
+    const n = groups[r.key].length;
+    const odds = empty ? null : tierOdds(r.key, groups);
+    li.classList.toggle("is-empty", n === 0);
+    li.style.setProperty("--p", odds ? odds.chance : 0);
+    const fold = li.querySelector(".rarity-fold");
+    fold.hidden = !(odds && n > 0 && odds.from.length);
+    fold.textContent = fold.hidden ? "" : foldedOddsText(odds);
+    const count = li.querySelector(".rarity-count"), chance = li.querySelector(".rarity-chance");
+    if (empty) {
+      clearCount(count, i * MOTION_STAGGER);
+      cancelAnimationFrame(countFrames.get(chance));
+      chance.textContent = "—";
+    } else {
+      countTo(count, n, fmtCount, i * MOTION_STAGGER);
+      followBar(li, chance, odds.chance);
+    }
+  });
+  list.querySelector(".odds-hint").hidden = !empty;
 }
 
 function renderPoolStats() {
   const pool = filterByGens(state.pokemon, state.selectedGens);
   state.groups = groupByRarity(pool);
-  $("pool-count").textContent = pool.length;
+  countTo($("pool-count"), pool.length, fmtCount);
 
-  $("rarity-list").innerHTML = oddsRows(state.groups, { rules: true });
+  renderOddsTable($("rarity-list"), state.groups, { rules: true });
 
   updateSpinButton();
 }
@@ -1613,7 +1707,7 @@ function onCustomGensChanged() {
 
 function updateCustomPool() {
   custom.pool = filterByGens(state.pokemon, custom.gens);
-  $("custom-pool-count").textContent = custom.pool.length;
+  countTo($("custom-pool-count"), custom.pool.length, fmtCount);
   for (const m of CUSTOM_MODES) if (m.onPoolChanged) m.onPoolChanged();
   renderCustomControls();
 }
@@ -1786,6 +1880,15 @@ function inkOn(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.5 ? "#12151c" : "#fff";
 }
 
+// Vẽ các ô bánh xe vào disc. Bộ ô đổi (đổi gen làm thêm / bớt ô) thì bánh xe mới hiện ra mờ dần (CSS .is-redrawn).
+function setWheelDisc(disc, types, svg) {
+  const key = types.join();
+  const changed = disc.dataset.slices !== undefined && disc.dataset.slices !== key;
+  disc.innerHTML = svg;
+  disc.dataset.slices = key;
+  if (changed && disc.firstElementChild) disc.firstElementChild.classList.add("is-redrawn");
+}
+
 // Bánh xe SVG: một ô cho mỗi mục (keys), tên chạy dọc bán kính.
 // color(key) / label(key): màu và chữ của ô — mặc định theo hệ (Type Roulette).
 function wheelSvg(types, { color = (t) => TYPE_COLORS[t] || "#777", label = typeName } = {}) {
@@ -1852,7 +1955,7 @@ function setWheelRotation(deg, w = TYPE_WHEEL) {
 // Vẽ lại bánh xe theo các hệ hiện có; đang có hệ thì kim chỉ vào giữa ô của hệ đó.
 function renderWheel() {
   setWheelRotation(roulette.rotation % 360);
-  $("tr-disc").innerHTML = roulette.types.length ? wheelSvg(roulette.types) : "";
+  setWheelDisc($("tr-disc"), roulette.types, roulette.types.length ? wheelSvg(roulette.types) : "");
   $("tr-wheel").classList.toggle("is-empty", roulette.types.length === 0);
   $("tr-wheel").classList.remove("has-winner");
   $("tr-hub").textContent = roulette.types.length ? "?" : "";
@@ -1938,9 +2041,9 @@ function renderTypeOdds(type, note) {
   }
   const groups = groupByRarity(roulette.pools[type]);
   $("tr-odds-title").innerHTML = `<span class="type-chip" style="--t:${TYPE_COLORS[type]}">${typeName(type)}</span> case`;
-  $("tr-odds-count").innerHTML = `<strong>${groupsSize(groups)}</strong> <span>Pokémon</span>`;
+  renderCaseCount($("tr-odds-count"), groupsSize(groups));
   $("tr-odds-sub").textContent = `${typeName(type)} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
-  $("tr-odds-list").innerHTML = oddsRows(groups);
+  renderOddsTable($("tr-odds-list"), groups);
 }
 
 // Dải thẻ lúc chưa mở hòm: Pokémon của hệ đang chọn, chưa có hệ thì Pokémon bất kỳ trong các gen đã chọn.
@@ -2231,7 +2334,7 @@ const BIOME_WHEEL = {
 function renderBiomeWheel() {
   const n = biome.types.length;
   setWheelRotation(biome.rotation % 360, BIOME_WHEEL);
-  $("br-disc").innerHTML = n ? wheelSvg(biome.types, BIOME_WHEEL) : "";
+  setWheelDisc($("br-disc"), biome.types, n ? wheelSvg(biome.types, BIOME_WHEEL) : "");
   $("br-wheel").classList.toggle("is-empty", n === 0);
   $("br-wheel").classList.remove("has-winner");
   $("br-hub").textContent = n ? "?" : "";
@@ -2273,9 +2376,9 @@ function renderBiomeOdds(key, note) {
   const g = biomeInfo(key);
   const groups = groupByRarity(biome.pools[key]);
   $("br-odds-title").innerHTML = `${biomeChip(key)} case`;
-  $("br-odds-count").innerHTML = `<strong>${groupsSize(groups)}</strong> <span>Pokémon</span>`;
+  renderCaseCount($("br-odds-count"), groupsSize(groups));
   $("br-odds-sub").textContent = `${g.name} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
-  $("br-odds-list").innerHTML = oddsRows(groups);
+  renderOddsTable($("br-odds-list"), groups);
   $("br-tags").hidden = false;
   $("br-tags").innerHTML = biomeTagsLine(key);
 }
@@ -2470,6 +2573,7 @@ registerCustomMode({
 });
 
 function init() {
+  if (new URLSearchParams(location.search).has("nomotion")) document.documentElement.classList.add("no-motion");
   if (typeof POKEMON_DATA === "undefined") {
     document.querySelector("main").innerHTML =
       `<p class="error">Data not found. Make sure <b>data.js</b> is in the same folder as index.html.</p>`;

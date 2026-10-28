@@ -86,7 +86,7 @@ app.whenReady().then(async () => {
     await reload(M);
   };
 
-  await win.loadFile(PAGE);
+  await win.loadFile(PAGE, { query: { nomotion: "1" } });
   for (const M of MODES) {
     // ---- Chọn bằng cách quay thật, rồi None → bật lại một gen mà nhóm vẫn hợp lệ ----
     await js(`localStorage.clear()`); await reload(M);

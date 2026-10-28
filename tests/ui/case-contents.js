@@ -79,7 +79,7 @@ app.whenReady().then(async () => {
     };
     0`);
 
-  await win.loadFile(PAGE);
+  await win.loadFile(PAGE, { query: { nomotion: "1" } });
   await js(`localStorage.clear(); localStorage.setItem("pokeroll.selectedGens", "[1]");
     localStorage.setItem("pokeroll.collection", JSON.stringify({ 4: { count: 3, shiny: 0, first: 1 }, 6: { count: 1, shiny: 0, first: 1 }, 25: { count: 1, shiny: 0, first: 1 } }));`);
   await win.reload(); await sleep(400);
