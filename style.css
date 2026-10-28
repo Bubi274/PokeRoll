@@ -1104,10 +1104,29 @@ button.mini:focus-visible {
 /* Trong popup nội dung hòm, thẻ nhỏ lấy màu theo bậc của nhóm */
 .contents-group .mini { --c: inherit; }
 
+/* Popup nội dung hòm của trang Custom: ô chọn nhóm + các dòng ghi chú (Not on the wheel, Cobbleverse biomes…) */
+.contents-note { display: grid; gap: 6px; }
+.contents-note[hidden] { display: none; }
+.contents-pick { margin-bottom: 2px; }
+.contents-pick select { min-width: 240px; }
+.contents-line { margin: 0; font-size: 0.8rem; line-height: 1.5; color: var(--muted); }
+.contents-line.is-off { color: var(--amber); }
+
+/* Tỉ lệ ra và trạng thái sưu tập trên từng thẻ (popup trang Custom).
+   Chưa có: vẫn thấy ảnh (để biết trong hòm có gì), chỉ nhạt đi và viền đứt; đã có: chữ "Owned" xanh. */
+.mini-odds { font-family: var(--font-mono); font-size: 0.66rem; color: var(--c); }
+.mini-own { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); }
+.mini.is-unowned { border-style: dashed; border-color: rgba(255, 255, 255, 0.1); }
+.mini.is-unowned .mini-img { filter: grayscale(0.7); opacity: 0.55; }
+.mini.is-unowned .mini-name { color: var(--muted); }
+.mini.is-unowned .mini-own { color: #6b7380; }
+
 @media (max-width: 480px) {
   .modal { width: calc(100% - 16px); max-width: calc(100% - 16px); max-height: 92vh; }
   .modal-inner { max-height: 92vh; padding: 14px; gap: 12px; }
   .contents-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; }
+  .contents-pick.filters { grid-template-columns: 1fr; } /* ô chọn nhóm chiếm cả hàng */
+  .contents-pick select { min-width: 0; }
   .mini-img { width: 60px; height: 60px; }
 }
 

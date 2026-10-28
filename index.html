@@ -175,6 +175,11 @@
     <div class="spin-area">
       <div class="action-row" id="custom-actions"></div>
       <div class="spin-actions">
+        <!-- Chỉ hiện khi chế độ đang chọn có khai báo contents() -->
+        <button type="button" class="btn btn-ghost" id="custom-contents" hidden>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+          View case contents
+        </button>
         <button type="button" class="btn btn-ghost btn-icon btn-sound">Sound</button>
       </div>
       <p class="kbd-hint" id="custom-kbd"></p>
@@ -238,9 +243,10 @@
   <dialog class="modal" id="contents-modal" aria-labelledby="contents-title">
     <div class="modal-inner">
       <div class="modal-head">
-        <h2 id="contents-title">Case contents <span class="modal-sub" id="contents-summary"></span></h2>
+        <h2 id="contents-title"><span id="contents-heading">Case contents</span> <span class="modal-sub" id="contents-summary"></span></h2>
         <button type="button" class="modal-close" id="contents-close" aria-label="Close">&times;</button>
       </div>
+      <div class="contents-note" id="contents-note" hidden></div>
       <input type="search" class="modal-search" id="contents-search" placeholder="Search by name or Pokédex number…" autocomplete="off">
       <div class="modal-body">
         <div id="contents-body"></div>

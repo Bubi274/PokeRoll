@@ -1138,22 +1138,37 @@ function formatPct(x) {
   return (x >= 1 ? x.toFixed(2) : x.toPrecision(2)) + "%";
 }
 
-function openContents() {
-  const chances = effectiveChances(state.groups);
-  const total = poolSize();
+// Popup danh sách Pokémon của một hòm. Không truyền gì = hòm của trang Case.
+//   groups  hòm đã chia theo độ hiếm (mặc định: hòm trang Case)
+//   title   tiêu đề popup
+//   note    HTML hiện dưới tiêu đề (rỗng thì ẩn)
+//   owned   đánh dấu Pokémon đã có / chưa có trong bộ sưu tập
+//   odds    hiện tỉ lệ ra thật của từng Pokémon (dropOdds, đã tính hạ bậc)
+function openContents({ groups = state.groups, title = "Case contents", note = "", owned = false, odds = false } = {}) {
+  const chances = effectiveChances(groups);
+  const total = groupsSize(groups);
+  $("contents-heading").textContent = title;
   $("contents-summary").textContent = `${total} Pokémon`;
+  $("contents-note").innerHTML = note;
+  $("contents-note").hidden = !note;
 
   // Hiện từ bậc hiếm nhất xuống thấp nhất, giống CS2.
   $("contents-body").innerHTML = [...RARITIES].reverse().map((r) => {
-    const list = state.groups[r.key];
+    const list = groups[r.key];
     if (list.length === 0) return "";
     const each = chances[r.key] / list.length;
-    const tiles = list.map((p) => `
-      <button type="button" class="mini" data-pokemon="${p.id}" data-search="${p.name.toLowerCase()} ${p.baseId || p.id}">
+    const rate = odds ? dropOdds({ rarity: r.key, shiny: false }, groups).pokemon : 0;
+    const tiles = list.map((p) => {
+      const entry = owned && state.collection[p.id];
+      return `
+      <button type="button" class="mini${owned && !entry ? " is-unowned" : ""}" data-pokemon="${p.id}" data-search="${p.name.toLowerCase()} ${p.baseId || p.id}">
         <img class="mini-img" src="${thumbUrl(p)}" alt="" loading="lazy">
         <span class="mini-name">${p.name}</span>
         <span class="mini-id">${dexLabel(p)}</span>
-      </button>`).join("");
+        ${odds ? `<span class="mini-odds" data-odds="${rate}" title="1 in ${oneIn(rate)}">${formatPct(rate * 100)}</span>` : ""}
+        ${owned ? `<span class="mini-own">${entry ? `Owned${entry.count > 1 ? ` ×${entry.count}` : ""}` : "Missing"}</span>` : ""}
+      </button>`;
+    }).join("");
     return `
       <section class="contents-group r-${r.key}">
         <h3 class="contents-head">
@@ -1166,7 +1181,7 @@ function openContents() {
 
   $("contents-search").value = "";
   $("contents-empty").hidden = true;
-  $("contents-modal").showModal();
+  if (!$("contents-modal").open) $("contents-modal").showModal(); // đổi nhóm khi popup đang mở thì chỉ vẽ lại
 }
 
 function filterContents() {
@@ -1351,6 +1366,13 @@ async function spin({ quick = false } = {}) {
 //   defaultAction() mã nút mà phím Space bấm (mặc định: nút đầu tiên)            — tuỳ chọn
 //   status()        dòng nhắc dưới các nút (mặc định: lý do khóa của nút Space)   — tuỳ chọn
 //   onShow(), onPoolChanged() (custom.pool đã cập nhật), realign() (đổi cỡ cửa sổ) — tuỳ chọn
+//   contents(key)   nội dung hòm cho nút "View case contents" (có khai báo thì khung tự hiện nút) — tuỳ chọn
+//                   key: nhóm muốn xem; bỏ trống = nhóm đang chọn (chưa chọn thì nhóm đầu tiên). Trả về
+//                   { key, current, title, list, off, info, options }:
+//                     key      nhóm đang xem          current  nhóm đang chọn trên bánh xe (null = chưa quay)
+//                     title    vd. "Fire case"        list     Pokémon trong hòm (đúng nhóm nút Open quay)
+//                     off      lý do nhóm không có trên bánh xe ("" nếu có)
+//                     info     dòng thêm (HTML)       options  [{ key, name, count, off }] các nhóm xem được
 // Chế độ chỉ có một hành động có thể khai báo spin({ quick }) (kèm spinLabel, emptyHint) thay cho actions.
 // Trong lúc chạy, hành động gọi setCustomSpinning(true, "Spinning…") và setCustomSpinning(false) khi xong.
 const CUSTOM_MODES = [];
@@ -1491,6 +1513,8 @@ function renderCustomControls(label) {
     return keys.length ? `${keys.map((k) => `<kbd>${k}</kbd>`).join(" ")} ${escHtml(lowerFirst(a.label()))}` : "";
   }).filter(Boolean).join(" · ");
 
+  $("custom-contents").hidden = !(mode && mode.contents);
+  $("custom-contents").disabled = state.spinning || custom.pool.length === 0;
   for (const b of $("mode-bar").querySelectorAll(".mode-btn")) b.disabled = state.spinning;
   // Đang quay: khóa bảng chọn gen của trang Custom, quay xong mới đổi được
   for (const input of $("custom-gen-grid").querySelectorAll("input")) input.disabled = state.spinning;
@@ -1527,6 +1551,28 @@ function customActionButton(code) {
     ? defaultActionKey(mode)
     : (modeActions(mode).find((a) => a.hotkey && `Key${a.hotkey.toUpperCase()}` === code) || {}).key;
   return key ? $("custom-actions").querySelector(`.action-main[data-action="${key}"]`) : null;
+}
+
+// Popup "View case contents" của chế độ đang chọn. key: nhóm muốn xem (đổi ở ô chọn trong popup).
+// Chỉ để xem: không đổi nhóm đang chọn trên bánh xe.
+function openCustomContents(key) {
+  const mode = custom.active;
+  if (!mode || !mode.contents) return;
+  const c = mode.contents(key);
+  const nameOf = (k) => c.options.find((o) => o.key === k).name;
+  const options = c.options.map((o) => `
+    <option value="${o.key}"${o.key === c.key ? " selected" : ""}>${escHtml(o.name)} · ${o.off
+      ? "not on the wheel" : `${o.count} Pokémon`}${o.key === c.current ? " · your case" : ""}</option>`).join("");
+  const line = (html, cls = "") => (html ? `<p class="contents-line${cls}">${html}</p>` : "");
+  const note = `
+    <div class="filters contents-pick">
+      <select id="contents-pick" aria-label="Case to view">${options}</select>
+    </div>
+    ${line(!c.current ? "Spin the wheel to pick a case."
+      : c.current !== c.key ? `Preview only. Your case on the wheel stays ${escHtml(nameOf(c.current))}.` : "")}
+    ${line(c.off && `<b>Not on the wheel</b>: ${c.off}`, " is-off")}
+    ${line(c.info)}`;
+  openContents({ groups: groupByRarity(c.list), title: c.title, note, owned: true, odds: true });
 }
 
 function onCustomGensChanged() {
@@ -1571,6 +1617,13 @@ function initCustom() {
   $("custom-actions").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-action]");
     if (btn) runCustomAction(btn.dataset.action, { quick: btn.dataset.quick === "1" });
+  });
+  $("custom-contents").addEventListener("click", () => openCustomContents());
+  // Ô chọn nhóm trong popup: xem nhóm khác, giữ ô chọn trong tầm bàn phím sau khi vẽ lại
+  $("contents-modal").addEventListener("change", (e) => {
+    if (e.target.id !== "contents-pick") return;
+    openCustomContents(e.target.value);
+    $("contents-pick").focus();
   });
 }
 
@@ -1622,6 +1675,27 @@ function lostGroupMessage(name, rare, again) {
   return rare
     ? `${name} only has rare Pokémon in these generations. Spin again.`
     : `${name} has no Pokémon in these generations. ${again}`;
+}
+
+// Nội dung hòm cho popup "View case contents" của chế độ bánh xe (xem contents() ở khung Custom).
+// all: Pokémon của từng nhóm trong các gen đã chọn, trước khi lọc bánh xe; wheel: trạng thái bánh xe
+// (pools, types, selected); order: mọi nhóm theo thứ tự ô; name(k), info(k): tên và dòng thêm của nhóm.
+// Nhóm trên bánh xe dùng đúng danh sách wheel.pools mà nút Open quay.
+function wheelContents(key, { all, wheel, order, name, info = () => "" }) {
+  const { rareOnly } = wheelPools(all);
+  const off = (k) => (wheel.pools[k] ? ""
+    : rareOnly.includes(k) ? "only Red or Gold Pokémon in your selected generations, so every case would be a rare drop."
+    : "no Pokémon in your selected generations.");
+  const view = order.includes(key) ? key : wheel.selected || wheel.types[0] || order[0];
+  return {
+    key: view,
+    current: wheel.selected,
+    title: `${name(view)} case`,
+    list: wheel.pools[view] || all[view] || [],
+    off: off(view),
+    info: info(view),
+    options: order.map((k) => ({ key: k, name: name(k), count: (all[k] || []).length, off: off(k) })),
+  };
 }
 
 // Ô nằm dưới kim chỉ khi bánh xe đã xoay rotation độ (chiều kim đồng hồ).
@@ -2006,6 +2080,8 @@ registerCustomMode({
       </div>`;
   },
 
+  contents: (key) => wheelContents(key, { all: typePools(custom.pool), wheel: roulette, order: TYPE_ORDER, name: typeName }),
+
   // Bảng chọn gen bị khóa trong lúc quay nên ở đây không bao giờ đang quay
   onPoolChanged: refreshRoulette,
 
@@ -2143,6 +2219,11 @@ function biomeChip(key) {
   return `<span class="biome-chip" style="--t:${g.color};color:${inkOn(g.color)}">${g.name}</span>`;
 }
 
+// "Cobbleverse biomes Forest, Taiga, …" — các biome Cobbleverse trong nhóm.
+function biomeTagsLine(key) {
+  return `<span class="br-tags-label">Cobbleverse biomes</span> ${biomeInfo(key).tags.map(escHtml).join(", ")}`;
+}
+
 // Panel tỉ lệ: số Pokémon và tỉ lệ thật mỗi bậc của nhóm đang chọn, kèm các biome Cobbleverse trong nhóm.
 function renderBiomeOdds(key, note) {
   const n = biome.types.length;
@@ -2165,7 +2246,7 @@ function renderBiomeOdds(key, note) {
   $("br-odds-sub").textContent = `${g.name} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
   $("br-odds-list").innerHTML = compactOddsRows(groups);
   $("br-tags").hidden = false;
-  $("br-tags").innerHTML = `<span class="br-tags-label">Cobbleverse biomes</span> ${g.tags.map(escHtml).join(", ")}`;
+  $("br-tags").innerHTML = biomeTagsLine(key);
 }
 
 // Dải thẻ lúc chưa mở hòm: Pokémon của nhóm đang chọn, chưa có nhóm thì Pokémon bất kỳ có trong các nhóm.
@@ -2352,6 +2433,11 @@ registerCustomMode({
       </div>`;
   },
 
+  contents: (key) => wheelContents(key, {
+    all: biomePools(custom.pool), wheel: biome, order: BIOME_GROUPS.map((g) => g.key),
+    name: (k) => biomeInfo(k).name, info: biomeTagsLine,
+  }),
+
   // Bảng chọn gen bị khóa trong lúc quay nên ở đây không bao giờ đang quay
   onPoolChanged: refreshBiome,
 
@@ -2415,7 +2501,7 @@ function init() {
 
   // Danh sách nội dung hòm
   const modal = $("contents-modal");
-  $("btn-contents").addEventListener("click", openContents);
+  $("btn-contents").addEventListener("click", () => openContents());
   $("contents-close").addEventListener("click", () => modal.close());
   modal.addEventListener("click", (e) => { if (e.target === modal) modal.close(); }); // bấm ra ngoài để đóng
   $("contents-search").addEventListener("input", filterContents);
