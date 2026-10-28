@@ -27,6 +27,14 @@ app.whenReady().then(async () => {
 
   await win.loadFile(PAGE);
   await js(`localStorage.clear(); localStorage.setItem("pokeroll.selectedGens", "[6]")`);
+  // Mô phỏng máy chậm: POKEROLL_TEST_CPU_THROTTLE=2 → CPU chậm đi 2 lần (DevTools: Emulation.setCPUThrottlingRate).
+  // Đặt sau khi trang đã nạp (gửi lúc chưa có trang thì lệnh bị treo); giữ nguyên qua các lần tải lại.
+  const throttle = Number(process.env.POKEROLL_TEST_CPU_THROTTLE) || 0;
+  if (throttle > 1) {
+    win.webContents.debugger.attach("1.3");
+    await win.webContents.debugger.sendCommand("Emulation.setCPUThrottlingRate", { rate: throttle });
+    console.log(`(CPU throttled ${throttle}x)`);
+  }
   await win.reload();
   let s;
   check("Without ?nomotion: effects on (no no-motion class)", !(await js(`document.documentElement.classList.contains("no-motion")`)));
@@ -179,42 +187,80 @@ app.whenReady().then(async () => {
   check("Type Roulette: final odds = effectiveChances of the type", s.ok, s.ok ? s.shown : s.bad.join("; "));
 
   // ---- 6. Các hiệu ứng CSS khác ----
-  // Thao tác rồi đo hiệu ứng ngay trong cùng một lệnh: hiệu ứng chỉ dài 0,2–0,35 s, máy chậm (CI) mà đo ở lệnh sau
-  // thì hiệu ứng có thể đã xong. Popup (dialog) thì chờ tới khi mở rồi đo.
-  const animAfter = (act, sel, name) => js(`(async () => { ${act};
-    for (let i = 0; i < 200; i++) { const el = ${sel}; if (el && (el.tagName !== "DIALOG" || el.open)) break; await new Promise((r) => setTimeout(r, 5)); }
-    const el = ${sel}; return el ? el.getAnimations().filter(a => a.animationName === "${name}").map(a => ({ d: a.effect.getTiming().duration, k: a.effect.getKeyframes() })) : null; })()`);
-  // Bánh xe: đổi gen làm thêm / bớt ô → fade; bộ ô giữ nguyên → không
+  // Không bắt khung hình lúc hiệu ứng đang chạy (hiệu ứng chỉ 0,15–0,35 s, máy chậm như CI dễ lỡ). Thay vào đó kiểm tra
+  // phần tử có được gán đúng hiệu ứng: animation-name / animation-duration trong style tính toán (vẫn giữ sau khi
+  // hiệu ứng chạy xong, nên không phụ thuộc lúc đo), và hình dạng hiệu ứng trong khai báo @keyframes của CSS.
+  const animOf = (sel, pseudo = null) => js(`(() => { const el = ${sel}; if (!el) return null;
+    const cs = getComputedStyle(el, ${JSON.stringify(pseudo)}); return { name: cs.animationName, dur: cs.animationDuration }; })()`);
+  const keyframes = (name) => js(`(() => { for (const sh of document.styleSheets) for (const r of sh.cssRules)
+    if (r instanceof CSSKeyframesRule && r.name === "${name}") return [...r.cssRules].map((k) => ({ at: k.keyText, opacity: k.style.opacity, transform: k.style.transform }));
+    return null; })()`);
+  const tickBox = (g) => `document.querySelector('#gen-grid input[value="${g}"] + .gen-card')`;
+
+  // Bánh xe: đổi gen làm thêm / bớt ô → bánh xe vẽ lại được gán hiệu ứng mờ dần; bộ ô giữ nguyên → không
   await js(`document.getElementById("custom-all").click()`); await sleep(400);
-  check("Wheel redraw with the same slices (18 → 18): no fade",
-    (await animAfter(`document.querySelector('#custom-gen-grid input[value="5"]').click()`, `document.querySelector("#tr-disc svg")`, "wheel-redraw")).length === 0);
-  const wf = await animAfter(`document.getElementById("custom-none").click(); document.querySelector('#custom-gen-grid input[value="1"]').click()`,
-    `document.querySelector("#tr-disc svg")`, "wheel-redraw");
-  check("Wheel loses a slice (Gen 1: no Dark) → redrawn wheel fades in", wf.length === 1 && wf[0].d === 350 && (await js(`document.querySelectorAll("#tr-disc .wheel-slice").length`)) === 17);
+  await js(`document.querySelector('#custom-gen-grid input[value="5"]').click()`);
+  let a = await animOf(`document.querySelector("#tr-disc svg")`);
+  check("Wheel redraw with the same slices (18 → 18): no fade", a.name === "none", a.name);
+  await js(`document.getElementById("custom-none").click(); document.querySelector('#custom-gen-grid input[value="1"]').click()`);
+  a = await animOf(`document.querySelector("#tr-disc svg")`);
+  check("Wheel loses a slice (Gen 1: no Dark) → redrawn wheel fades in (wheel-redraw, 0.35s)", a.name === "wheel-redraw" && a.dur === "0.35s"
+    && (await js(`document.querySelectorAll("#tr-disc .wheel-slice").length`)) === 17, `${a.name} ${a.dur}`);
+  const wk = await keyframes("wheel-redraw");
+  check("…wheel-redraw goes from faded (opacity 0.25) to opaque", wk && wk[0].opacity === "0.25" && wk.at(-1).opacity === "1", JSON.stringify(wk));
   await js(`document.getElementById("custom-all").click()`); await sleep(400);
-  // Chuyển chế độ Custom / tab
-  let a = await animAfter(`document.querySelector('.mode-btn[data-mode="biome-roulette"]').click()`, `document.getElementById("mode-biome-roulette")`, "view-in");
-  check("Switching Custom mode: panel fades/slides in (200 ms)", a.length === 1 && a[0].d === 200 && a[0].k[0].opacity === "0" && /translateY\(6px\)/.test(a[0].k[0].transform));
-  a = await animAfter(`document.querySelector('.tab[data-view="collection"]').click()`, `document.getElementById("view-collection")`, "view-in");
-  check("Switching tab: page fades/slides in (200 ms)", a.length === 1 && a[0].d === 200);
+
+  // Chuyển chế độ Custom / tab: phần vừa hiện ra được gán view-in (0.2s); phần đang ẩn thì không
+  const vk = await keyframes("view-in");
+  check("view-in: fades in from opacity 0 and slides up from 6px", vk && vk[0].opacity === "0" && /translateY\(6px\)/.test(vk[0].transform) && vk.at(-1).opacity === "1", JSON.stringify(vk));
+  const hiddenBefore = await animOf(`document.getElementById("mode-biome-roulette")`);
+  await js(`document.querySelector('.mode-btn[data-mode="biome-roulette"]').click()`);
+  a = await animOf(`document.getElementById("mode-biome-roulette")`);
+  check("Switching Custom mode: hidden panel has no animation, shown panel gets view-in (0.2s)", hiddenBefore.name === "none" && a.name === "view-in" && a.dur === "0.2s",
+    `before ${hiddenBefore.name}, after ${a.name} ${a.dur}`);
+  await js(`document.querySelector('.tab[data-view="collection"]').click()`);
+  a = await animOf(`document.getElementById("view-collection")`);
+  check("Switching tab: shown page gets view-in (0.2s)", a.name === "view-in" && a.dur === "0.2s", `${a.name} ${a.dur}`);
   await js(`document.querySelector('.tab[data-view="case"]').click()`); await sleep(300);
-  // Ô gen: dấu tick bật ra
-  const tick = await js(`(() => { tickGen(2); return document.getAnimations().filter(a => a.animationName === "tick-pop").map(a => a.effect.pseudoElement); })()`);
-  check("Ticking a gen: the tick mark pops in", tick.length === 1 && tick[0] === "::after");
+
+  // Ô gen: dấu tick (::after của ô) chỉ được gán tick-pop khi ô đang được chọn
+  await js(`if (document.querySelector('#gen-grid input[value="2"]').checked) tickGen(2)`);
+  const tickOff = await animOf(tickBox(2), "::after");
+  await js(`tickGen(2)`);
+  const tickOn = await animOf(tickBox(2), "::after");
+  const tk = await keyframes("tick-pop");
+  check("Ticking a gen: the tick mark gets tick-pop (0.22s), none while unticked", tickOff.name === "none" && tickOn.name === "tick-pop" && tickOn.dur === "0.22s",
+    `unticked ${tickOff.name}, ticked ${tickOn.name} ${tickOn.dur}`);
+  check("…tick-pop grows from scale 0.5 to full size", tk && tk[0].transform === "scale(0.5)" && tk.at(-1).transform === "scale(1)", JSON.stringify(tk));
   await sleep(SETTLE);
-  // Popup
-  a = await animAfter(`document.getElementById("btn-contents").click()`, `document.getElementById("contents-modal")`, "modal-enter");
-  check("View case contents popup: fade + scale 0.96 → 1", a.length === 1 && a[0].k[0].opacity === "0" && a[0].k[0].transform === "scale(0.96)" && a[0].k.at(-1).transform === "scale(1)");
+
+  // Popup: popup đang mở được gán modal-enter (0.2s); đóng thì không
+  const mk = await keyframes("modal-enter");
+  check("modal-enter: fade + scale 0.96 → 1", mk && mk[0].opacity === "0" && mk[0].transform === "scale(0.96)" && mk.at(-1).opacity === "1" && mk.at(-1).transform === "scale(1)", JSON.stringify(mk));
+  const closedModal = await animOf(`document.getElementById("contents-modal")`);
+  await js(`document.getElementById("btn-contents").click()`);
+  a = await animOf(`document.getElementById("contents-modal")`);
+  check("View case contents popup: modal-enter (0.2s) when open, none when closed", closedModal.name === "none" && a.name === "modal-enter" && a.dur === "0.2s",
+    `closed ${closedModal.name}, open ${a.name} ${a.dur}`);
   await js(`document.getElementById("contents-modal").close()`);
-  a = await animAfter(`document.getElementById("btn-quick").click()`, `document.getElementById("result-modal")`, "modal-enter");
-  check("Result popup: fade + scale 0.96 → 1", a.length === 1 && a[0].k[0].transform === "scale(0.96)");
-  await sleep(400); await js(`document.getElementById("result-modal").close()`);
-  // Hover: nhấc ô gen lên 2px
-  const box = await js(`(() => { const r = document.querySelector('#gen-grid .gen-option .gen-card').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()`);
-  win.webContents.sendInputEvent({ type: "mouseMove", x: box.x, y: box.y }); await sleep(300);
-  const lift = await js(`getComputedStyle(document.querySelector('#gen-grid .gen-option .gen-card')).transform`);
-  check("Hover a gen card: lifts 2px", lift === "matrix(1, 0, 0, 1, 0, -2)", lift);
-  win.webContents.sendInputEvent({ type: "mouseMove", x: 5, y: 5 }); await sleep(200);
+  await js(`document.getElementById("btn-quick").click()`);
+  for (const t0 = Date.now(); Date.now() - t0 < 3000 && !(await js(`document.getElementById("result-modal").open`));) await sleep(50);
+  a = await animOf(`document.getElementById("result-modal")`);
+  check("Result popup: modal-enter (0.2s)", a.name === "modal-enter" && a.dur === "0.2s", `${a.name} ${a.dur}`);
+  await js(`document.getElementById("result-modal").close()`);
+
+  // Hover: nhấc ô gen lên 2px. Cho transition chạy xong ngay (finish) rồi đo, không chờ theo thời gian
+  const box = await js(`(() => { const r = ${tickBox(1)}.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()`);
+  win.webContents.sendInputEvent({ type: "mouseMove", x: box.x, y: box.y }); await sleep(100);
+  const lift = await js(`(() => { const el = ${tickBox(1)}; el.getAnimations().forEach((x) => x.finish()); return { hover: el.matches(":hover") || el.parentElement.matches(":hover"), transform: getComputedStyle(el).transform }; })()`);
+  check("Hover a gen card: lifts 2px", lift.hover && lift.transform === "matrix(1, 0, 0, 1, 0, -2)", JSON.stringify(lift));
+  win.webContents.sendInputEvent({ type: "mouseMove", x: 5, y: 5 }); await sleep(100);
+
+  // ?nomotion (class no-motion): không phần tử nào được gán các hiệu ứng trên
+  await js(`document.documentElement.classList.add("no-motion"); document.getElementById("btn-contents").click()`);
+  const nm = { view: await animOf(`document.getElementById("view-case")`), tick: await animOf(tickBox(2), "::after"), modal: await animOf(`document.getElementById("contents-modal")`) };
+  check("?nomotion: no view-in, tick-pop or modal-enter", nm.view.name === "none" && nm.tick.name === "none" && nm.modal.name === "none", JSON.stringify(nm));
+  await js(`document.getElementById("contents-modal").close(); document.documentElement.classList.remove("no-motion")`);
 
   // ---- 7. Dải quay và bánh xe giữ nguyên thời gian ----
   await js(`document.getElementById("btn-spin").click()`); await sleep(400);
@@ -223,15 +269,17 @@ app.whenReady().then(async () => {
   await js(`document.getElementById("result-modal").close()`);
 
   // ---- 8. Giảm chuyển động (hệ điều hành): hiện giá trị cuối ngay, không có hiệu ứng CSS ----
-  win.webContents.debugger.attach("1.3");
+  if (!win.webContents.debugger.isAttached()) win.webContents.debugger.attach("1.3");
   await win.webContents.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   const rm = await js(`(() => { tickGen(2); const f = frame(); return { f, ok: settledOk() }; })()`);
   check("Reduced motion: final values immediately after a gen change (numbers and bars)", rm.ok.ok && rm.f.rows.every((r) => Math.abs(r.p - r.target) < 1e-9), rm.ok.ok ? rm.ok.shown : rm.ok.bad.join("; "));
-  check("Reduced motion: no tab fade", (await animAfter(`document.querySelector('.tab[data-view="collection"]').click()`, `document.getElementById("view-collection")`, "view-in")).length === 0);
-  check("Reduced motion: no popup animation", (await animAfter(`document.querySelector('.tab[data-view="case"]').click(); document.getElementById("btn-contents").click()`,
-    `document.getElementById("contents-modal")`, "modal-enter")).length === 0);
+  await js(`document.querySelector('.tab[data-view="collection"]').click()`);
+  check("Reduced motion: shown page gets no view-in", (await animOf(`document.getElementById("view-collection")`)).name === "none");
+  await js(`document.querySelector('.tab[data-view="case"]').click(); document.getElementById("btn-contents").click()`);
+  const rmAnim = { modal: await animOf(`document.getElementById("contents-modal")`), tick: await animOf(tickBox(2), "::after") };
+  check("Reduced motion: no popup or tick animation", rmAnim.modal.name === "none" && rmAnim.tick.name === "none", JSON.stringify(rmAnim));
   await js(`document.getElementById("contents-modal").close()`);
-  win.webContents.debugger.detach();
+  await win.webContents.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [] });
 
   check("No console errors", errors.length === 0, errors.slice(0, 3).join(" | "));
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
