@@ -933,6 +933,8 @@ button.mini:focus-visible {
 }
 .rarity-rule { padding-left: 17px; font-size: 0.8rem; color: var(--muted); }
 .rarity-note { padding-left: 17px; font-size: 0.76rem; color: var(--amber); }
+/* Bậc nhận thêm tỉ lệ của bậc trống: "base 3.20% + 0.64% from Red" */
+.rarity-fold { padding-left: 17px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--c); }
 
 .rarity-count,
 .rarity-chance {
@@ -941,7 +943,9 @@ button.mini:focus-visible {
   text-align: right;
 }
 .rarity-count { font-weight: 600; font-size: 0.95rem; }
-.rarity-chance { font-weight: 600; font-size: 0.95rem; color: var(--c); }
+.rarity-chance { display: grid; justify-items: end; font-weight: 600; font-size: 0.95rem; color: var(--c); }
+/* Bậc trống: tỉ lệ gốc gạch ngang dưới "0%" */
+.rarity-base { font-size: 0.7rem; font-weight: 500; color: var(--muted); }
 
 .rarity-row.is-empty .rarity-name,
 .rarity-row.is-empty .rarity-count,
@@ -960,7 +964,7 @@ button.mini:focus-visible {
   .pool-total { grid-auto-flow: column; justify-items: start; align-items: baseline; gap: 8px; }
   .pool-total strong { font-size: 1.5rem; }
   .rarity-row { grid-template-columns: 3px 1fr auto 58px; gap: 10px; padding-right: 10px; }
-  .rarity-rule, .rarity-note { padding-left: 0; }
+  .rarity-rule, .rarity-note, .rarity-fold { padding-left: 0; }
   .rarity-count, .rarity-chance { font-size: 0.85rem; }
 }
 
@@ -1460,6 +1464,7 @@ button.mini:focus-visible {
   letter-spacing: 0.08em;
 }
 .tier-odds b { font-size: 1.15rem; color: var(--c); letter-spacing: 0; }
+.tier-fold { font-size: 0.66rem; text-transform: none; letter-spacing: 0; text-align: right; }
 
 /* Khung "1 in N" */
 .odds {

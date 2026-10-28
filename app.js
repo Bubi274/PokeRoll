@@ -522,26 +522,47 @@ function poolSize() {
   return groupsSize(state.groups);
 }
 
+// Tỉ lệ % kiểu bảng tỉ lệ: "3.84%", bậc không ra được thì "0%".
+const pct2 = (x) => (x === 0 ? "0%" : `${x.toFixed(2)}%`);
+
+// Tỉ lệ thật của một bậc trong hòm groups (đã tính hạ bậc) và các bậc trống dồn tỉ lệ về bậc này.
+function tierOdds(key, groups) {
+  return {
+    chance: effectiveChances(groups)[key],
+    base: rarityInfo(key).chance,
+    from: RARITIES.filter((r) => r.key !== key && resolveRarity(r.key, groups) === key),
+  };
+}
+
+// "base 3.20% + 0.64% from Red" — bậc nhận thêm tỉ lệ của các bậc trống.
+function foldedOddsText({ base, from }) {
+  return `base ${pct2(base)} + ${from.map((r) => `${pct2(r.chance)} from ${r.name}`).join(" + ")}`;
+}
+
 function renderPoolStats() {
   const pool = filterByGens(state.pokemon, state.selectedGens);
   state.groups = groupByRarity(pool);
   $("pool-count").textContent = pool.length;
 
+  // Hòm có Pokémon: hiện tỉ lệ thật (bậc trống dồn về bậc thấp hơn). Hòm rỗng: chưa quay được, hiện tỉ lệ gốc.
   $("rarity-list").innerHTML = RARITIES.map((r) => {
     const n = state.groups[r.key].length;
+    const odds = pool.length > 0 ? tierOdds(r.key, state.groups) : { chance: r.chance, base: r.chance, from: [] };
     const note = n === 0 && pool.length > 0
       ? `<span class="rarity-note">None in this case — rolls drop to the next lower tier</span>`
       : "";
+    const fold = n > 0 && odds.from.length ? `<span class="rarity-fold">${foldedOddsText(odds)}</span>` : "";
+    const struck = n === 0 && pool.length > 0 ? `<s class="rarity-base" title="Base odds">${pct2(r.chance)}</s>` : "";
     return `
-      <li class="rarity-row r-${r.key}${n === 0 ? " is-empty" : ""}" style="--p:${r.chance}">
+      <li class="rarity-row r-${r.key}${n === 0 ? " is-empty" : ""}" style="--p:${odds.chance}">
         <span class="rarity-swatch"></span>
         <span class="rarity-info">
           <span class="rarity-name">${r.name}</span>
           <span class="rarity-rule">${r.rule}</span>
-          ${note}
+          ${note}${fold}
         </span>
         <span class="rarity-count" title="Pokémon in this tier">${n}</span>
-        <span class="rarity-chance">${r.chance.toFixed(2)}%</span>
+        <span class="rarity-chance"><span class="rarity-pct">${pct2(odds.chance)}</span>${struck}</span>
       </li>`;
   }).join("");
 
@@ -823,16 +844,20 @@ function tierLadder(rarity) {
     </div>`;
 }
 
-// Khung thông tin độ hiếm: tên bậc, quy tắc xếp bậc và tỉ lệ của bậc (lấy từ RARITIES).
-function tierPanel(rarity, shiny) {
+// Khung thông tin độ hiếm: tên bậc, quy tắc xếp bậc và tỉ lệ của bậc.
+// groups: hòm lúc quay (popup kết quả) → tỉ lệ thật trong hòm đó; không có hòm (popup chi tiết) → tỉ lệ gốc.
+function tierPanel(rarity, shiny, groups) {
   const r = rarityInfo(rarity);
+  const odds = groups ? tierOdds(rarity, groups) : null;
   return `
     <div class="tier-panel">
       <div>
         <div class="result-rarity">${r.name}${shiny ? ` <span class="shiny-tag">★ Shiny</span>` : ""}</div>
         <p class="tier-rule">${r.rule}</p>
       </div>
-      <p class="tier-odds"><b>${r.chance.toFixed(2)}%</b> tier odds</p>
+      ${odds
+        ? `<p class="tier-odds"><b>${pct2(odds.chance)}</b> tier odds in this case${odds.from.length ? ` <span class="tier-fold">${foldedOddsText(odds)}</span>` : ""}</p>`
+        : `<p class="tier-odds"><b>${pct2(r.chance)}</b> base tier odds</p>`}
     </div>`;
 }
 
@@ -906,7 +931,7 @@ function showResultModal(result, { isNew, count, groups = state.groups, again = 
         </div>
       </div>
       <div class="reveal-info">
-        ${tierPanel(rarity, shiny)}
+        ${tierPanel(rarity, shiny, groups)}
         ${oddsBlock(result, groups)}
         ${extra}
         ${downgraded ? `<div class="result-note">Rolled a higher tier with no Pokémon in this case — dropped to ${rarityInfo(rarity).name}.</div>` : ""}
