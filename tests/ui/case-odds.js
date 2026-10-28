@@ -129,13 +129,13 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('.tab[data-view="custom"]').click(); document.querySelector('.mode-btn[data-mode="type-roulette"]').click(); 0`); await sleep(200);
   // Chọn một hệ có bậc Red trống ở Gen 6 để thấy dòng "base … from Red"
   const typeKey = await js(`roulette.types.find(t => groupByRarity(roulette.pools[t]).red.length === 0 && groupByRarity(roulette.pools[t]).pink.length > 0)`);
-  await js(`selectType("${typeKey}"); refreshRoulette(); 0`);
+  await js(`roulette.selected = "${typeKey}"; roulette.lost = null; refreshRoulette(); 0`);
   r = await js(`checkTable("#tr-odds-list", groupByRarity(roulette.pools[roulette.selected]), false)`);
   check(`Type Roulette (${typeKey}, Gen 6): same table, Gold→Blue, no BST line, fold line`, r.ok && /from Red/.test(r.shown), r.ok ? r.shown : r.bad.join("; "));
   check("Type Roulette panel uses the compact style", await js(`document.getElementById("tr-odds-list").classList.contains("is-compact")`));
   await js(`document.querySelector('.mode-btn[data-mode="biome-roulette"]').click(); 0`); await sleep(200);
   const biomeKey = await js(`biome.types.find(k => groupByRarity(biome.pools[k]).red.length === 0 && groupByRarity(biome.pools[k]).pink.length > 0)`);
-  await js(`selectBiome("${biomeKey}"); refreshBiome(); 0`);
+  await js(`biome.selected = "${biomeKey}"; biome.lost = null; refreshBiome(); 0`);
   r = await js(`checkTable("#br-odds-list", groupByRarity(biome.pools[biome.selected]), false)`);
   check(`Biome Roulette (${biomeKey}, Gen 6): same table, Gold→Blue, no BST line, fold line`, r.ok && /from Red/.test(r.shown), r.ok ? r.shown : r.bad.join("; "));
   await js(`document.getElementById("br-odds-list").scrollIntoView()`); await sleep(200);

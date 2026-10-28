@@ -216,8 +216,8 @@ app.whenReady().then(async () => {
   check("Dark selected with Gen 2: kept", (await js(`roulette.selected`)) === "dark");
   await js(`document.querySelector('#custom-gen-grid input[value="2"]').click(); document.querySelector('#custom-gen-grid input[value="1"]').click()`); await sleep(150);
   s = await js(`wheelState()`);
-  check("Switch to Gen 1 (no Dark): type dropped, Open locked, user told to spin again",
-    s.selected === null && s.saved === null && s.openDisabled && s.openLabel === "Open case" && s.primary === "wheel"
+  check("Switch to Gen 1 (no Dark): type dropped (still saved), Open locked, user told to spin again",
+    s.selected === null && s.saved === "dark" && s.openDisabled && s.openLabel === "Open case" && s.primary === "wheel"
     && s.hint === "Dark has no Pokémon in these generations. Spin the wheel again." && /Dark has no Pokémon/.test(await js(`document.getElementById("tr-odds-sub").textContent`)), `"${s.hint}"`);
   await shot("tr2-type-dropped.png");
   h0 = await histLen();
@@ -271,7 +271,7 @@ app.whenReady().then(async () => {
   await js(`state.pokemon.forEach(p => { if (p.types.includes("ghost") && ["blue", "purple", "pink"].includes(p.rarity)) p.rarity = "red"; }); updateCustomPool(); 0`);
   s = await js(`wheelState()`);
   const RARE_T = "Ghost only has rare Pokémon in these generations. Spin again.";
-  check("Ghost now Red/Gold only: dropped, Open locked, rare-only message", s.selected === null && s.saved === null && s.openDisabled && s.primary === "wheel"
+  check("Ghost now Red/Gold only: dropped (still saved), Open locked, rare-only message", s.selected === null && s.saved === "ghost" && s.openDisabled && s.primary === "wheel"
     && s.hint === RARE_T && (await js(`document.getElementById("tr-odds-sub").textContent`)) === RARE_T, `"${s.hint}"`);
   check("…Ghost slice removed (17 types)", (await js(`document.querySelectorAll("#tr-wheel .wheel-slice").length`)) === 17 && !(await js(`!!document.querySelector('#tr-wheel .wheel-slice[data-type="ghost"]')`)));
   const seenT = new Set();

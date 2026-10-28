@@ -240,8 +240,8 @@ app.whenReady().then(async () => {
   check("None (no gens): End kept, both buttons locked", s.selected === "end" && s.spinDisabled && s.openDisabled && s.hint === "Select at least one generation to spin.");
   await js(`document.querySelector('#custom-gen-grid input[value="9"]').click()`); await sleep(150);
   s = await js(`wheelState()`);
-  check("Switch to Gen 9 (no End): biome dropped, Open locked, user told to spin again",
-    s.selected === null && s.saved === null && s.openDisabled && s.openLabel === "Open case" && s.primary === "biome"
+  check("Switch to Gen 9 (no End): biome dropped (still saved), Open locked, user told to spin again",
+    s.selected === null && s.saved === "end" && s.openDisabled && s.openLabel === "Open case" && s.primary === "biome"
     && s.hint === "End has no Pokémon in these generations. Spin the biome again." && /End has no Pokémon/.test(await js(`document.getElementById("br-odds-sub").textContent`)), `"${s.hint}"`);
   await shot("br-biome-dropped.png");
   await space(); await sleep(300);
@@ -262,8 +262,8 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('#custom-gen-grid input[value="9"]').click()`); await sleep(150);
   s = await js(`wheelState()`);
   const noLegendSlice = !(await js(`!!document.querySelector('#br-wheel .wheel-slice[data-type="legendary"]')`));
-  check("Gen 9 only: Legendary (Gold only) dropped, Open locked, rare-only message",
-    s.selected === null && s.saved === null && s.openDisabled && s.primary === "biome" && s.hint === RARE_MSG
+  check("Gen 9 only: Legendary (Gold only) dropped (still saved), Open locked, rare-only message",
+    s.selected === null && s.saved === "legendary" && s.openDisabled && s.primary === "biome" && s.hint === RARE_MSG
     && (await js(`document.getElementById("br-odds-sub").textContent`)) === RARE_MSG, `"${s.hint}"`);
   check("Gen 9 only: wheel has 16 biomes, no Legendary slice (End empty, Legendary rare-only)", s.slices === 16 && noLegendSlice, `${s.slices} slices`);
   await shot("br-rare-only.png");
@@ -274,7 +274,7 @@ app.whenReady().then(async () => {
   await js(`localStorage.setItem("${KEY}", '"legendary"'); localStorage.setItem("pokeroll.custom.gens", "[9]")`);
   await win.reload(); await sleep(500); await installHelpers(); await toBiome();
   s = await js(`wheelState()`);
-  check("Page load with a saved Legendary + Gen 9: dropped at load, rare-only message", s.selected === null && s.saved === null && s.openDisabled && s.hint === RARE_MSG, `"${s.hint}"`);
+  check("Page load with a saved Legendary + Gen 9: dropped at load, rare-only message", s.selected === null && s.saved === "legendary" && s.openDisabled && s.hint === RARE_MSG, `"${s.hint}"`);
   await js(`document.getElementById("custom-all").click()`); await sleep(100);
 
   // ---- 10. Lịch sử và nhãn ----

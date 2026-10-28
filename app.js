@@ -1701,6 +1701,40 @@ function wheelPools(pools) {
   return { pools: kept, rareOnly };
 }
 
+// Đổi gen (và lúc tải trang): dựng lại các nhóm trên bánh xe và quyết định giữ / bỏ nhóm đang chọn.
+// Dùng chung cho mọi chế độ bánh xe để các chế độ không thể xử lý lệch nhau.
+//   w          trạng thái bánh xe: { pools, types, selected, lost, lostRare }
+//   groupPools Pokémon của từng nhóm trong các gen đang chọn (trước khi lọc bánh xe)
+// Quy tắc (chỉ phụ thuộc bộ gen hiện tại, không phụ thuộc thứ tự bấm):
+//   - Chưa chọn gen nào: giữ nguyên, các nút đều khóa.
+//   - Nhóm đang chọn — hoặc nhóm vừa bị bỏ mà chưa quay lại — hợp lệ với các gen mới: chọn (lại) nhóm đó.
+//   - Không hợp lệ (không có Pokémon, hoặc chỉ có Red/Gold): bỏ khỏi lựa chọn và báo (lost / lostRare).
+// Nhóm bị bỏ vẫn được lưu (chỉ quay bánh xe mới thay), nên tải lại trang cũng theo đúng quy tắc này.
+function refreshWheelGroups(w, groupPools) {
+  const { pools, rareOnly } = wheelPools(groupPools);
+  w.pools = pools;
+  w.types = Object.keys(pools);
+  const wanted = w.selected || w.lost;
+  if (!wanted || custom.pool.length === 0) return;
+  if (pools[wanted]) {
+    w.selected = wanted;
+    w.lost = null;
+  } else {
+    w.selected = null;
+    w.lost = wanted;
+    w.lostRare = rareOnly.includes(wanted);
+  }
+}
+
+// Bánh xe trống: chưa chọn gen nào, hoặc các gen đã chọn không có nhóm nào đủ điều kiện lên bánh xe
+// (vd. chỉ chọn Special ở Biome Roulette: các dạng Special không có dữ liệu spawn). noun: "type", "biome"…
+// where: đuôi câu khi chưa chọn gen ("to spin", "below"…).
+function emptyWheelText(noun, where = "to spin") {
+  return custom.pool.length === 0
+    ? `Select at least one generation${where ? ` ${where}` : ""}.`
+    : `No ${noun} can go on the wheel with these generations. Select other generations.`;
+}
+
 // Câu báo khi nhóm đang chọn bị bỏ vì đổi gen. rare = bị bỏ vì chỉ còn Pokémon hiếm.
 function lostGroupMessage(name, rare, again) {
   return rare
@@ -1791,7 +1825,7 @@ const roulette = {
   pools: {},        // Pokémon của từng hệ (đã lọc theo gen của trang Custom)
   rotation: 0,      // góc xoay hiện tại của bánh xe (độ, cộng dồn)
   selected: null,   // hệ đang chọn (trúng ở lần quay bánh xe gần nhất); null = chưa quay
-  lost: null,       // hệ vừa bị bỏ vì đổi gen làm hệ đó hết Pokémon (để báo người dùng)
+  lost: null,       // hệ vừa bị bỏ vì đổi gen (để báo); đổi gen làm nó hợp lệ lại thì chọn lại
   lostRare: false,  // true nếu hệ đó bị bỏ vì chỉ còn Pokémon hiếm (Red/Gold)
 };
 
@@ -1806,12 +1840,6 @@ const TYPE_WHEEL = {
   color: (t) => TYPE_COLORS[t] || "#777",
   label: typeName,
 };
-
-// Đặt hệ đang chọn và lưu lại (tải lại trang vẫn giữ).
-function selectType(type) {
-  roulette.selected = type;
-  saveJson(STORAGE_KEY_ROULETTE_TYPE, type);
-}
 
 // Đặt ngay góc xoay của bánh xe, không có hiệu ứng.
 function setWheelRotation(deg, w = TYPE_WHEEL) {
@@ -1832,7 +1860,7 @@ function renderWheel() {
   const n = roulette.types.length;
   $("tr-wheel-caption").textContent = n
     ? `${n} type${n > 1 ? "s" : ""} on the wheel · each 1 in ${n}`
-    : "No types: select at least one generation";
+    : custom.pool.length ? "No types on the wheel" : "No types: select at least one generation";
   if (roulette.pools[roulette.selected]) {
     setWheelRotation(wheelTarget(0, roulette.types.indexOf(roulette.selected), n, 0, 0));
     markWheelWinner(roulette.selected);
@@ -1902,7 +1930,7 @@ function renderTypeOdds(type, note) {
     $("tr-odds-count").innerHTML = "";
     $("tr-odds-list").innerHTML = "";
     $("tr-odds-sub").textContent = note || (!n
-      ? "Select at least one generation below."
+      ? emptyWheelText("type", "below")
       : roulette.lost
         ? lostGroupMessage(typeName(roulette.lost), roulette.lostRare, "Spin the wheel again.")
         : "Spin the wheel to pick a type. Its tiers show here.");
@@ -1919,20 +1947,12 @@ function renderTypeOdds(type, note) {
 function renderRouletteIdleReel() {
   const pool = roulette.pools[roulette.selected] || custom.pool;
   renderIdleReel(groupByRarity(pool), $("tr-reel"));
+  $("tr-reel").querySelector(".reel-empty").textContent = emptyWheelText("type", "");
 }
 
-// Đổi gen (và lúc tải trang): dựng lại bánh xe. Hệ đang chọn không còn trên bánh xe (hết Pokémon,
-// hoặc chỉ còn Pokémon hiếm) thì bỏ hệ đó và báo người dùng quay lại.
-// Chưa chọn gen nào (vd. vừa bấm None để chọn lại) thì vẫn giữ hệ — lúc đó các nút đều khóa.
+// Đổi gen (và lúc tải trang): giữ / bỏ hệ đang chọn theo refreshWheelGroups, rồi vẽ lại bánh xe.
 function refreshRoulette() {
-  const { pools, rareOnly } = wheelPools(typePools(custom.pool));
-  roulette.pools = pools;
-  roulette.types = Object.keys(pools);
-  if (roulette.selected && custom.pool.length > 0 && !roulette.pools[roulette.selected]) {
-    roulette.lost = roulette.selected;
-    roulette.lostRare = rareOnly.includes(roulette.selected);
-    selectType(null);
-  }
+  refreshWheelGroups(roulette, typePools(custom.pool));
   renderWheel();
   renderTypeOdds(roulette.pools[roulette.selected] ? roulette.selected : null);
   renderRouletteIdleReel();
@@ -2044,21 +2064,21 @@ registerCustomMode({
       label: () => "Spin wheel",
       icon: ICON_WHEEL_BTN,
       hotkey: "W",
-      hint: () => (roulette.types.length ? "" : "Select at least one generation."),
+      hint: () => (roulette.types.length ? "" : emptyWheelText("type", "")),
       run: spinTypeWheel,
     },
     {
       key: "open",
       label: () => (roulette.selected ? `Open ${typeName(roulette.selected)} case` : "Open case"),
       icon: ICON_CASE,
-      hint: () => (!roulette.types.length ? "Select at least one generation." : roulette.selected ? "" : "Spin the wheel first."),
+      hint: () => (!roulette.types.length ? emptyWheelText("type", "") : roulette.selected ? "" : "Spin the wheel first."),
       run: openTypeCase,
     },
   ],
   // Space: mở hòm nếu đã có hệ, chưa có thì quay bánh xe
   defaultAction: () => (roulette.selected ? "open" : "wheel"),
   status() {
-    if (!roulette.types.length) return "Select at least one generation to spin.";
+    if (!roulette.types.length) return emptyWheelText("type");
     if (roulette.lost) return lostGroupMessage(typeName(roulette.lost), roulette.lostRare, "Spin the wheel again.");
     if (!roulette.selected) return "Spin the wheel first.";
     return "";
@@ -2194,7 +2214,7 @@ const biome = {
   pools: {},        // Pokémon của từng nhóm (đã lọc theo gen của trang Custom)
   rotation: 0,      // góc xoay hiện tại của bánh xe
   selected: null,   // nhóm đang chọn; null = chưa quay
-  lost: null,       // nhóm vừa bị bỏ vì đổi gen làm nhóm đó hết Pokémon
+  lost: null,       // nhóm vừa bị bỏ vì đổi gen (để báo); đổi gen làm nó hợp lệ lại thì chọn lại
   lostRare: false,  // true nếu nhóm đó bị bỏ vì chỉ còn Pokémon hiếm (Red/Gold)
 };
 
@@ -2207,11 +2227,6 @@ const BIOME_WHEEL = {
   label: (key) => biomeInfo(key).name,
 };
 
-function selectBiome(key) {
-  biome.selected = key;
-  saveJson(STORAGE_KEY_BIOME, key);
-}
-
 // Vẽ lại bánh xe theo các nhóm hiện có; đang có nhóm thì kim chỉ vào giữa ô của nhóm đó.
 function renderBiomeWheel() {
   const n = biome.types.length;
@@ -2223,7 +2238,7 @@ function renderBiomeWheel() {
   $("br-hub").style.removeProperty("--t");
   $("br-wheel-caption").textContent = n
     ? `${n} biome${n > 1 ? "s" : ""} on the wheel · each 1 in ${n}`
-    : "No biomes: select at least one generation";
+    : custom.pool.length ? "No biomes on the wheel" : "No biomes: select at least one generation";
   if (biome.pools[biome.selected]) {
     setWheelRotation(wheelTarget(0, biome.types.indexOf(biome.selected), n, 0, 0), BIOME_WHEEL);
     markWheelWinner(biome.selected, BIOME_WHEEL);
@@ -2249,7 +2264,7 @@ function renderBiomeOdds(key, note) {
     $("br-odds-list").innerHTML = "";
     $("br-tags").hidden = true;
     $("br-odds-sub").textContent = note || (!n
-      ? "Select at least one generation below."
+      ? emptyWheelText("biome", "below")
       : biome.lost
         ? lostGroupMessage(biomeInfo(biome.lost).name, biome.lostRare, "Spin the biome again.")
         : "Spin the biome wheel to pick a biome. Its tiers show here.");
@@ -2269,20 +2284,12 @@ function renderBiomeOdds(key, note) {
 function renderBiomeIdleReel() {
   const pool = biome.pools[biome.selected] || [...new Set(Object.values(biome.pools).flat())];
   renderIdleReel(groupByRarity(pool), $("br-reel"));
+  $("br-reel").querySelector(".reel-empty").textContent = emptyWheelText("biome", "");
 }
 
-// Đổi gen (và lúc tải trang): dựng lại bánh xe. Nhóm đang chọn không còn trên bánh xe (hết Pokémon,
-// hoặc chỉ còn Pokémon hiếm) thì bỏ nhóm đó và báo người dùng quay lại.
-// Chưa chọn gen nào (vd. vừa bấm None để chọn lại) thì vẫn giữ nhóm — lúc đó các nút đều khóa.
+// Đổi gen (và lúc tải trang): giữ / bỏ nhóm biome đang chọn theo refreshWheelGroups, rồi vẽ lại bánh xe.
 function refreshBiome() {
-  const { pools, rareOnly } = wheelPools(biomePools(custom.pool));
-  biome.pools = pools;
-  biome.types = Object.keys(pools);
-  if (biome.selected && custom.pool.length > 0 && !biome.pools[biome.selected]) {
-    biome.lost = biome.selected;
-    biome.lostRare = rareOnly.includes(biome.selected);
-    selectBiome(null);
-  }
+  refreshWheelGroups(biome, biomePools(custom.pool));
   renderBiomeWheel();
   renderBiomeOdds(biome.pools[biome.selected] ? biome.selected : null);
   renderBiomeIdleReel();
@@ -2395,14 +2402,14 @@ registerCustomMode({
       label: () => "Spin biome",
       icon: ICON_WHEEL_BTN,
       hotkey: "B",
-      hint: () => (biome.types.length ? "" : "Select at least one generation."),
+      hint: () => (biome.types.length ? "" : emptyWheelText("biome", "")),
       run: spinBiomeWheel,
     },
     {
       key: "open",
       label: () => (biome.selected ? `Open ${biomeInfo(biome.selected).name} case` : "Open case"),
       icon: ICON_CASE,
-      hint: () => (!biome.types.length ? "Select at least one generation." : biome.selected ? "" : "Spin the biome first."),
+      hint: () => (!biome.types.length ? emptyWheelText("biome", "") : biome.selected ? "" : "Spin the biome first."),
       run: openBiomeCase,
     },
   ],
@@ -2410,7 +2417,7 @@ registerCustomMode({
   defaultAction: () => (biome.selected ? "open" : "biome"),
   status() {
     if (typeof SPAWN_DATA === "undefined") return "Spawn data not found — make sure spawns.js is next to index.html.";
-    if (!biome.types.length) return "Select at least one generation to spin.";
+    if (!biome.types.length) return emptyWheelText("biome");
     if (biome.lost) return lostGroupMessage(biomeInfo(biome.lost).name, biome.lostRare, "Spin the biome again.");
     if (!biome.selected) return "Spin the biome first.";
     return "";
