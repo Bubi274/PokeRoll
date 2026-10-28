@@ -991,7 +991,7 @@ function renderRecent() {
   const recent = state.history.slice(0, RECENT_DROPS);
   $("recent-row").innerHTML = recent.length
     ? recent.map(recentItem).join("")
-    : `<li class="recent-empty">Chưa có lượt mở nào</li>`;
+    : `<li class="recent-empty">No drops yet</li>`;
 }
 
 // ----- Trang bộ sưu tập -----
