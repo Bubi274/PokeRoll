@@ -1,5 +1,5 @@
-// Kiểm tra phần tính version của scripts/release.js: version luôn tăng, không trùng bản đã phát hành.
-const { parseVersion, compareVersions, bumpVersion, checkNextVersion } = require("../../scripts/release.js");
+// Kiểm tra phần tính version và cổng CI của scripts/release.js: version luôn tăng, chỉ phát hành khi CI đã qua.
+const { parseVersion, compareVersions, bumpVersion, checkNextVersion, ciVerdict } = require("../../scripts/release.js");
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
 
@@ -18,6 +18,19 @@ check("Next version must be higher than every tag (e.g. a tag pushed from anothe
   && checkNextVersion("1.1.0", "2.0.0", ["v1.1.0", "v1.2.0"]) === null);
 check("Tags are compared numerically (v1.10.0 is newer than v1.9.0)", /latest tag v1\.10\.0/.test(checkNextVersion("1.9.0", "1.10.0", ["v1.9.0", "v1.10.0"])));
 check("Unrelated tags are ignored", checkNextVersion("1.0.0", "1.1.0", ["test", "v2-beta", "nightly"]) === null);
+
+// Cổng CI: chỉ phát hành khi lần chạy CI mới nhất trên đúng commit đã xong và thành công
+const run = (n, status, conclusion, attempt = 1) => ({ run_number: n, run_attempt: attempt, status, conclusion, html_url: `https://x/${n}/${attempt}` });
+check("CI gate: no run yet → none (wait)", ciVerdict([]).state === "none");
+check("CI gate: queued / in progress → running (wait)", ciVerdict([run(3, "queued", null)]).state === "running" && ciVerdict([run(3, "in_progress", null)]).state === "running");
+check("CI gate: success → passed", ciVerdict([run(3, "completed", "success")]).state === "passed");
+check("CI gate: failure / cancelled / timed out → failed", ["failure", "cancelled", "timed_out", "startup_failure"].every((c) => ciVerdict([run(3, "completed", c)]).state === "failed"));
+check("CI gate: the newest run decides (old failure, new success → passed; old success, new failure → failed)",
+  ciVerdict([run(2, "completed", "failure"), run(3, "completed", "success")]).state === "passed"
+  && ciVerdict([run(3, "completed", "failure"), run(2, "completed", "success")]).state === "failed");
+check("CI gate: a re-run (newer attempt) decides over the first attempt",
+  ciVerdict([run(3, "completed", "failure", 1), run(3, "completed", "success", 2)]).state === "passed"
+  && ciVerdict([run(3, "completed", "success", 1), run(3, "in_progress", null, 2)]).state === "running");
 
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
 process.exit(fails ? 1 : 0);

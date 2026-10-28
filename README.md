@@ -43,15 +43,22 @@ npm run dist:linux     # build the Linux AppImage → dist/
 
 ## Releasing
 
+Every push to `main` and every pull request runs the tests on GitHub Actions (**CI** workflow). Nothing is built or published.
+
+To publish a new version:
+
+1. Push your changes to `main` and wait for CI to pass on that commit ([CI runs](https://github.com/Bubi274/PokeRoll/actions/workflows/ci.yml)).
+2. Run one of:
+
 ```
 npm run release -- patch    # 1.1.0 → 1.1.1  (fixes)
 npm run release -- minor    # 1.1.0 → 1.2.0  (new features)
 npm run release -- major    # 1.1.0 → 2.0.0
 ```
 
-Run it on `main` with everything committed and pushed. It bumps the version in `package.json`, commits, tags `vX.Y.Z` and pushes. The new version must be higher than every existing tag, so a version is never reused.
+The script only goes ahead when everything is committed, `main` matches GitHub, **CI has passed on that exact commit**, and the new version is higher than every existing tag (a version is never reused). If CI is still running or has failed, it stops without creating a tag, so a red build never costs a version number. Checking CI uses GitHub's public API and needs no login.
 
-The tag starts the **Release** workflow on GitHub Actions: it runs the tests, builds the Windows installer and the Linux AppImage, and publishes them as a GitHub Release together with `latest.yml` and `latest-linux.yml`, which the installed apps read to find updates. If the tests fail, nothing is published. Progress: [Actions tab](https://github.com/Bubi274/PokeRoll/actions).
+It then bumps the version in `package.json`, commits, tags `vX.Y.Z` and pushes. The tag starts the **Release** workflow: it runs the same tests again, builds the Windows installer and the Linux AppImage, and publishes them as a GitHub Release together with `latest.yml` and `latest-linux.yml`, which the installed apps read to find updates. If anything fails, nothing is published. Progress: [Actions tab](https://github.com/Bubi274/PokeRoll/actions).
 
 ## Testing
 

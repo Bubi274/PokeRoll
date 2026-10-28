@@ -1,0 +1,19 @@
+# CI: chạy npm test mỗi khi push lên main và khi mở / cập nhật pull request. Không build, không phát hành.
+# npm run release chỉ tạo tag khi lần chạy CI này trên đúng commit main hiện tại đã thành công.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml

@@ -1,5 +1,6 @@
 # Phát hành bản desktop khi push tag vX.Y.Z (tạo bằng: npm run release -- patch|minor|major).
-#   1. test:    tag phải trùng version trong package.json, rồi chạy npm test. Lỗi thì dừng, không phát hành.
+#   1. version + test: tag phải trùng version trong package.json, và npm test (test.yml, giống CI) phải qua.
+#      Lỗi thì dừng, không phát hành. (npm run release đã chờ CI trên main qua trước khi tạo tag.)
 #   2. build:   Windows (installer NSIS) và Linux (AppImage) chạy song song, chưa đăng gì.
 #   3. release: gom file của cả hai rồi tạo một GitHub Release, kèm latest.yml / latest-linux.yml cho electron-updater.
 # App không ký số: electron-builder bỏ qua bước ký khi không có chứng chỉ.
@@ -23,17 +24,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  test:
+  version:
+    name: Tag matches package.json
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
-        with:
-          node-version: 22
-          cache: npm
       - name: Tag matches package.json version
         run: |
           version=$(node -p "require('./package.json').version")
@@ -41,15 +39,13 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
             exit 1
           fi
-      - run: npm ci
-      # Ubuntu 24.04 chặn user namespace mà sandbox của Electron cần
-      - name: Allow the Electron sandbox
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
-      # Test giao diện chạy Electron nên cần màn hình ảo
-      - run: xvfb-run -a npm test
+
+  # Cùng bộ test với CI (test.yml)
+  test:
+    uses: ./.github/workflows/test.yml
 
   build:
-    needs: test
+    needs: [version, test]
     strategy:
       fail-fast: true
       matrix:
