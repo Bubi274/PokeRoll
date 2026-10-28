@@ -178,35 +178,34 @@ app.whenReady().then(async () => {
   check("Type Roulette: final odds = effectiveChances of the type", s.ok, s.ok ? s.shown : s.bad.join("; "));
 
   // ---- 6. Các hiệu ứng CSS khác ----
-  const anim = (sel, name) => js(`(() => { const el = ${sel}; return el ? el.getAnimations().filter(a => a.animationName === "${name}").map(a => ({ d: a.effect.getTiming().duration, k: a.effect.getKeyframes() })) : null; })()`);
+  // Thao tác rồi đo hiệu ứng ngay trong cùng một lệnh: hiệu ứng chỉ dài 0,2–0,35 s, máy chậm (CI) mà đo ở lệnh sau
+  // thì hiệu ứng có thể đã xong. Popup (dialog) thì chờ tới khi mở rồi đo.
+  const animAfter = (act, sel, name) => js(`(async () => { ${act};
+    for (let i = 0; i < 200; i++) { const el = ${sel}; if (el && (el.tagName !== "DIALOG" || el.open)) break; await new Promise((r) => setTimeout(r, 5)); }
+    const el = ${sel}; return el ? el.getAnimations().filter(a => a.animationName === "${name}").map(a => ({ d: a.effect.getTiming().duration, k: a.effect.getKeyframes() })) : null; })()`);
   // Bánh xe: đổi gen làm thêm / bớt ô → fade; bộ ô giữ nguyên → không
   await js(`document.getElementById("custom-all").click()`); await sleep(400);
-  await js(`document.querySelector('#custom-gen-grid input[value="5"]').click()`);
-  check("Wheel redraw with the same slices (18 → 18): no fade", (await anim(`document.querySelector("#tr-disc svg")`, "wheel-redraw")).length === 0);
-  await js(`document.getElementById("custom-none").click(); document.querySelector('#custom-gen-grid input[value="1"]').click()`);
-  const wf = await anim(`document.querySelector("#tr-disc svg")`, "wheel-redraw");
+  check("Wheel redraw with the same slices (18 → 18): no fade",
+    (await animAfter(`document.querySelector('#custom-gen-grid input[value="5"]').click()`, `document.querySelector("#tr-disc svg")`, "wheel-redraw")).length === 0);
+  const wf = await animAfter(`document.getElementById("custom-none").click(); document.querySelector('#custom-gen-grid input[value="1"]').click()`,
+    `document.querySelector("#tr-disc svg")`, "wheel-redraw");
   check("Wheel loses a slice (Gen 1: no Dark) → redrawn wheel fades in", wf.length === 1 && wf[0].d === 350 && (await js(`document.querySelectorAll("#tr-disc .wheel-slice").length`)) === 17);
   await js(`document.getElementById("custom-all").click()`); await sleep(400);
   // Chuyển chế độ Custom / tab
-  await js(`document.querySelector('.mode-btn[data-mode="biome-roulette"]').click()`);
-  let a = await anim(`document.getElementById("mode-biome-roulette")`, "view-in");
+  let a = await animAfter(`document.querySelector('.mode-btn[data-mode="biome-roulette"]').click()`, `document.getElementById("mode-biome-roulette")`, "view-in");
   check("Switching Custom mode: panel fades/slides in (200 ms)", a.length === 1 && a[0].d === 200 && a[0].k[0].opacity === "0" && /translateY\(6px\)/.test(a[0].k[0].transform));
-  await js(`document.querySelector('.tab[data-view="collection"]').click()`);
-  a = await anim(`document.getElementById("view-collection")`, "view-in");
+  a = await animAfter(`document.querySelector('.tab[data-view="collection"]').click()`, `document.getElementById("view-collection")`, "view-in");
   check("Switching tab: page fades/slides in (200 ms)", a.length === 1 && a[0].d === 200);
   await js(`document.querySelector('.tab[data-view="case"]').click()`); await sleep(300);
   // Ô gen: dấu tick bật ra
-  await js(`tickGen(2)`);
-  const tick = await js(`document.getAnimations().filter(a => a.animationName === "tick-pop").map(a => a.effect.pseudoElement)`);
+  const tick = await js(`(() => { tickGen(2); return document.getAnimations().filter(a => a.animationName === "tick-pop").map(a => a.effect.pseudoElement); })()`);
   check("Ticking a gen: the tick mark pops in", tick.length === 1 && tick[0] === "::after");
   await sleep(SETTLE);
   // Popup
-  await js(`document.getElementById("btn-contents").click()`);
-  a = await anim(`document.getElementById("contents-modal")`, "modal-enter");
+  a = await animAfter(`document.getElementById("btn-contents").click()`, `document.getElementById("contents-modal")`, "modal-enter");
   check("View case contents popup: fade + scale 0.96 → 1", a.length === 1 && a[0].k[0].opacity === "0" && a[0].k[0].transform === "scale(0.96)" && a[0].k.at(-1).transform === "scale(1)");
   await js(`document.getElementById("contents-modal").close()`);
-  await js(`document.getElementById("btn-quick").click()`); await sleep(50);
-  a = await anim(`document.getElementById("result-modal")`, "modal-enter");
+  a = await animAfter(`document.getElementById("btn-quick").click()`, `document.getElementById("result-modal")`, "modal-enter");
   check("Result popup: fade + scale 0.96 → 1", a.length === 1 && a[0].k[0].transform === "scale(0.96)");
   await sleep(400); await js(`document.getElementById("result-modal").close()`);
   // Hover: nhấc ô gen lên 2px
@@ -227,10 +226,9 @@ app.whenReady().then(async () => {
   await win.webContents.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   const rm = await js(`(() => { tickGen(2); const f = frame(); return { f, ok: settledOk() }; })()`);
   check("Reduced motion: final values immediately after a gen change (numbers and bars)", rm.ok.ok && rm.f.rows.every((r) => Math.abs(r.p - r.target) < 1e-9), rm.ok.ok ? rm.ok.shown : rm.ok.bad.join("; "));
-  await js(`document.querySelector('.tab[data-view="collection"]').click()`);
-  check("Reduced motion: no tab fade", (await anim(`document.getElementById("view-collection")`, "view-in")).length === 0);
-  await js(`document.querySelector('.tab[data-view="case"]').click(); document.getElementById("btn-contents").click()`);
-  check("Reduced motion: no popup animation", (await anim(`document.getElementById("contents-modal")`, "modal-enter")).length === 0);
+  check("Reduced motion: no tab fade", (await animAfter(`document.querySelector('.tab[data-view="collection"]').click()`, `document.getElementById("view-collection")`, "view-in")).length === 0);
+  check("Reduced motion: no popup animation", (await animAfter(`document.querySelector('.tab[data-view="case"]').click(); document.getElementById("btn-contents").click()`,
+    `document.getElementById("contents-modal")`, "modal-enter")).length === 0);
   await js(`document.getElementById("contents-modal").close()`);
   win.webContents.debugger.detach();
 

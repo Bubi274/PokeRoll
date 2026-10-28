@@ -22,7 +22,7 @@ app.whenReady().then(async () => {
     const under = [...reel.querySelectorAll(".card")].filter(k => { const b = k.getBoundingClientRect(); return b.left <= mid && mid < b.right; });
     const strip = document.getElementById("reel-strip");
     const settled = Math.abs(new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41 - parseFloat(strip.style.transform.slice(11))) < 0.5;
-    return { ok: settled && c.left <= mid && mid < c.right && under.length === 1 && under[0] === win,
+    return { ok: settled && c.left <= mid && mid < c.right && under.length === 1 && under[0] === win, settled,
       card: win.querySelector(".card-name").textContent,
       modal: document.getElementById("result-name") && document.getElementById("result-name").textContent,
       open: document.getElementById("result-modal").open, pos: ((mid - c.left) / c.width).toFixed(2) };
@@ -37,7 +37,9 @@ app.whenReady().then(async () => {
     await sleep(500);
     const spinning = await js(`document.getElementById("btn-spin").disabled`);
     const opened = await waitModal(9000);
-    const a = await js(ALIGN);
+    // Đo khi dải đã dừng hẳn: máy chậm (CI) thì dải có thể còn trượt nốt một chút lúc popup vừa mở
+    let a = await js(ALIGN);
+    for (let t = 0; t < 4000 && !a.settled; t += 100) { await sleep(100); a = await js(ALIGN); }
     check(`${i === 0 ? "Normal spin" : "Open again #" + i}: button locked while spinning, popup opens`, spinning && opened);
     check(`${i === 0 ? "Normal spin" : "Open again #" + i}: marker on winning card, matches popup`, a.ok && a.card === a.modal, `${a.card} @${a.pos}`);
   }
