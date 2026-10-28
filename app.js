@@ -1663,7 +1663,8 @@ function runCustomAction(key, { quick = false } = {}) {
   return action.run({ quick });
 }
 
-// Chạy hành động mà phím Space đang chỉ tới.
+// Chạy hành động mà phím Space đang chỉ tới. Phím Space thật đi qua customActionButton;
+// hàm này để gọi thẳng từ code (test dùng làm "Open again" cho chế độ thử).
 function runCustomSpin(opts) {
   return custom.active ? runCustomAction(defaultActionKey(custom.active), opts) : undefined;
 }

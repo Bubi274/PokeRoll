@@ -4,12 +4,18 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
 
 ## Features
 
-- Pick a generation (Gen 1–9), view the case contents and the actual drop rate of each Pokémon
-- 5 rarity tiers using CS2 odds: Blue 79.92% · Purple 15.98% · Pink 3.2% · Red 0.64% · Gold 0.26%, Shiny 1/100
+- Pick any mix of generations (Gen 1–9) and the Special group, view the case contents and the drop rate of each Pokémon
+- 5 rarity tiers using CS2 odds: Blue 79.92% · Purple 15.98% · Pink 3.2% · Red 0.64% · Gold 0.26%, Shiny 1/100. A tier with no Pokémon in your selection drops to the next lower tier, and the odds table shows the real odds after that (e.g. "base 3.20% + 0.64% from Red")
 - 6-second spinning card strip with tick sounds, a result sound, and a Quick open button
-- Result popup, collection (filter by gen/rarity, duplicate counter, per-gen progress), and roll history
+- Result popup with the exact odds of the drop (1 in N), and roll history
+- **Collection** tab: search by name, Pokédex number or type; filter by generation, rarity or owned/missing/duplicates/shiny; sort by Pokédex number, rarity or copies; progress per generation and per rarity
+- **Custom** tab, with its own generation selection:
+  - **Type Roulette**: spin a wheel for a type, then open cases of only that type
+  - **Biome Roulette**: spin a wheel for a Cobbleverse biome group, then open cases of Pokémon that spawn there
+  - View case contents for the picked type or biome, or preview any other one, with each Pokémon's real odds and whether you own it
 - Spawn locations for each Pokémon in the Cobbleverse modpack
 - **Special** group: the 8 Kazeran forms from the Cobblemon addon [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions), with their evolution methods. Ranked by the same BST rules, tracked separately in the collection (X/8)
+- Animated odds table, page and popup transitions. Turned off when your system asks for reduced motion, or by opening `index.html?nomotion`
 
 ## Running
 

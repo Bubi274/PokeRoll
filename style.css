@@ -2513,7 +2513,7 @@ button.mini:focus-visible {
    (app.js thêm class này khi trang mở với ?nomotion, dùng cho test). Không đụng tới dải quay và bánh xe. */
 @media (prefers-reduced-motion: no-preference) {
   /* Bảng tỉ lệ: thanh chạy từ độ dài cũ tới mới, giảm tốc cuối, các hàng lệch nhau 40ms (--i do app.js đặt).
-     Số Pokémon và % chạy cùng nhịp bằng JS (countTo trong app.js). */
+     % đọc trực tiếp từ thanh (followBar trong app.js), số Pokémon đếm dần cùng nhịp (countTo). */
   html:not(.no-motion) .rarity-row {
     transition: --p 550ms cubic-bezier(0.33, 1, 0.68, 1) calc(var(--i, 0) * 40ms);
   }
