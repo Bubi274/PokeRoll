@@ -11,7 +11,8 @@
     "images": "node scripts/build-images.js",
     "test": "node tests/run.js",
     "dist": "electron-builder --win --x64 --publish never",
-    "dist:linux": "electron-builder --linux --x64 --publish never"
+    "dist:linux": "electron-builder --linux --x64 --publish never",
+    "release": "node scripts/release.js"
   },
   "build": {
     "appId": "com.bubi.pokeroll",

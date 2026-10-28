@@ -1,0 +1,96 @@
+# Phát hành bản desktop khi push tag vX.Y.Z (tạo bằng: npm run release -- patch|minor|major).
+#   1. test:    tag phải trùng version trong package.json, rồi chạy npm test. Lỗi thì dừng, không phát hành.
+#   2. build:   Windows (installer NSIS) và Linux (AppImage) chạy song song, chưa đăng gì.
+#   3. release: gom file của cả hai rồi tạo một GitHub Release, kèm latest.yml / latest-linux.yml cho electron-updater.
+# App không ký số: electron-builder bỏ qua bước ký khi không có chứng chỉ.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Tag matches package.json version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+      - run: npm ci
+      # Ubuntu 24.04 chặn user namespace mà sandbox của Electron cần
+      - name: Allow the Electron sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      # Test giao diện chạy Electron nên cần màn hình ảo
+      - run: xvfb-run -a npm test
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win nsis --x64
+            files: |
+              dist/*.exe
+              dist/*.exe.blockmap
+              dist/latest.yml
+          - os: ubuntu-latest
+            target: --linux AppImage --x64
+            files: |
+              dist/*.AppImage
+              dist/latest-linux.yml
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: ls -l dist
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "PokéRoll ${GITHUB_REF_NAME#v}" \
+            --generate-notes \
+            --verify-tag
