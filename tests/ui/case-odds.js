@@ -29,36 +29,42 @@ app.whenReady().then(async () => {
   // ---- 1. Recent drops chưa có lượt nào ----
   check("Recent drops empty: \"No drops yet\"", (await js(`document.querySelector("#recent-row .recent-empty").textContent`)) === "No drops yet");
 
-  // Đọc bảng và so với effectiveChances của hòm hiện tại
+  // Đọc một bảng tỉ lệ (Case hoặc panel Custom) và so với effectiveChances của hòm groups
   await js(`
-    window.readTable = () => [...document.querySelectorAll("#rarity-list .rarity-row")].map(li => ({
+    window.readTable = (sel = "#rarity-list") => [...document.querySelectorAll(sel + " .rarity-row")].map(li => ({
       tier: [...li.classList].find(c => c.startsWith("r-")).slice(2),
-      pct: li.querySelector(".rarity-pct").textContent,
+      pct: li.querySelector(".rarity-chance").textContent.trim(),
+      count: li.querySelector(".rarity-count").textContent.trim(),
       p: Number(li.style.getPropertyValue("--p")),
-      base: (li.querySelector(".rarity-base") || {}).textContent || null,
+      bar: getComputedStyle(li).backgroundImage !== "none",
+      rule: (li.querySelector(".rarity-rule") || {}).textContent || null,
       fold: (li.querySelector(".rarity-fold") || {}).textContent || null,
-      note: !!li.querySelector(".rarity-note"),
-      count: Number(li.querySelector(".rarity-count").textContent),
+      empty: li.classList.contains("is-empty"),
+      dim: Number(getComputedStyle(li.querySelector(".rarity-chance")).opacity) < 1,
     }));
-    window.checkTable = () => {
-      const rows = readTable(), eff = effectiveChances(state.groups), bad = [];
+    window.hintOf = (sel = "#rarity-list") => (document.querySelector(sel + " .odds-hint") || {}).textContent || null;
+    window.checkTable = (sel = "#rarity-list", groups = state.groups, rules = true) => {
+      const rows = readTable(sel), eff = effectiveChances(groups), bad = [];
       const fmt = (x) => x === 0 ? "0%" : x.toFixed(2) + "%";
+      if (rows.map(x => x.tier).join() !== "gold,red,pink,purple,blue") bad.push("order " + rows.map(x => x.tier));
       for (const r of RARITIES) {
-        const row = rows.find(x => x.tier === r.key), n = state.groups[r.key].length;
+        const row = rows.find(x => x.tier === r.key), n = groups[r.key].length;
         if (row.pct !== fmt(eff[r.key])) bad.push(r.name + " shows " + row.pct + " ≠ " + fmt(eff[r.key]));
         if (Math.abs(row.p - eff[r.key]) > 1e-9) bad.push(r.name + " bar " + row.p);
-        if (row.count !== n) bad.push(r.name + " count");
-        // Bậc trống: 0%, tỉ lệ gốc gạch ngang, giữ dòng "None in this case"
-        if (n === 0 && (row.pct !== "0%" || row.base !== fmt(r.chance) || !row.note)) bad.push(r.name + " empty-tier display");
-        if (n > 0 && (row.base || row.note)) bad.push(r.name + " has empty-tier marks");
+        if (row.count !== String(n)) bad.push(r.name + " count " + row.count);
+        if (row.rule !== (rules ? r.rule : null)) bad.push(r.name + " rule line " + row.rule);
+        // Bậc trống: 0%, chữ mờ, không có thanh nền
+        if (n === 0 && (row.pct !== "0%" || !row.empty || !row.dim || row.bar)) bad.push(r.name + " empty-tier display");
+        if (n > 0 && (row.empty || !row.bar)) bad.push(r.name + " non-empty tier looks empty");
         // Bậc nhận thêm: "base X% + Y% from Z"
-        const from = RARITIES.filter(t => t.key !== r.key && resolveRarity(t.key, state.groups) === r.key);
+        const from = RARITIES.filter(t => t.key !== r.key && resolveRarity(t.key, groups) === r.key);
         const want = n > 0 && from.length ? "base " + fmt(r.chance) + " + " + from.map(t => fmt(t.chance) + " from " + t.name).join(" + ") : null;
         if (row.fold !== want) bad.push(r.name + " fold " + row.fold + " ≠ " + want);
       }
+      if (hintOf(sel)) bad.push("hint shown for a non-empty case");
       const sum = rows.reduce((a, x) => a + parseFloat(x.pct), 0);
       if (Math.abs(sum - 100) > 0.001) bad.push("sum " + sum.toFixed(3));
-      return { ok: bad.length === 0, bad: bad.slice(0, 4), shown: rows.map(x => x.tier[0].toUpperCase() + " " + x.pct + (x.fold ? " (" + x.fold + ")" : "")).join(", "), sum };
+      return { ok: bad.length === 0, bad: bad.slice(0, 4), shown: rows.map(x => x.tier[0].toUpperCase() + x.tier[1] + " " + x.pct + (x.fold ? " (" + x.fold + ")" : "")).join(", "), sum };
     };
     // Chọn đúng bộ gen bằng cách bấm None rồi bấm từng ô (như người dùng)
     window.pickGens = (keys) => {
@@ -72,19 +78,18 @@ app.whenReady().then(async () => {
   for (const [label, keys] of NAMED) {
     await js(`pickGens(${JSON.stringify(keys)})`); // không chờ: bảng phải cập nhật ngay khi đổi gen
     const r = await js(`checkTable()`);
-    check(`${label}: table % = effectiveChances, bars match, sum 100%`, r.ok, r.ok ? r.shown : r.bad.join("; "));
+    check(`${label}: Gold→Blue, % = effectiveChances, bars, BST rules, sum 100%`, r.ok, r.ok ? r.shown : r.bad.join("; "));
   }
   await js(`document.getElementById("btn-all").click()`);
   let r = await js(`checkTable()`);
-  check("All gens + Special: table % = effectiveChances, sum 100%", r.ok && r.shown === "B 79.92%, P 15.98%, P 3.20%, R 0.64%, G 0.26%", r.ok ? r.shown : r.bad.join("; "));
+  check("All gens + Special: % = effectiveChances, sum 100%", r.ok && r.shown === "Go 0.26%, Re 0.64%, Pi 3.20%, Pu 15.98%, Bl 79.92%", r.ok ? r.shown : r.bad.join("; "));
 
-  // Ví dụ trong yêu cầu: chỉ Gen 6 → Red 0%, Pink 3.84%
+  // Ví dụ: chỉ Gen 6 → Red 0%, Pink 3.84%
   await js(`pickGens([6])`);
   const g6 = await js(`readTable()`);
   const red = g6.find((x) => x.tier === "red"), pink = g6.find((x) => x.tier === "pink");
-  check("Gen 6: Red 0% with struck 0.64% and \"None in this case\"", red.count === 0 && red.pct === "0%" && red.base === "0.64%" && red.note, JSON.stringify(red));
+  check("Gen 6: Red 0%, dimmed, no bar", red.count === "0" && red.pct === "0%" && red.empty && red.dim && !red.bar, JSON.stringify(red));
   check("Gen 6: Pink 3.84% with \"base 3.20% + 0.64% from Red\"", pink.pct === "3.84%" && pink.fold === "base 3.20% + 0.64% from Red" && Math.abs(pink.p - 3.84) < 1e-9, JSON.stringify(pink));
-  check("Gen 6: struck base is a <s> element", await js(`document.querySelector("#rarity-list .r-red .rarity-base").tagName === "S"`));
   await js(`document.querySelector(".panel-pool").scrollIntoView()`); await sleep(200);
   await shot("case-odds-gen6.png");
 
@@ -102,11 +107,40 @@ app.whenReady().then(async () => {
   })()`);
   check(`Every gen combination (${all.n}): table % = effectiveChances and sums to 100%`, all.nbad === 0, all.nbad ? all.bad.join(" | ") : "");
 
-  // ---- 4. Không chọn gen: hòm rỗng, hiện tỉ lệ gốc, không có dấu hạ bậc ----
+  // ---- 4. Không chọn gen: "—" thay cho số và %, không có thanh nền, dòng nhắc chọn gen ----
   await js(`document.getElementById("btn-none").click()`);
   const none = await js(`readTable()`);
-  check("None selected: base odds shown, no fold or empty-tier marks", none.map((x) => x.pct).join() === "79.92%,15.98%,3.20%,0.64%,0.26%"
-    && none.every((x) => !x.fold && !x.base && !x.note));
+  check("None selected: every row shows \"—\" for count and %, no base odds",
+    none.length === 5 && none.every((x) => x.pct === "—" && x.count === "—" && x.p === 0), none.map((x) => x.count + "/" + x.pct).join(" "));
+  check("None selected: bars empty, no fold lines", none.every((x) => !x.bar && !x.fold));
+  check("None selected: \"Select at least one generation to see the odds.\"", (await js(`hintOf()`)) === "Select at least one generation to see the odds.");
+  await js(`document.querySelector(".panel-pool").scrollIntoView()`); await sleep(200);
+  await shot("case-odds-none.png");
+  await js(`document.getElementById("gen-grid").querySelector('input[value="3"]').click()`);
+  check("Ticking a gen again: odds back immediately, hint gone", (await js(`checkTable()`)).ok && !(await js(`hintOf()`)));
+
+  // ---- 4b. Không còn tỉ lệ viết cứng trong HTML; câu shiny lấy từ SHINY_CHANCE ----
+  const html = fs.readFileSync(PAGE, "utf8");
+  check("index.html has no hard-coded odds", !/79\.92|15\.98|3\.20|0\.64|0\.26|1 in 100/.test(html));
+  check("Case sub line: shiny odds from SHINY_CHANCE", (await js(`document.getElementById("pool-sub").textContent`)) === `Each open rolls a tier by these odds. Shiny is rolled separately: 1 in ${await js(`oneIn(SHINY_CHANCE)`)}.`);
+
+  // ---- 4c. Panel tỉ lệ Type / Biome Roulette: cùng bảng, không có dòng BST ----
+  await js(`document.getElementById("custom-none").click(); document.querySelector('#custom-gen-grid input[value="6"]').click(); 0`);
+  await js(`document.querySelector('.tab[data-view="custom"]').click(); document.querySelector('.mode-btn[data-mode="type-roulette"]').click(); 0`); await sleep(200);
+  // Chọn một hệ có bậc Red trống ở Gen 6 để thấy dòng "base … from Red"
+  const typeKey = await js(`roulette.types.find(t => groupByRarity(roulette.pools[t]).red.length === 0 && groupByRarity(roulette.pools[t]).pink.length > 0)`);
+  await js(`selectType("${typeKey}"); refreshRoulette(); 0`);
+  r = await js(`checkTable("#tr-odds-list", groupByRarity(roulette.pools[roulette.selected]), false)`);
+  check(`Type Roulette (${typeKey}, Gen 6): same table, Gold→Blue, no BST line, fold line`, r.ok && /from Red/.test(r.shown), r.ok ? r.shown : r.bad.join("; "));
+  check("Type Roulette panel uses the compact style", await js(`document.getElementById("tr-odds-list").classList.contains("is-compact")`));
+  await js(`document.querySelector('.mode-btn[data-mode="biome-roulette"]').click(); 0`); await sleep(200);
+  const biomeKey = await js(`biome.types.find(k => groupByRarity(biome.pools[k]).red.length === 0 && groupByRarity(biome.pools[k]).pink.length > 0)`);
+  await js(`selectBiome("${biomeKey}"); refreshBiome(); 0`);
+  r = await js(`checkTable("#br-odds-list", groupByRarity(biome.pools[biome.selected]), false)`);
+  check(`Biome Roulette (${biomeKey}, Gen 6): same table, Gold→Blue, no BST line, fold line`, r.ok && /from Red/.test(r.shown), r.ok ? r.shown : r.bad.join("; "));
+  await js(`document.getElementById("br-odds-list").scrollIntoView()`); await sleep(200);
+  await shot("case-odds-biome.png");
+  await js(`document.querySelector('.tab[data-view="case"]').click(); 0`); await sleep(200);
 
   // ---- 5. Popup kết quả: tỉ lệ bậc trong hòm lúc quay ----
   await js(`pickGens([6])`);

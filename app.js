@@ -539,32 +539,38 @@ function foldedOddsText({ base, from }) {
   return `base ${pct2(base)} + ${from.map((r) => `${pct2(r.chance)} from ${r.name}`).join(" + ")}`;
 }
 
+// Bảng tỉ lệ dùng chung (trang Case, Type Roulette, Biome Roulette): 5 hàng, hiếm nhất trên cùng.
+// Mỗi hàng: tên bậc, số Pokémon, % thật (effectiveChances, đã tính hạ bậc), thanh nền dài theo % thật.
+// Bậc nhận thêm tỉ lệ của bậc trống có dòng "base 3.20% + 0.64% from Red"; bậc trống 0%, chữ mờ.
+// Hòm rỗng (chưa chọn gen nào): "—" thay cho số và %, kèm dòng nhắc chọn gen.
+// rules: hiện dòng quy tắc xếp bậc dưới tên (bảng chính ở trang Case).
+function oddsRows(groups, { rules = false } = {}) {
+  const empty = groupsSize(groups) === 0;
+  const rows = [...RARITIES].reverse().map((r) => {
+    const n = groups[r.key].length;
+    const odds = empty ? null : tierOdds(r.key, groups);
+    const fold = odds && n > 0 && odds.from.length ? `<span class="rarity-fold">${foldedOddsText(odds)}</span>` : "";
+    return `
+      <li class="rarity-row r-${r.key}${n === 0 ? " is-empty" : ""}" style="--p:${odds ? odds.chance : 0}">
+        <span class="rarity-swatch"></span>
+        <span class="rarity-info">
+          <span class="rarity-name">${r.name}</span>
+          ${rules ? `<span class="rarity-rule">${r.rule}</span>` : ""}
+          ${fold}
+        </span>
+        <span class="rarity-count" title="Pokémon in this tier">${empty ? "—" : n}</span>
+        <span class="rarity-chance">${odds ? pct2(odds.chance) : "—"}</span>
+      </li>`;
+  }).join("");
+  return empty ? `${rows}<li class="odds-hint">Select at least one generation to see the odds.</li>` : rows;
+}
+
 function renderPoolStats() {
   const pool = filterByGens(state.pokemon, state.selectedGens);
   state.groups = groupByRarity(pool);
   $("pool-count").textContent = pool.length;
 
-  // Hòm có Pokémon: hiện tỉ lệ thật (bậc trống dồn về bậc thấp hơn). Hòm rỗng: chưa quay được, hiện tỉ lệ gốc.
-  $("rarity-list").innerHTML = RARITIES.map((r) => {
-    const n = state.groups[r.key].length;
-    const odds = pool.length > 0 ? tierOdds(r.key, state.groups) : { chance: r.chance, base: r.chance, from: [] };
-    const note = n === 0 && pool.length > 0
-      ? `<span class="rarity-note">None in this case — rolls drop to the next lower tier</span>`
-      : "";
-    const fold = n > 0 && odds.from.length ? `<span class="rarity-fold">${foldedOddsText(odds)}</span>` : "";
-    const struck = n === 0 && pool.length > 0 ? `<s class="rarity-base" title="Base odds">${pct2(r.chance)}</s>` : "";
-    return `
-      <li class="rarity-row r-${r.key}${n === 0 ? " is-empty" : ""}" style="--p:${odds.chance}">
-        <span class="rarity-swatch"></span>
-        <span class="rarity-info">
-          <span class="rarity-name">${r.name}</span>
-          <span class="rarity-rule">${r.rule}</span>
-          ${note}${fold}
-        </span>
-        <span class="rarity-count" title="Pokémon in this tier">${n}</span>
-        <span class="rarity-chance"><span class="rarity-pct">${pct2(odds.chance)}</span>${struck}</span>
-      </li>`;
-  }).join("");
+  $("rarity-list").innerHTML = oddsRows(state.groups, { rules: true });
 
   updateSpinButton();
 }
@@ -1888,21 +1894,6 @@ function animateWheel(target, w = TYPE_WHEEL) {
   });
 }
 
-// 5 hàng tỉ lệ gọn (hiếm nhất trên cùng): số Pokémon và tỉ lệ thật mỗi bậc của hòm groups.
-function compactOddsRows(groups) {
-  const chances = effectiveChances(groups);
-  return RARITIES.map((r) => {
-    const count = groups[r.key].length;
-    return `
-      <li class="rarity-row r-${r.key}${count === 0 ? " is-empty" : ""}" style="--p:${chances[r.key]}">
-        <span class="rarity-swatch"></span>
-        <span class="rarity-info"><span class="rarity-name">${r.name}</span></span>
-        <span class="rarity-count" title="Pokémon in this tier">${count}</span>
-        <span class="rarity-chance">${formatPct(chances[r.key])}</span>
-      </li>`;
-  }).reverse().join("");
-}
-
 // Panel tỉ lệ: có hệ thì hiện số Pokémon và tỉ lệ thật mỗi bậc của hệ đó, chưa có thì nhắc quay bánh xe.
 function renderTypeOdds(type, note) {
   const n = roulette.types.length;
@@ -1921,7 +1912,7 @@ function renderTypeOdds(type, note) {
   $("tr-odds-title").innerHTML = `<span class="type-chip" style="--t:${TYPE_COLORS[type]}">${typeName(type)}</span> case`;
   $("tr-odds-count").innerHTML = `<strong>${groupsSize(groups)}</strong> <span>Pokémon</span>`;
   $("tr-odds-sub").textContent = `${typeName(type)} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
-  $("tr-odds-list").innerHTML = compactOddsRows(groups);
+  $("tr-odds-list").innerHTML = oddsRows(groups);
 }
 
 // Dải thẻ lúc chưa mở hòm: Pokémon của hệ đang chọn, chưa có hệ thì Pokémon bất kỳ trong các gen đã chọn.
@@ -2038,7 +2029,7 @@ registerCustomMode({
     "Open case opens a case of only that type, with the same tier odds as the Case page. Open it as many times as you like.",
     "Your type stays until you spin the wheel again, even after reloading the page. If a generation change leaves it with no Pokémon, spin again.",
     "Dual-type Pokémon count for both types: Gyarados can drop from Water or Flying.",
-    "Shiny is rolled separately: 1 in 100.",
+    `Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`,
   ],
   // Nhãn trong lịch sử: "Type Roulette · Fire", gọn: "Type · Fire"
   label(detail, short) {
@@ -2269,7 +2260,7 @@ function renderBiomeOdds(key, note) {
   $("br-odds-title").innerHTML = `${biomeChip(key)} case`;
   $("br-odds-count").innerHTML = `<strong>${groupsSize(groups)}</strong> <span>Pokémon</span>`;
   $("br-odds-sub").textContent = `${g.name} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
-  $("br-odds-list").innerHTML = compactOddsRows(groups);
+  $("br-odds-list").innerHTML = oddsRows(groups);
   $("br-tags").hidden = false;
   $("br-tags").innerHTML = biomeTagsLine(key);
 }
@@ -2389,7 +2380,7 @@ registerCustomMode({
     "Open case opens a case of only Pokémon that spawn there, with the same tier odds as the Case page. Open it as many times as you like.",
     "A Pokémon that spawns in several groups belongs to all of them. Pokémon without Cobbleverse spawn data, and Special forms, are not included.",
     "Your biome stays until you spin again, even after reloading the page. If a generation change leaves it with no Pokémon, spin again.",
-    "Shiny is rolled separately: 1 in 100.",
+    `Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`,
   ],
   // Nhãn trong lịch sử: "Biome Roulette · Forest", gọn: "Biome · Forest"
   label(detail, short) {
@@ -2491,6 +2482,7 @@ function init() {
     SPECIAL_GROUP_LIST.map((g) => `<option value="${g.key}">Special · ${g.name}</option>`).join(""));
 
   buildGenGrid();
+  $("pool-sub").textContent = `Each open rolls a tier by these odds. Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`;
   renderPoolStats();
   renderRecent();
   updateCollectionTab();
