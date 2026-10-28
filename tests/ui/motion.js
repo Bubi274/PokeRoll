@@ -8,6 +8,7 @@ app.setPath("userData", path.join(TMP, "userdata-motion"));
 const PAGE = path.join(__dirname, "..", "..", "index.html");
 const SHOTS = path.join(TMP, "shots");
 fs.mkdirSync(SHOTS, { recursive: true });
+const T = require("./timing");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
@@ -218,7 +219,7 @@ app.whenReady().then(async () => {
   // ---- 7. Dải quay và bánh xe giữ nguyên thời gian ----
   await js(`document.getElementById("btn-spin").click()`); await sleep(400);
   check("Case reel still runs 6 s", /transform 6000ms/.test(await js(`document.querySelector("#reel .reel-strip").style.transition`)));
-  for (let t = 0; t < 9000 && !(await js(`document.getElementById("result-modal").open`)); t += 100) await sleep(100);
+  for (const t0 = Date.now(); Date.now() - t0 < T.CASE_POPUP_MS && !(await js(`document.getElementById("result-modal").open`));) await sleep(100);
   await js(`document.getElementById("result-modal").close()`);
 
   // ---- 8. Giảm chuyển động (hệ điều hành): hiện giá trị cuối ngay, không có hiệu ứng CSS ----

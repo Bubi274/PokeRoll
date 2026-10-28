@@ -7,6 +7,7 @@ app.setPath("userData", path.join(TMP, "userdata-biome"));
 const PAGE = path.join(__dirname, "..", "..", "index.html");
 const SHOTS = path.join(TMP, "shots");
 fs.mkdirSync(SHOTS, { recursive: true });
+const T = require("./timing");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
@@ -29,8 +30,13 @@ app.whenReady().then(async () => {
   });
   const js = (code) => win.webContents.executeJavaScript(code);
   const shot = async (name) => fs.writeFileSync(path.join(SHOTS, name), (await win.webContents.capturePage()).toPNG());
-  const waitModal = async (ms) => { for (let t = 0; t < ms; t += 50) { if (await js(`document.getElementById("result-modal").open`)) return true; await sleep(50); } return false; };
-  const waitIdle = async (ms) => { for (let t = 0; t < ms; t += 50) { if (!(await js(`state.spinning`))) return true; await sleep(50); } return false; };
+  // Chờ đo bằng đồng hồ thật; giới hạn tính từ hằng số thời gian của app (tests/ui/timing.js).
+  // Các lần chờ dài được ghi thành kiểm tra kèm thời gian thực tế, để log CI cho biết chậm ở đâu.
+  let lastWaitMs = 0, waitNo = 0;
+  const waitModal = async (ms) => { const t0 = Date.now(); for (;;) { if (await js(`document.getElementById("result-modal").open`)) { lastWaitMs = Date.now() - t0; return true; } if (Date.now() - t0 >= ms) { lastWaitMs = Date.now() - t0; return false; } await sleep(50); } };
+  const waitIdle = async (ms) => { const t0 = Date.now(); for (;;) { if (!(await js(`state.spinning`))) { lastWaitMs = Date.now() - t0; return true; } if (Date.now() - t0 >= ms) { lastWaitMs = Date.now() - t0; return false; } await sleep(50); } };
+  const expectPopup = async (ms = T.ROULETTE_POPUP_MS) => { const ok = await waitModal(ms); check(`Wait #${++waitNo}: result popup opens`, ok, `after ${lastWaitMs} ms (limit ${ms} ms)`); return ok; };
+  const expectIdle = async (ms = T.WHEEL_MS) => { const ok = await waitIdle(ms); check(`Wait #${++waitNo}: spin finishes`, ok, `after ${lastWaitMs} ms (limit ${ms} ms)`); return ok; };
   const key = (code, k) => js(`document.body.dispatchEvent(new KeyboardEvent("keydown", { code: "${code}", key: "${k}", bubbles: true }))`);
   const space = () => key("Space", " ");
   const pressB = () => key("KeyB", "b");
@@ -106,7 +112,7 @@ app.whenReady().then(async () => {
   const during = await js(`({ spinning: document.getElementById("br-wheel").classList.contains("is-spinning"), label: ${btn("biome")}.textContent.trim(),
     open: ${btn("open")}.disabled, caseBtn: document.getElementById("btn-spin").disabled, locked: locks(), modes: [...document.querySelectorAll(".mode-btn")].every(b => b.disabled) })`);
   check("Spin biome: wheel turns, \"Spinning…\", Open + Case + gen grid + mode bar locked", during.spinning && during.label === "Spinning…" && during.open && during.caseBtn && during.locked && during.modes, JSON.stringify(during));
-  await waitIdle(6000); await sleep(100);
+  await expectIdle(); await sleep(100);
   s = await js(`wheelState()`);
   check("Spin biome: stops on the rolled biome (pointer geometry + angle + hub + saved)", wheelOn(s), `${s.selected}: under pointer ${s.geom}/${s.angle}`);
   check("Spin biome: no case opened, nothing recorded", (await histLen()) === h0 && !(await js(`document.getElementById("result-modal").open`)));
@@ -129,7 +135,7 @@ app.whenReady().then(async () => {
     })(); 0`);
   await click("open"); await sleep(300);
   check("Open case: locks while opening", await js(`locks() && ${btn("biome")}.disabled && ${btn("open")}.disabled`));
-  await waitModal(12000);
+  await expectPopup();
   await js(`window.__stop = true`);
   const log = await js(`window.__log`);
   const rs = log.find((l) => l.r), re = log.slice(log.indexOf(rs)).find((l) => !l.r);
@@ -145,24 +151,24 @@ app.whenReady().then(async () => {
   // ---- 3. Open again + Space trong popup ----
   h0 = await histLen();
   await js(`document.getElementById("result-again").click()`);
-  await waitModal(12000);
+  await expectPopup();
   r = await js(`reelState()`);
   check("Open again: same biome case again", (await histLen()) === h0 + 1 && r.detail === b1 && r.spawnsThere && r.ok && r.card === r.modal, r.card);
   await space(); await sleep(200);
   check("Space in the popup: opens the same biome again", (await histLen()) === h0 + 2 && (await js(`state.history[0].detail`)) === b1);
-  await waitModal(12000); await closeModal();
+  await expectPopup(); await closeModal();
 
   // ---- 4. Space (có biome) → mở hòm; B → quay; W không làm gì ở chế độ này ----
   h0 = await histLen();
   await space(); await sleep(200);
   check("Space with a biome: opens the case", (await histLen()) === h0 + 1 && !(await js(`document.getElementById("br-wheel").classList.contains("is-spinning")`)));
-  await waitModal(12000); await closeModal();
+  await expectPopup(); await closeModal();
   h0 = await histLen();
   await pressW(); await sleep(200);
   check("W (Type Roulette's key) does nothing in Biome Roulette", (await histLen()) === h0 && !(await js(`state.spinning`)));
   await pressB(); await sleep(400);
   check("B: spins the biome wheel, no case", await js(`document.getElementById("br-wheel").classList.contains("is-spinning")`) && (await histLen()) === h0);
-  await waitIdle(6000); await sleep(100);
+  await expectIdle(); await sleep(100);
   s = await js(`wheelState()`);
   check("B: wheel stops on the new biome", wheelOn(s), `${s.selected}: ${s.geom}/${s.angle}`);
 
@@ -221,7 +227,7 @@ app.whenReady().then(async () => {
   s = await js(`wheelState()`);
   check("Reload: biome kept, wheel points at it, Space opens", wheelOn(s) && s.selected === keptBiome && s.primary === "open", `${keptBiome} → ${s.selected}`);
   h0 = await histLen();
-  await space(); await waitModal(12000);
+  await space(); await expectPopup();
   check("…and Space opens that biome's case", (await histLen()) === h0 + 1 && (await js(`state.history[0].detail`)) === keptBiome);
   await closeModal();
 
@@ -246,7 +252,7 @@ app.whenReady().then(async () => {
   await shot("br-biome-dropped.png");
   await space(); await sleep(300);
   check("…Space now spins the biome wheel", await js(`document.getElementById("br-wheel").classList.contains("is-spinning")`));
-  await waitIdle(6000); await sleep(100);
+  await expectIdle(); await sleep(100);
   s = await js(`wheelState()`);
   check("…new biome picked, message cleared", wheelOn(s) && s.selected !== "end" && s.hint === "", s.selected);
   await js(`document.getElementById("custom-all").click()`); await sleep(100);

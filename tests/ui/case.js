@@ -4,6 +4,7 @@ const path = require("path");
 const TMP = path.join(require("os").tmpdir(), "pokeroll-tests");
 app.setPath("userData", path.join(TMP, "userdata"));
 const PAGE = path.join(__dirname, "..", "..", "index.html");
+const T = require("./timing");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
@@ -27,20 +28,23 @@ app.whenReady().then(async () => {
       modal: document.getElementById("result-name") && document.getElementById("result-name").textContent,
       open: document.getElementById("result-modal").open, pos: ((mid - c.left) / c.width).toFixed(2) };
   })()`;
-  const waitModal = async (ms) => { for (let t = 0; t < ms; t += 100) { if (await js(`document.getElementById("result-modal").open`)) return true; await sleep(100); } return false; };
+  // Chờ đo bằng đồng hồ thật (since: tính từ lúc bấm); giới hạn tính từ hằng số thời gian của app (tests/ui/timing.js)
+  let lastWaitMs = 0;
+  const waitModal = async (ms, since = Date.now()) => { for (;;) { if (await js(`document.getElementById("result-modal").open`)) { lastWaitMs = Date.now() - since; return true; } if (Date.now() - since >= ms) { lastWaitMs = Date.now() - since; return false; } await sleep(100); } };
   const histLen = () => js(`JSON.parse(localStorage.getItem("pokeroll.history") || "[]").length`);
 
   // 1. Quay thường (nhiều lần)
   for (let i = 0; i < 3; i++) {
+    const clickedAt = Date.now();
     if (i === 0) await js(`document.getElementById("btn-spin").click()`);
     else await js(`document.getElementById("result-again").click()`); // 2. Open again
     await sleep(500);
     const spinning = await js(`document.getElementById("btn-spin").disabled`);
-    const opened = await waitModal(9000);
+    const opened = await waitModal(T.CASE_POPUP_MS, clickedAt);
     // Đo khi dải đã dừng hẳn: máy chậm (CI) thì dải có thể còn trượt nốt một chút lúc popup vừa mở
     let a = await js(ALIGN);
     for (let t = 0; t < 4000 && !a.settled; t += 100) { await sleep(100); a = await js(ALIGN); }
-    check(`${i === 0 ? "Normal spin" : "Open again #" + i}: button locked while spinning, popup opens`, spinning && opened);
+    check(`${i === 0 ? "Normal spin" : "Open again #" + i}: button locked while spinning, popup opens`, spinning && opened, `popup ${opened ? "after" : "not open after"} ${lastWaitMs} ms from the click (limit ${T.CASE_POPUP_MS} ms)`);
     check(`${i === 0 ? "Normal spin" : "Open again #" + i}: marker on winning card, matches popup`, a.ok && a.card === a.modal, `${a.card} @${a.pos}`);
   }
   check("History saved 3 opens", (await histLen()) === 3);
@@ -72,11 +76,11 @@ app.whenReady().then(async () => {
   let before = await histLen();
   await space(); await sleep(300);
   check("Space on Case page starts a spin", (await histLen()) === before + 1 && (await js(`document.getElementById("btn-spin").disabled`)));
-  await waitModal(9000);
+  await waitModal(T.CASE_POPUP_MS);
   before = await histLen();
   await space(); await sleep(300); // popup đang mở → Open again
   check("Space with result popup open → Open again", (await histLen()) === before + 1 && !(await js(`document.getElementById("result-modal").open`)));
-  await waitModal(9000);
+  await waitModal(T.CASE_POPUP_MS);
   await js(`document.getElementById("result-close").click()`);
   await js(`document.querySelector('.tab[data-view="collection"]').click()`);
   before = await histLen();

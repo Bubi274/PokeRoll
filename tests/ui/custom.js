@@ -7,6 +7,7 @@ app.setPath("userData", path.join(TMP, "userdata-custom"));
 const PAGE = path.join(__dirname, "..", "..", "index.html");
 const SHOTS = path.join(TMP, "shots");
 fs.mkdirSync(SHOTS, { recursive: true });
+const T = require("./timing");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
@@ -109,10 +110,10 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('.tab[data-view="case"]').click()`); await sleep(200);
   await space(); await sleep(300);
   check("Space on Case opens the case, not the Custom mode", (await js(`state.history.length`)) === hist0 + 1 && (await js(`window.__spins.length`)) === 3);
-  for (let t = 0; t < 9000 && !(await js(`document.getElementById("result-modal").open`)); t += 100) await sleep(100);
+  for (const t0 = Date.now(); Date.now() - t0 < T.CASE_POPUP_MS && !(await js(`document.getElementById("result-modal").open`));) await sleep(100);
   await js(`document.getElementById("result-again").click()`); await sleep(300);
   check("Open again after a Case result opens the case", (await js(`state.history.length`)) === hist0 + 2 && (await js(`window.__spins.length`)) === 3);
-  for (let t = 0; t < 9000 && !(await js(`document.getElementById("result-modal").open`)); t += 100) await sleep(100);
+  for (const t0 = Date.now(); Date.now() - t0 < T.CASE_POPUP_MS && !(await js(`document.getElementById("result-modal").open`));) await sleep(100);
   await js(`document.getElementById("result-close").click()`);
 
   // 7. Nút Sound đồng bộ hai trang

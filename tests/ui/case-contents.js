@@ -7,6 +7,7 @@ app.setPath("userData", path.join(TMP, "userdata-contents"));
 const PAGE = path.join(__dirname, "..", "..", "index.html");
 const SHOTS = path.join(TMP, "shots");
 fs.mkdirSync(SHOTS, { recursive: true });
+const TIMING = require("./timing");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
@@ -118,7 +119,7 @@ app.whenReady().then(async () => {
   await click("wheel"); await sleep(300);
   b = await btnState();
   check("While spinning the wheel: View case contents locked", b.disabled && (await js(`state.spinning`)));
-  await waitIdle(6000);
+  await waitIdle(TIMING.WHEEL_MS);
   check("After spin: unlocked", !(await btnState()).disabled);
   const T = await js(`roulette.selected`);
 

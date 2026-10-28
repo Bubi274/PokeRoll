@@ -7,6 +7,7 @@ app.setPath("userData", path.join(TMP, "userdata-roulette"));
 const PAGE = path.join(__dirname, "..", "..", "index.html");
 const SHOTS = path.join(TMP, "shots");
 fs.mkdirSync(SHOTS, { recursive: true });
+const T = require("./timing");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
@@ -30,8 +31,13 @@ app.whenReady().then(async () => {
   });
   const js = (code) => win.webContents.executeJavaScript(code);
   const shot = async (name) => fs.writeFileSync(path.join(SHOTS, name), (await win.webContents.capturePage()).toPNG());
-  const waitModal = async (ms) => { for (let t = 0; t < ms; t += 50) { if (await js(`document.getElementById("result-modal").open`)) return true; await sleep(50); } return false; };
-  const waitIdle = async (ms) => { for (let t = 0; t < ms; t += 50) { if (!(await js(`state.spinning`))) return true; await sleep(50); } return false; };
+  // Chờ đo bằng đồng hồ thật; giới hạn tính từ hằng số thời gian của app (tests/ui/timing.js).
+  // Các lần chờ dài được ghi thành kiểm tra kèm thời gian thực tế, để log CI cho biết chậm ở đâu.
+  let lastWaitMs = 0, waitNo = 0;
+  const waitModal = async (ms) => { const t0 = Date.now(); for (;;) { if (await js(`document.getElementById("result-modal").open`)) { lastWaitMs = Date.now() - t0; return true; } if (Date.now() - t0 >= ms) { lastWaitMs = Date.now() - t0; return false; } await sleep(50); } };
+  const waitIdle = async (ms) => { const t0 = Date.now(); for (;;) { if (!(await js(`state.spinning`))) { lastWaitMs = Date.now() - t0; return true; } if (Date.now() - t0 >= ms) { lastWaitMs = Date.now() - t0; return false; } await sleep(50); } };
+  const expectPopup = async (ms = T.ROULETTE_POPUP_MS) => { const ok = await waitModal(ms); check(`Wait #${++waitNo}: result popup opens`, ok, `after ${lastWaitMs} ms (limit ${ms} ms)`); return ok; };
+  const expectIdle = async (ms = T.WHEEL_MS) => { const ok = await waitIdle(ms); check(`Wait #${++waitNo}: spin finishes`, ok, `after ${lastWaitMs} ms (limit ${ms} ms)`); return ok; };
   const key = (code, k) => js(`document.body.dispatchEvent(new KeyboardEvent("keydown", { code: "${code}", key: "${k}", bubbles: true }))`);
   const space = () => key("Space", " ");
   const pressW = () => key("KeyW", "w");
@@ -103,7 +109,7 @@ app.whenReady().then(async () => {
     label: ${btn("wheel")}.textContent.trim(), open: ${btn("open")}.disabled, caseBtn: document.getElementById("btn-spin").disabled, locked: locks(), hub: document.getElementById("tr-hub").textContent })`);
   check("Spin wheel: wheel turns, label \"Spinning…\", Open + Case + gen grid locked", during.spinning && during.label === "Spinning…" && during.open && during.caseBtn && during.locked && during.hub === "?", JSON.stringify(during));
   await shot("tr2-wheel-spinning.png");
-  await waitIdle(6000); await sleep(100);
+  await expectIdle(); await sleep(100);
   s = await js(`wheelState()`);
   check("Spin wheel: stops on the rolled type (pointer geometry + angle + hub + saved)", wheelOn(s), `${s.selected}: under pointer ${s.geom}/${s.angle}`);
   check("Spin wheel: no case opened, nothing recorded", (await histLen()) === h0 && !(await js(`document.getElementById("result-modal").open`)));
@@ -123,7 +129,7 @@ app.whenReady().then(async () => {
     })(); 0`);
   await click("open"); await sleep(300);
   check("Open case: locks while opening", await js(`locks() && ${btn("wheel")}.disabled && ${btn("open")}.disabled`));
-  await waitModal(12000);
+  await expectPopup();
   await js(`window.__stop = true`);
   const log = await js(`window.__log`);
   const rs = log.find((l) => l.r), re = log.slice(log.indexOf(rs)).find((l) => !l.r);
@@ -139,22 +145,22 @@ app.whenReady().then(async () => {
   // ---- 3. Open again (popup) và Space trong popup: mở lại hòm cùng hệ ----
   h0 = await histLen();
   await js(`document.getElementById("result-again").click()`);
-  await waitModal(12000);
+  await expectPopup();
   r = await js(`reelState()`);
   check("Open again: opens the same type's case again", (await histLen()) === h0 + 1 && r.detail === type1 && r.types.includes(type1) && r.ok && r.card === r.modal, r.card);
   await space(); await sleep(200);
   check("Space in the popup: opens the same type again", (await histLen()) === h0 + 2 && (await js(`state.history[0].detail`)) === type1);
-  await waitModal(12000); await closeModal();
+  await expectPopup(); await closeModal();
 
   // ---- 4. Space trên trang (đã có hệ) → mở hòm; W → quay bánh xe ----
   h0 = await histLen();
   await space(); await sleep(200);
   check("Space with a type selected: opens the case (wheel stays)", (await histLen()) === h0 + 1 && !(await js(`document.getElementById("tr-wheel").classList.contains("is-spinning")`)));
-  await waitModal(12000); await closeModal();
+  await expectPopup(); await closeModal();
   h0 = await histLen();
   await pressW(); await sleep(400);
   check("W: spins the wheel, no case", await js(`document.getElementById("tr-wheel").classList.contains("is-spinning")`) && (await histLen()) === h0);
-  await waitIdle(6000); await sleep(100);
+  await expectIdle(); await sleep(100);
   s = await js(`wheelState()`);
   check("W: wheel stops on the new type", wheelOn(s) && (await histLen()) === h0, `${s.selected}: ${s.geom}/${s.angle}`);
 
@@ -200,7 +206,7 @@ app.whenReady().then(async () => {
   s = await js(`wheelState()`);
   check("Reload: type kept, wheel points at it, Open ready, Space opens", wheelOn(s) && s.selected === kept && !s.openDisabled && s.primary === "open", `${kept} → ${s.selected} (${s.geom})`);
   h0 = await histLen();
-  await space(); await waitModal(12000);
+  await space(); await expectPopup();
   check("…and Space opens that type's case", (await histLen()) === h0 + 1 && (await js(`state.history[0].detail`)) === kept);
   await closeModal();
 
@@ -223,7 +229,7 @@ app.whenReady().then(async () => {
   h0 = await histLen();
   await space(); await sleep(300);
   check("…Space now spins the wheel", await js(`document.getElementById("tr-wheel").classList.contains("is-spinning")`) && (await histLen()) === h0);
-  await waitIdle(6000); await sleep(100);
+  await expectIdle(); await sleep(100);
   s = await js(`wheelState()`);
   check("…new type picked, message cleared", wheelOn(s) && s.selected !== "dark" && s.hint === "", s.selected);
 
@@ -247,7 +253,7 @@ app.whenReady().then(async () => {
   check("W on the Case page does nothing", (await histLen()) === h0 && !(await js(`state.spinning`)));
   await space(); await sleep(200);
   check("Space on the Case page opens the case", (await histLen()) === h0 + 1 && !(await js(`state.history[0].mode`)));
-  await waitModal(12000); await closeModal();
+  await expectPopup(); await closeModal();
 
   // ---- 11. Lịch sử, bộ sưu tập, nhãn ----
   const hist = await js(`JSON.parse(localStorage.getItem("pokeroll.history"))`);
