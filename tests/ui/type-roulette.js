@@ -73,10 +73,12 @@ app.whenReady().then(async () => {
     window.reelState = () => {
       const reel = document.getElementById("tr-reel"), r = reel.getBoundingClientRect(), mid = r.left + r.width / 2;
       const strip = reel.querySelector(".reel-strip"), winCard = strip.querySelector(".card.is-winner");
-      const under = [...strip.children].filter(k => { const b = k.getBoundingClientRect(); return b.left <= mid && mid < b.right; });
-      const settled = Math.abs(new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41 - parseFloat(strip.style.transform.slice(11))) < 0.5;
+      // Đo ở vị trí dừng (đích transform của dải), không phụ thuộc dải đã kịp chạy xong trên máy chậm hay chưa
+      const x = new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41, target = parseFloat(strip.style.transform.slice(11));
+      const under = [...strip.children].filter(k => { const b = k.getBoundingClientRect(); return b.left + target - x <= mid && mid < b.right + target - x; });
+      const settled = Math.abs(x - target) < 0.5;
       const h = state.history[0];
-      return { ok: settled && !!winCard && under.length === 1 && under[0] === winCard, card: winCard && winCard.querySelector(".card-name").textContent,
+      return { ok: !!winCard && under.length === 1 && under[0] === winCard, settled, card: winCard && winCard.querySelector(".card-name").textContent,
         modal: document.getElementById("result-modal").open && document.getElementById("result-name").textContent,
         extra: (document.querySelector("#result-body .mode-note") || {}).textContent || "", mode: h.mode, detail: h.detail, types: state.byId.get(h.id).types };
     };
@@ -85,6 +87,16 @@ app.whenReady().then(async () => {
   // Bánh xe đứng trên hệ đang chọn: đo bằng hình học thật, bằng góc xoay, ô sáng, tâm bánh xe, nút Open, ô lưu
   const wheelOn = (s) => s.selected && s.geom === s.selected && s.angle === s.selected && s.winnerSlice === s.selected
     && s.hub === cap(s.selected) && s.saved === s.selected && s.openLabel === `Open ${cap(s.selected)} case`;
+
+  // Sau một lượt mở có hiệu ứng: thường thì chờ dải dừng hẳn rồi mới đo (máy chậm: popup có thể mở trước khi dải
+  // chạy xong), tối đa trọn một lượt ROULETTE_REEL_MS (tests/ui/timing.js). reelState đo ở vị trí dừng nên kết quả
+  // không phụ thuộc vào lần chờ này.
+  const settledReel = async () => {
+    const t0 = Date.now();
+    let r = await js(`reelState()`);
+    while (!r.settled && Date.now() - t0 < T.ROULETTE_SETTLE_MS) { await sleep(100); r = await js(`reelState()`); }
+    return r;
+  };
 
   await win.loadFile(PAGE, { query: { nomotion: "1" } });
   await js(`localStorage.clear();
@@ -135,7 +147,7 @@ app.whenReady().then(async () => {
   const rs = log.find((l) => l.r), re = log.slice(log.indexOf(rs)).find((l) => !l.r);
   const reelSecs = (re.t - rs.t) / 1000;
   check("Open case: Pokémon reel runs ~4 s, wheel does not spin", reelSecs > 3.9 && reelSecs < 4.4 && log.every((l) => !l.w), `${reelSecs.toFixed(2)}s`);
-  let r = await js(`reelState()`);
+  let r = await settledReel();
   check("Open case: reel marker on winner, matches popup", r.ok && r.card === r.modal, r.card);
   check("Open case: Pokémon of the selected type, history tagged", r.mode === "type-roulette" && r.detail === type1 && r.types.includes(type1) && r.extra.includes(`${cap(type1)} case`), `${r.card} (${r.types.join("/")})`);
   s = await js(`wheelState()`);
@@ -146,7 +158,7 @@ app.whenReady().then(async () => {
   h0 = await histLen();
   await js(`document.getElementById("result-again").click()`);
   await expectPopup();
-  r = await js(`reelState()`);
+  r = await settledReel();
   check("Open again: opens the same type's case again", (await histLen()) === h0 + 1 && r.detail === type1 && r.types.includes(type1) && r.ok && r.card === r.modal, r.card);
   await space(); await sleep(200);
   check("Space in the popup: opens the same type again", (await histLen()) === h0 + 2 && (await js(`state.history[0].detail`)) === type1);

@@ -66,10 +66,12 @@ app.whenReady().then(async () => {
     window.reelState = () => {
       const reel = document.getElementById("lr-reel"), r = reel.getBoundingClientRect(), mid = r.left + r.width / 2;
       const strip = reel.querySelector(".reel-strip"), winCard = strip.querySelector(".card.is-winner");
-      const under = [...strip.children].filter(k => { const b = k.getBoundingClientRect(); return b.left <= mid && mid < b.right; });
-      const settled = Math.abs(new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41 - parseFloat(strip.style.transform.slice(11))) < 0.5;
+      // Đo ở vị trí dừng (đích transform của dải), không phụ thuộc dải đã kịp chạy xong trên máy chậm hay chưa
+      const x = new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41, target = parseFloat(strip.style.transform.slice(11));
+      const under = [...strip.children].filter(k => { const b = k.getBoundingClientRect(); return b.left + target - x <= mid && mid < b.right + target - x; });
+      const settled = Math.abs(x - target) < 0.5;
       const h = state.history[0];
-      return { ok: settled && !!winCard && under.length === 1 && under[0] === winCard, card: winCard && winCard.querySelector(".card-name").textContent,
+      return { ok: !!winCard && under.length === 1 && under[0] === winCard, settled, card: winCard && winCard.querySelector(".card-name").textContent,
         modal: document.getElementById("result-modal").open && document.getElementById("result-name").textContent,
         extra: (document.querySelector("#result-body .mode-note") || {}).textContent || "", mode: h.mode, detail: h.detail, letter: letterOf(state.byId.get(h.id)) };
     };
@@ -92,6 +94,16 @@ app.whenReady().then(async () => {
     0`);
   const wheelOn = (s) => s.selected && s.geom === s.selected && s.angle === s.selected && s.winnerSlice === s.selected
     && s.hub === s.selected && s.saved === s.selected && s.openLabel === `Open ${s.selected} case`;
+
+  // Sau một lượt mở có hiệu ứng: thường thì chờ dải dừng hẳn rồi mới đo (máy chậm: popup có thể mở trước khi dải
+  // chạy xong), tối đa trọn một lượt ROULETTE_REEL_MS (tests/ui/timing.js). reelState đo ở vị trí dừng nên kết quả
+  // không phụ thuộc vào lần chờ này.
+  const settledReel = async () => {
+    const t0 = Date.now();
+    let r = await js(`reelState()`);
+    while (!r.settled && Date.now() - t0 < T.ROULETTE_SETTLE_MS) { await sleep(100); r = await js(`reelState()`); }
+    return r;
+  };
 
   await win.loadFile(PAGE, { query: { nomotion: "1" } });
   await js(`localStorage.clear(); localStorage.setItem("pokeroll.custom.gens", "[1]");
@@ -144,7 +156,7 @@ app.whenReady().then(async () => {
   await click("open"); await sleep(300);
   check("Open case: locks while opening", await js(`${btn("letter")}.disabled && ${btn("open")}.disabled && genPanel().locked`));
   await expectPopup();
-  let r = await js(`reelState()`);
+  let r = await settledReel();
   check("Open case: reel marker on winner, matches popup", r.ok && r.card === r.modal, r.card);
   check(`Open case: a ${L1} Pokémon, history tagged letter-roulette / ${L1}`, r.mode === "letter-roulette" && r.detail === L1 && r.letter === L1
     && r.extra.includes(`Letter Roulette · ${L1} case`), `${r.card}`);
@@ -154,7 +166,7 @@ app.whenReady().then(async () => {
   h0 = await histLen();
   await js(`document.getElementById("result-again").click()`);
   await expectPopup();
-  r = await js(`reelState()`);
+  r = await settledReel();
   check("Open again: same letter", (await histLen()) === h0 + 1 && r.detail === L1 && r.letter === L1 && r.ok);
   await closeAll();
 

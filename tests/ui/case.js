@@ -15,15 +15,19 @@ app.whenReady().then(async () => {
   await win.loadFile(PAGE, { query: { nomotion: "1" } });
   await js("localStorage.clear()"); await win.reload(); await sleep(300);
 
-  // Kim (tâm khung reel) nằm trong thẻ thắng? Tên thẻ thắng trùng tên trong popup?
+  // Kim (tâm khung reel) nằm trong thẻ thắng ở vị trí dừng của dải? Tên thẻ thắng trùng tên trong popup?
+  // Đo ở vị trí dừng (đích transform mà app đặt cho dải), không ở vị trí đang hiện: máy chậm (CI) có lúc chưa vẽ khung
+  // hình nào cho dải, popup mở nhờ đồng hồ dự phòng khi dải còn ở vị trí đầu. settled: dải đã dừng hẳn ở đó chưa.
   const ALIGN = `(() => {
     const reel = document.getElementById("reel"), r = reel.getBoundingClientRect();
     const win = reel.querySelector(".card.is-winner"); if (!win) return {ok:false, why:"no winner"};
-    const c = win.getBoundingClientRect(), mid = r.left + r.width / 2;
-    const under = [...reel.querySelectorAll(".card")].filter(k => { const b = k.getBoundingClientRect(); return b.left <= mid && mid < b.right; });
     const strip = document.getElementById("reel-strip");
-    const settled = Math.abs(new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41 - parseFloat(strip.style.transform.slice(11))) < 0.5;
-    return { ok: settled && c.left <= mid && mid < c.right && under.length === 1 && under[0] === win, settled,
+    const x = new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41, target = parseFloat(strip.style.transform.slice(11));
+    const atStop = (k) => { const b = k.getBoundingClientRect(); return { left: b.left + target - x, right: b.right + target - x, width: b.width }; };
+    const c = atStop(win), mid = r.left + r.width / 2;
+    const under = [...reel.querySelectorAll(".card")].filter(k => { const b = atStop(k); return b.left <= mid && mid < b.right; });
+    return { ok: c.left <= mid && mid < c.right && under.length === 1 && under[0] === win, settled: Math.abs(x - target) < 0.5,
+      x: Math.round(x), target: Math.round(target),
       card: win.querySelector(".card-name").textContent,
       modal: document.getElementById("result-name") && document.getElementById("result-name").textContent,
       open: document.getElementById("result-modal").open, pos: ((mid - c.left) / c.width).toFixed(2) };
@@ -41,11 +45,15 @@ app.whenReady().then(async () => {
     await sleep(500);
     const spinning = await js(`document.getElementById("btn-spin").disabled`);
     const opened = await waitModal(T.CASE_POPUP_MS, clickedAt);
-    // Đo khi dải đã dừng hẳn: máy chậm (CI) thì dải có thể còn trượt nốt một chút lúc popup vừa mở
+    // Thường thì chờ dải dừng hẳn rồi mới đo; máy chậm (CI) có thể chưa chạy xong — tối đa trọn một lượt SPIN_MS
+    // (tests/ui/timing.js), đo bằng đồng hồ thật. Kết quả không phụ thuộc vào đó: ALIGN đo ở vị trí dừng.
+    const settleFrom = Date.now();
     let a = await js(ALIGN);
-    for (let t = 0; t < 4000 && !a.settled; t += 100) { await sleep(100); a = await js(ALIGN); }
+    while (!a.settled && Date.now() - settleFrom < T.CASE_SETTLE_MS) { await sleep(100); a = await js(ALIGN); }
+    const settleMs = Date.now() - settleFrom;
     check(`${i === 0 ? "Normal spin" : "Open again #" + i}: button locked while spinning, popup opens`, spinning && opened, `popup ${opened ? "after" : "not open after"} ${lastWaitMs} ms from the click (limit ${T.CASE_POPUP_MS} ms)`);
-    check(`${i === 0 ? "Normal spin" : "Open again #" + i}: marker on winning card, matches popup`, a.ok && a.card === a.modal, `${a.card} @${a.pos}`);
+    check(`${i === 0 ? "Normal spin" : "Open again #" + i}: marker on winning card, matches popup`, a.ok && a.card === a.modal,
+      `${a.card} @${a.pos} at the stop; reel ${a.settled ? "stopped" : `not stopped yet (x ${a.x} → ${a.target})`} ${settleMs} ms after the popup (wait limit ${T.CASE_SETTLE_MS} ms)`);
   }
   check("History saved 3 opens", (await histLen()) === 3);
   const caseTransition = await js(`document.getElementById("reel-strip").style.transition`);
