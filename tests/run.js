@@ -7,8 +7,8 @@ const { spawnSync } = require("child_process");
 const fs = require("fs"), os = require("os"), path = require("path");
 
 const SUITES = [
-  ["logic", "case"], ["logic", "type-roulette"], ["logic", "biome-roulette"], ["logic", "ui-text"], ["logic", "release"],
-  ["ui", "case"], ["ui", "case-odds"], ["ui", "custom"], ["ui", "layout"], ["ui", "type-roulette"], ["ui", "biome-roulette"], ["ui", "case-contents"], ["ui", "wheel-keep"], ["ui", "motion"], ["ui", "desktop"], ["ui", "reel-timing"],
+  ["logic", "case"], ["logic", "type-roulette"], ["logic", "biome-roulette"], ["logic", "custom-pool"], ["logic", "ui-text"], ["logic", "release"],
+  ["ui", "case"], ["ui", "case-odds"], ["ui", "custom"], ["ui", "layout"], ["ui", "type-roulette"], ["ui", "biome-roulette"], ["ui", "case-contents"], ["ui", "wheel-keep"], ["ui", "motion"], ["ui", "desktop"], ["ui", "reel-timing"], ["ui", "custom-pool"],
 ];
 const args = process.argv.slice(2);
 const verbose = args.includes("-v");

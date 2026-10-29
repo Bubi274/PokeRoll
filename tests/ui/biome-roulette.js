@@ -102,7 +102,7 @@ app.whenReady().then(async () => {
     s.slices === 18 && !s.selected && s.openDisabled && s.openLabel === "Open case" && !s.spinDisabled && s.hint === "Spin the biome first." && s.hub === "?", `hint "${s.hint}"`);
   check("Start: Spin biome is the Space button; key notes \"Space B spin biome\"", s.primary === "biome" && s.kbd === "Space B spin biome", `"${s.kbd}"`);
   check("How it works shows Biome Roulette rules", (await js(`document.getElementById("mode-rules-name").textContent`)) === "Biome Roulette"
-    && (await js(`document.querySelectorAll("#mode-rule-list li").length`)) === 7
+    && (await js(`document.querySelectorAll("#mode-rule-list li").length`)) === 8
     && /only goes on the wheel if it has at least one Blue, Purple or Pink/.test(await js(`document.getElementById("mode-rule-list").textContent`)));
   await shot("br-start.png");
 

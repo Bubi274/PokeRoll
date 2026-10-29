@@ -44,7 +44,7 @@ app.whenReady().then(async () => {
 
   // 2. Thanh chọn chế độ + luật
   check("Mode bar lists Type Roulette (selected) + Biome Roulette", await js(`(() => { const b = document.querySelectorAll(".mode-btn"); return b.length === 2 && b[0].dataset.mode === "type-roulette" && b[0].getAttribute("aria-selected") === "true" && b[1].dataset.mode === "biome-roulette" && b[1].getAttribute("aria-selected") === "false"; })()`));
-  check("How it works shows the mode's 6 rules", (await js(`document.querySelectorAll("#mode-rule-list li").length`)) === 6 && (await $t("mode-rules-name")) === "Type Roulette");
+  check("How it works shows the mode's 7 rules", (await js(`document.querySelectorAll("#mode-rule-list li").length`)) === 7 && (await $t("mode-rules-name")) === "Type Roulette");
   check("Type Roulette actions rendered: Spin wheel + Open case", (await js(`[...document.querySelectorAll("#custom-actions .action-main")].map(b => b.dataset.action + ":" + b.textContent.trim()).join()`)) === "wheel:Spin wheel,open:Open case");
 
   // 3. Bộ lọc gen riêng

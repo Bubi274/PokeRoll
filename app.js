@@ -1110,18 +1110,22 @@ function recentItem(h) {
 
 // Nguồn của một lượt quay trong lịch sử. Lượt mở hòm (kể cả lịch sử cũ chưa có trường mode) là "Case";
 // lượt ở trang Custom lấy nhãn do chế độ đặt, vd. "Type Roulette · Fire" (short: "Type · Fire").
+// Lượt quay từ custom pool (h.pool = "custom"): nhãn đầy đủ thêm " · Custom pool", nhãn gọn có thêm dấu ✦ nhỏ.
 function dropSource(h, short = false) {
   if (!h.mode) return { label: "Case", color: "" };
   const mode = CUSTOM_MODES.find((m) => m.key === h.mode);
   if (!mode) return { label: "Custom", color: "" };
+  const customPool = h.pool === "custom";
   return {
-    label: mode.label ? mode.label(h.detail, short) : mode.name,
+    label: (mode.label ? mode.label(h.detail, short) : mode.name) + (customPool && !short ? " · Custom pool" : ""),
     color: mode.tagColor ? mode.tagColor(h.detail) : "",
+    mark: customPool && short,
   };
 }
 
 function sourceTag(src) {
-  return `<span class="src-tag"${src.color ? ` style="--t:${src.color}"` : ""}>${escHtml(src.label)}</span>`;
+  return `<span class="src-tag"${src.color ? ` style="--t:${src.color}"` : ""}>${escHtml(src.label)}${src.mark
+    ? `<span class="src-mark" title="Custom pool" aria-label="Custom pool">✦</span>` : ""}</span>`;
 }
 
 // Lịch sử lưu mới nhất trước → lượt mới nhất nằm trên cùng.
@@ -1282,7 +1286,9 @@ function formatPct(x) {
 //   note    HTML hiện dưới tiêu đề (rỗng thì ẩn)
 //   owned   đánh dấu Pokémon đã có / chưa có trong bộ sưu tập
 //   odds    hiện tỉ lệ ra thật của từng Pokémon (dropOdds, đã tính hạ bậc)
-function openContents({ groups = state.groups, title = "Case contents", note = "", owned = false, odds = false } = {}) {
+//   pick    (tuỳ chọn) chế độ sửa custom pool: mỗi ô là một ô tick (không mở chi tiết), có nút chọn / bỏ cả bậc.
+//           Tỉ lệ, dòng đầu mỗi bậc và trạng thái tick do updatePoolEdit() điền.
+function openContents({ groups = state.groups, title = "Case contents", note = "", owned = false, odds = false, pick = false } = {}) {
   const chances = effectiveChances(groups);
   const total = groupsSize(groups);
   $("contents-heading").textContent = title;
@@ -1298,20 +1304,29 @@ function openContents({ groups = state.groups, title = "Case contents", note = "
     const rate = odds ? dropOdds({ rarity: r.key, shiny: false }, groups).pokemon : 0;
     const tiles = list.map((p) => {
       const entry = owned && state.collection[p.id];
-      return `
-      <button type="button" class="mini${owned && !entry ? " is-unowned" : ""}" data-pokemon="${p.id}" data-search="${p.name.toLowerCase()} ${p.baseId || p.id}">
+      const search = `data-search="${p.name.toLowerCase()} ${p.baseId || p.id}"`;
+      const body = (oddsHtml) => `
         <img class="mini-img" src="${thumbUrl(p)}" alt="" loading="lazy">
         <span class="mini-name">${p.name}</span>
         <span class="mini-id">${dexLabel(p)}</span>
-        ${odds ? `<span class="mini-odds" data-odds="${rate}" title="1 in ${oneIn(rate)}">${formatPct(rate * 100)}</span>` : ""}
-        ${owned ? `<span class="mini-own">${entry ? `Owned${entry.count > 1 ? ` ×${entry.count}` : ""}` : "Missing"}</span>` : ""}
-      </button>`;
+        ${oddsHtml}
+        ${owned ? `<span class="mini-own">${entry ? `Owned${entry.count > 1 ? ` ×${entry.count}` : ""}` : "Missing"}</span>` : ""}`;
+      const cls = owned && !entry ? " is-unowned" : "";
+      return pick
+        ? `<label class="mini is-pickable${cls}" data-id="${p.id}" ${search}>
+             <input type="checkbox" class="mini-check" data-pick="${p.id}" aria-label="${escHtml(p.name)}">
+             ${body(`<span class="mini-odds" data-odds="0"></span>`)}
+           </label>`
+        : `<button type="button" class="mini${cls}" data-pokemon="${p.id}" ${search}>
+             ${body(odds ? `<span class="mini-odds" data-odds="${rate}" title="1 in ${oneIn(rate)}">${formatPct(rate * 100)}</span>` : "")}
+           </button>`;
     }).join("");
     return `
-      <section class="contents-group r-${r.key}">
+      <section class="contents-group r-${r.key}" data-tier="${r.key}">
         <h3 class="contents-head">
           <span class="contents-name">${r.name}</span>
-          <span class="contents-meta">${list.length} Pokémon · ${formatPct(chances[r.key])} total · ≈${formatPct(each)} each</span>
+          <span class="contents-meta">${pick ? "" : `${list.length} Pokémon · ${formatPct(chances[r.key])} total · ≈${formatPct(each)} each`}</span>
+          ${pick ? `<button type="button" class="tier-pick" data-tier-pick="${r.key}"></button>` : ""}
         </h3>
         <div class="contents-grid">${tiles}</div>
       </section>`;
@@ -1322,13 +1337,17 @@ function openContents({ groups = state.groups, title = "Case contents", note = "
   if (!$("contents-modal").open) $("contents-modal").showModal(); // đổi nhóm khi popup đang mở thì chỉ vẽ lại
 }
 
+// Từ khóa ô tìm kiếm của popup nội dung hòm, và ô nào khớp (dùng chung cho filterContents và custom pool).
+const contentsQuery = () => $("contents-search").value.trim().toLowerCase();
+const matchesContents = (tile, q) => !q || tile.dataset.search.includes(q);
+
 function filterContents() {
-  const q = $("contents-search").value.trim().toLowerCase();
+  const q = contentsQuery();
   let shown = 0;
   for (const group of $("contents-body").querySelectorAll(".contents-group")) {
     let groupShown = 0;
     for (const tile of group.querySelectorAll(".mini")) {
-      const match = !q || tile.dataset.search.includes(q);
+      const match = matchesContents(tile, q);
       tile.hidden = !match;
       if (match) groupShown++;
     }
@@ -1510,7 +1529,11 @@ async function spin({ quick = false } = {}) {
 //                     key      nhóm đang xem          current  nhóm đang chọn trên bánh xe (null = chưa quay)
 //                     title    vd. "Fire case"        list     Pokémon trong hòm (đúng nhóm nút Open quay)
 //                     off      lý do nhóm không có trên bánh xe ("" nếu có)
-//                     info     dòng thêm (HTML)       options  [{ key, name, count, off }] các nhóm xem được
+//                     info     dòng thêm (HTML)       options  [{ key, name, count, off, custom }] các nhóm xem được
+//                                                     (custom: số Pokémon trong custom pool, null = cả hòm)
+//                     pool     (tuỳ chọn) kết quả wheelCase của nhóm đang xem — có thì popup hiện custom pool và
+//                              nút "Edit pool" (sửa được khi nhóm đang xem là nhóm đang chọn)
+//   onCustomPoolChanged() vẽ lại phần dùng hòm (panel tỉ lệ, dải thẻ) sau khi lưu custom pool       — tuỳ chọn
 // Chế độ chỉ có một hành động có thể khai báo spin({ quick }) (kèm spinLabel, emptyHint) thay cho actions.
 // Trong lúc chạy, hành động gọi setCustomSpinning(true, "Spinning…") và setCustomSpinning(false) khi xong.
 const CUSTOM_MODES = [];
@@ -1693,25 +1716,221 @@ function customActionButton(code) {
 }
 
 // Popup "View case contents" của chế độ đang chọn. key: nhóm muốn xem (đổi ở ô chọn trong popup).
-// Chỉ để xem: không đổi nhóm đang chọn trên bánh xe.
+// Chỉ để xem: không đổi nhóm đang chọn trên bánh xe. Đang sửa custom pool của nhóm này thì vẽ chế độ sửa.
 function openCustomContents(key) {
   const mode = custom.active;
   if (!mode || !mode.contents) return;
+  if (!$("contents-modal").open) stopPoolEdit(); // mở popup mới luôn ở chế độ xem (sự kiện close chạy sau)
   const c = mode.contents(key);
+  const editing = poolEdit.mode === mode && poolEdit.key === c.key;
   const nameOf = (k) => c.options.find((o) => o.key === k).name;
   const options = c.options.map((o) => `
-    <option value="${o.key}"${o.key === c.key ? " selected" : ""}>${escHtml(o.name)} · ${o.off
-      ? "not on the wheel" : `${o.count} Pokémon`}${o.key === c.current ? " · your case" : ""}</option>`).join("");
+    <option value="${o.key}"${o.key === c.key ? " selected" : ""}>${escHtml(o.name)} · ${o.off ? "not on the wheel"
+      : typeof o.custom === "number" ? `${o.custom}/${o.count} Pokémon · custom pool` : `${o.count} Pokémon`}${o.key === c.current ? " · your case" : ""}</option>`).join("");
   const line = (html, cls = "") => (html ? `<p class="contents-line${cls}">${html}</p>` : "");
   const note = `
     <div class="filters contents-pick">
-      <select id="contents-pick" aria-label="Case to view">${options}</select>
+      <select id="contents-pick" aria-label="Case to view"${editing ? " disabled" : ""}>${options}</select>
     </div>
     ${line(!c.current ? "Spin the wheel to pick a case."
       : c.current !== c.key ? `Preview only. Your case on the wheel stays ${escHtml(nameOf(c.current))}.` : "")}
     ${line(c.off && `<b>Not on the wheel</b>: ${c.off}`, " is-off")}
+    ${editing ? poolEditorHtml(c) : poolLines(c, line)}
     ${line(c.info)}`;
-  openContents({ groups: groupByRarity(c.list), title: c.title, note, owned: true, odds: true });
+  $("contents-modal").classList.toggle("is-editing-pool", editing);
+  if (editing) {
+    openContents({ groups: groupByRarity(poolEdit.full), title: c.title, note, owned: true, odds: true, pick: true });
+    updatePoolEdit();
+  } else {
+    openContents({ groups: groupByRarity(c.list), title: c.title, note, owned: true, odds: true });
+  }
+}
+
+// ----- Sửa custom pool (trong popup "View case contents") -----
+
+// Đang sửa: mode + key = chế độ và nhóm; full = cả hòm của nhóm; picked = id (dạng chữ) đang tick; saved = tập đã lưu.
+const poolEdit = { mode: null, key: null, full: [], picked: new Set(), saved: null };
+
+// Lý do nút "Edit pool" đang khóa ("" = bấm được).
+function poolEditBlock(c) {
+  if (state.spinning) return "Wait for the spin to finish.";
+  if (c.key !== c.current) return "Spin or select this case on the wheel to edit its pool";
+  if (!canCustomizePool(c.pool.full)) return `This case has fewer than ${CUSTOM_POOL_MIN} Pokémon, so it always uses the full case.`;
+  return "";
+}
+
+// Chế độ xem: trạng thái custom pool của nhóm + nút "Edit pool". Nhóm không có trên bánh xe thì không có gì.
+function poolLines(c, line) {
+  if (!c.pool) return "";
+  const block = poolEditBlock(c);
+  return `
+    ${line(c.pool.custom ? `<b>Custom pool</b> · ${c.pool.picked}/${c.pool.total} Pokémon. Only these can drop.` : "")}
+    ${line(c.pool.invalid ? CUSTOM_POOL_INVALID : "", " is-off")}
+    <div class="pool-edit-row">
+      <button type="button" class="btn btn-ghost" data-pool="edit"${block ? " disabled" : ""}>Edit pool</button>
+      ${block ? `<span class="pool-edit-why">${escHtml(block)}</span>` : ""}
+    </div>`;
+}
+
+// Chế độ sửa: bộ đếm, nút chọn nhanh, bảng tỉ lệ của tập đang tick, lý do chưa lưu được, Save / Cancel / Reset.
+function poolEditorHtml(c) {
+  return `
+    <div class="pool-editor">
+      <div class="pool-editor-side">
+        <p class="pool-edit-count"><strong id="pool-edit-count">0 selected</strong> <span>of ${poolEdit.full.length} in the ${escHtml(c.title)}</span></p>
+        <div class="pool-quick">
+          <button type="button" class="btn btn-ghost" data-pool="all">All</button>
+          <button type="button" class="btn btn-ghost" data-pool="none">None</button>
+          <button type="button" class="btn btn-ghost" data-pool="missing">Only missing</button>
+          <button type="button" class="btn btn-ghost" data-pool="owned">Only owned</button>
+        </div>
+        <ul class="pool-problems" id="pool-problems" aria-live="polite"></ul>
+        <div class="pool-actions">
+          <button type="button" class="btn btn-ghost" data-pool="reset">Reset to full case</button>
+          <button type="button" class="btn btn-ghost" data-pool="cancel">Cancel</button>
+          <button type="button" class="btn btn-spin" data-pool="save" id="pool-save">Save</button>
+        </div>
+      </div>
+      <ul class="rarity-list is-compact pool-odds" id="pool-odds" aria-label="Odds with your picks"></ul>
+    </div>`;
+}
+
+// Bắt đầu sửa custom pool của nhóm đang chọn: tick sẵn tập đã lưu (phần thuộc các gen đang chọn), chưa có thì cả hòm.
+function startPoolEdit() {
+  const mode = custom.active;
+  const c = mode && mode.contents ? mode.contents() : null;
+  if (!c || !c.pool || poolEditBlock(c)) return;
+  const { full, saved } = c.pool;
+  const ids = saved ? new Set(saved.map(String)) : null;
+  const picked = full.filter((p) => !ids || ids.has(String(p.id))).map((p) => String(p.id));
+  Object.assign(poolEdit, { mode, key: c.key, full, picked: new Set(picked), saved });
+  openCustomContents(c.key);
+}
+
+function stopPoolEdit() {
+  Object.assign(poolEdit, { mode: null, key: null, full: [], picked: new Set(), saved: null });
+  $("contents-modal").classList.remove("is-editing-pool");
+}
+
+// Tập đang tick theo đúng thứ tự trong hòm.
+const pickedList = () => poolEdit.full.filter((p) => poolEdit.picked.has(String(p.id)));
+
+// Vẽ lại phần thay đổi theo tập đang tick (không dựng lại ô, giữ nguyên chỗ cuộn và ô đang focus):
+// ô tick, tỉ lệ từng Pokémon (dropOdds của tập đang tick), dòng đầu mỗi bậc, bộ đếm, bảng tỉ lệ, nút Save.
+function updatePoolEdit() {
+  const list = pickedList();
+  const groups = groupByRarity(list);
+  const chances = effectiveChances(groups);
+  const fullGroups = groupByRarity(poolEdit.full);
+  for (const sec of $("contents-body").querySelectorAll(".contents-group")) {
+    const tier = sec.dataset.tier;
+    const n = groups[tier].length, all = fullGroups[tier].length;
+    const rate = n ? dropOdds({ rarity: tier, shiny: false }, groups).pokemon : 0;
+    sec.querySelector(".contents-meta").textContent = `${n}/${all} picked · ${formatPct(chances[tier])} total`
+      + (n ? ` · ≈${formatPct(rate * 100)} each` : "");
+    for (const tile of sec.querySelectorAll(".mini")) {
+      const on = poolEdit.picked.has(tile.dataset.id);
+      tile.querySelector(".mini-check").checked = on;
+      tile.classList.toggle("is-unpicked", !on);
+      const odds = tile.querySelector(".mini-odds");
+      odds.dataset.odds = on ? rate : 0;
+      odds.textContent = on ? formatPct(rate * 100) : "—";
+      odds.title = on ? `1 in ${oneIn(rate)}` : "Not in your pool";
+    }
+  }
+  countTo($("pool-edit-count"), list.length, (x, final) => `${fmtCount(x, final)} selected`);
+  renderOddsTable($("pool-odds"), groups);
+  $("pool-odds").querySelector(".odds-hint").textContent = "Pick Pokémon to see the odds.";
+  const problems = customPoolProblems(list);
+  $("pool-problems").innerHTML = problems.map((t) => `<li>${t}</li>`).join("");
+  $("pool-save").disabled = problems.length > 0;
+  updatePoolLabels();
+}
+
+// Pokémon mà các nút chọn nhanh / chọn cả bậc tác động: ô tìm kiếm trống = cả hòm (hoặc cả bậc),
+// đang có chữ = chỉ những con đang hiện trong kết quả tìm. tier: chỉ lấy một bậc.
+function poolShown(tier = null) {
+  const q = contentsQuery();
+  const tiles = $("contents-body").querySelectorAll(tier ? `.contents-group[data-tier="${tier}"] .mini` : ".mini");
+  const ids = new Set([...tiles].filter((t) => matchesContents(t, q)).map((t) => t.dataset.id));
+  return poolEdit.full.filter((p) => ids.has(String(p.id)));
+}
+
+const allPicked = (list) => list.every((p) => poolEdit.picked.has(String(p.id)));
+
+// Nhãn các nút chọn nhanh và chọn cả bậc. Đang tìm kiếm thì ghi rõ số con đang hiện, vd. "Select 4 shown".
+// Đọc thẳng từ khóa (không đợi filterContents ẩn ô) nên gọi trước hay sau filterContents đều đúng.
+function updatePoolLabels() {
+  if (!poolEdit.mode) return;
+  const filtered = Boolean(contentsQuery());
+  const n = poolShown().length;
+  const quick = filtered
+    ? { all: `Select ${n} shown`, none: `Clear ${n} shown`, missing: `Only missing (${n} shown)`, owned: `Only owned (${n} shown)` }
+    : { all: "All", none: "None", missing: "Only missing", owned: "Only owned" };
+  for (const [action, text] of Object.entries(quick)) {
+    const btn = $("contents-note").querySelector(`[data-pool="${action}"]`);
+    btn.textContent = text;
+    btn.disabled = n === 0;
+  }
+  for (const btn of $("contents-body").querySelectorAll("[data-tier-pick]")) {
+    const tier = btn.dataset.tierPick, list = poolShown(tier), on = allPicked(list);
+    const name = rarityInfo(tier).name;
+    btn.textContent = filtered ? `${on ? "Clear" : "Select"} ${list.length} shown` : `${on ? "Clear" : "Select"} tier`;
+    btn.setAttribute("aria-label", filtered
+      ? `${on ? "Clear" : "Select"} the ${list.length} ${name} Pokémon shown`
+      : `${on ? "Clear" : "Select"} all ${name} Pokémon`);
+  }
+}
+
+// Các nút trong chế độ sửa. Quick (All, None, Only missing, Only owned) đặt lại tick của các Pokémon trong
+// poolShown(): ô tìm kiếm trống = cả hòm (thay hẳn lựa chọn), đang tìm = chỉ những con đang hiện, con bị ẩn giữ nguyên.
+const QUICK_PICKS = {
+  all: () => true,
+  none: () => false,
+  missing: (p) => !state.collection[p.id],
+  owned: (p) => Boolean(state.collection[p.id]),
+};
+
+function onPoolAction(action) {
+  if (action === "edit") return startPoolEdit();
+  if (!poolEdit.mode) return;
+  const key = poolEdit.key;
+  if (QUICK_PICKS[action]) {
+    for (const p of poolShown()) {
+      if (QUICK_PICKS[action](p)) poolEdit.picked.add(String(p.id));
+      else poolEdit.picked.delete(String(p.id));
+    }
+  } else if (action === "reset") {
+    poolEdit.picked = new Set(poolEdit.full.map((p) => String(p.id))); // tick lại cả hòm, bấm Save mới lưu
+  } else if (action === "cancel") {
+    stopPoolEdit();
+    openCustomContents(key);
+    return;
+  } else if (action === "save") {
+    if (customPoolProblems(pickedList()).length) return;
+    const mode = poolEdit.mode;
+    if (!saveCustomPoolIds(mode.key, key, mergeCustomPool(poolEdit.saved, poolEdit.full, poolEdit.picked))) {
+      $("pool-problems").innerHTML = "<li>Couldn't save your pool: storage is blocked or full.</li>";
+      return;
+    }
+    stopPoolEdit();
+    if (mode.onCustomPoolChanged) mode.onCustomPoolChanged();
+    renderCustomControls();
+    openCustomContents(key);
+    return;
+  }
+  updatePoolEdit();
+}
+
+// Chọn / bỏ cả một bậc (đang tìm kiếm: chỉ những con của bậc đang hiện): đã tick hết thì bỏ hết, chưa thì tick hết.
+function togglePoolTier(tier) {
+  const list = poolShown(tier);
+  const allOn = allPicked(list);
+  for (const p of list) {
+    if (allOn) poolEdit.picked.delete(String(p.id));
+    else poolEdit.picked.add(String(p.id));
+  }
+  updatePoolEdit();
 }
 
 function onCustomGensChanged() {
@@ -1760,10 +1979,27 @@ function initCustom() {
   $("custom-contents").addEventListener("click", () => openCustomContents());
   // Ô chọn nhóm trong popup: xem nhóm khác, giữ ô chọn trong tầm bàn phím sau khi vẽ lại
   $("contents-modal").addEventListener("change", (e) => {
+    if (e.target.dataset.pick !== undefined && poolEdit.mode) {
+      if (e.target.checked) poolEdit.picked.add(e.target.dataset.pick);
+      else poolEdit.picked.delete(e.target.dataset.pick);
+      updatePoolEdit();
+      return;
+    }
     if (e.target.id !== "contents-pick") return;
     openCustomContents(e.target.value);
     $("contents-pick").focus();
   });
+  // Custom pool: nút Edit pool / chọn nhanh / Save / Cancel / Reset, và nút chọn cả bậc
+  $("contents-modal").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-pool], [data-tier-pick]");
+    if (!btn || btn.disabled) return;
+    if (btn.dataset.tierPick) togglePoolTier(btn.dataset.tierPick);
+    else onPoolAction(btn.dataset.pool);
+  });
+  // Đang sửa: nhãn nút chọn nhanh / chọn cả bậc theo kết quả tìm kiếm
+  $("contents-search").addEventListener("input", updatePoolLabels);
+  // Đóng popup (×, Esc, bấm ra ngoài) khi đang sửa = Cancel
+  $("contents-modal").addEventListener("close", stopPoolEdit);
 }
 
 // =====================================================================
@@ -1808,6 +2044,96 @@ function wheelPools(pools) {
   }
   return { pools: kept, rareOnly };
 }
+
+// ----- Custom pool: người chơi tự chọn một phần Pokémon trong hòm của nhóm đang chọn -----
+// Lưu riêng theo chế độ và nhóm: pokeroll.custom.pools.<chế độ>.<nhóm> = [id…]. Không có khóa = cả hòm.
+// Id đã lưu nhưng không thuộc các gen đang chọn tạm không tính, vẫn giữ trong danh sách (bật lại gen thì có lại).
+const CUSTOM_POOL_MIN = 6;
+const STORAGE_KEY_CUSTOM_POOLS = "pokeroll.custom.pools";
+const CUSTOM_POOL_INVALID = "Your custom pool isn't valid with these generations — using the full case.";
+
+// Lý do một tập chưa dùng được (rỗng = hợp lệ). Điều kiện bậc dùng đúng quy tắc lên bánh xe (wheelPools).
+function customPoolProblems(list) {
+  const problems = [];
+  if (list.length < CUSTOM_POOL_MIN) problems.push(`Pick at least ${CUSTOM_POOL_MIN} Pokémon`);
+  if (!wheelPools({ pool: list }).pools.pool) problems.push("Include at least one Blue, Purple or Pink Pokémon");
+  return problems;
+}
+
+// Hòm ít hơn CUSTOM_POOL_MIN con thì không cho tùy chỉnh, luôn dùng cả hòm.
+const canCustomizePool = (full) => full.length >= CUSTOM_POOL_MIN;
+
+// Hòm thật sự dùng để quay. full: cả hòm của nhóm (đã lọc theo gen); savedIds: tập đã lưu (null = chưa tùy chỉnh).
+// Trả về { list, custom, invalid, picked, total }: invalid = có tập đã lưu nhưng không hợp lệ với các gen này
+// (hoặc hòm quá nhỏ), nên tạm dùng cả hòm.
+function resolveCustomPool(full, savedIds) {
+  const whole = { list: full, custom: false, invalid: false, picked: full.length, total: full.length };
+  if (!savedIds) return whole;
+  const ids = new Set(savedIds.map(String));
+  const list = full.filter((p) => ids.has(String(p.id)));
+  if (!canCustomizePool(full) || customPoolProblems(list).length) return { ...whole, invalid: true };
+  return { list, custom: true, invalid: false, picked: list.length, total: full.length };
+}
+
+// Danh sách để lưu khi bấm Save: Pokémon đang tick (theo thứ tự trong hòm) + các id đã lưu đang bị ẩn vì gen.
+// Tick đủ cả hòm (All, Reset to full case) thì trả về null = dùng cả hòm, xóa khóa (bỏ luôn các id đang bị ẩn).
+function mergeCustomPool(savedIds, full, picked) {
+  const chosen = full.filter((p) => picked.has(String(p.id)));
+  if (chosen.length === full.length) return null;
+  const inCase = new Set(full.map((p) => String(p.id)));
+  const hidden = (savedIds || []).filter((id) => !inCase.has(String(id)));
+  return [...chosen.map((p) => p.id), ...hidden];
+}
+
+const customPoolKey = (mode, group) => `${STORAGE_KEY_CUSTOM_POOLS}.${mode}.${group}`;
+
+function loadCustomPoolIds(mode, group) {
+  return loadJson(customPoolKey(mode, group), null,
+    (v) => Array.isArray(v) && v.every((id) => typeof id === "number" || typeof id === "string"));
+}
+
+// ids = null: xóa tập đã lưu. Trả về false nếu không lưu được.
+function saveCustomPoolIds(mode, group, ids) {
+  if (ids) return saveJson(customPoolKey(mode, group), ids);
+  try {
+    localStorage.removeItem(customPoolKey(mode, group));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Hòm mà nút Open của chế độ bánh xe quay: nhóm key trên bánh xe w, đã áp custom pool (nếu có và hợp lệ).
+// Thêm: key, full (cả hòm của nhóm), saved (tập đã lưu hoặc null).
+function wheelCase(mode, w, key) {
+  const full = w.pools[key] || [];
+  const saved = loadCustomPoolIds(mode, key);
+  return { key, full, saved, ...resolveCustomPool(full, saved) };
+}
+
+// Chữ nút Open của chế độ bánh xe: "Open Dragon case", "Open Dragon case (custom)".
+function wheelOpenLabel(mode, w, name) {
+  if (!w.selected) return "Open case";
+  return `Open ${name(w.selected)} case${wheelCase(mode, w, w.selected).custom ? " (custom)" : ""}`;
+}
+
+// Nhãn cạnh tiêu đề panel tỉ lệ khi đang dùng custom pool: "Custom pool · 12/83".
+function customPoolBadge(c) {
+  return c.custom ? ` <span class="pool-badge">Custom pool · ${c.picked}/${c.total}</span>` : "";
+}
+
+// Dòng phụ dưới tiêu đề panel tỉ lệ, kèm thông báo khi tập đã lưu không hợp lệ với các gen đang chọn.
+function setOddsSub(el, text, c) {
+  el.innerHTML = escHtml(text) + (c.invalid ? `<span class="pool-warn">${CUSTOM_POOL_INVALID}</span>` : "");
+}
+
+// Trường thêm vào lượt quay trong lịch sử, và câu thêm trong popup kết quả.
+const customPoolTag = (c) => (c.custom ? { pool: "custom" } : {});
+const customPoolNote = (c) => (c.custom ? ` Custom pool: ${c.picked} of ${c.total} Pokémon.` : "");
+
+// Dòng "How it works" chung của các chế độ bánh xe. noun: "type", "biome".
+const customPoolRule = (noun) => `View case contents → Edit pool lets you pick which Pokémon of your ${noun} case can drop `
+  + `(at least ${CUSTOM_POOL_MIN}, with at least one Blue, Purple or Pink). It is saved for that ${noun} and used whenever the wheel lands on it.`;
 
 // Đổi gen (và lúc tải trang): dựng lại các nhóm trên bánh xe và quyết định giữ / bỏ nhóm đang chọn.
 // Dùng chung cho mọi chế độ bánh xe để các chế độ không thể xử lý lệch nhau.
@@ -1854,20 +2180,27 @@ function lostGroupMessage(name, rare, again) {
 // all: Pokémon của từng nhóm trong các gen đã chọn, trước khi lọc bánh xe; wheel: trạng thái bánh xe
 // (pools, types, selected); order: mọi nhóm theo thứ tự ô; name(k), info(k): tên và dòng thêm của nhóm.
 // Nhóm trên bánh xe dùng đúng danh sách wheel.pools mà nút Open quay.
-function wheelContents(key, { all, wheel, order, name, info = () => "" }) {
+// mode (tuỳ chọn): mã chế độ — nhóm trên bánh xe khi đó trả về hòm đã áp custom pool (wheelCase) trong list,
+// và pool = kết quả wheelCase (null nếu nhóm không có trên bánh xe) để popup hiện và sửa custom pool.
+function wheelContents(key, { all, wheel, order, name, info = () => "", mode = null }) {
   const { rareOnly } = wheelPools(all);
   const off = (k) => (wheel.pools[k] ? ""
     : rareOnly.includes(k) ? "only Red or Gold Pokémon in your selected generations, so every case would be a rare drop."
     : "no Pokémon in your selected generations.");
   const view = order.includes(key) ? key : wheel.selected || wheel.types[0] || order[0];
+  const pool = mode && wheel.pools[view] ? wheelCase(mode, wheel, view) : null;
   return {
     key: view,
     current: wheel.selected,
     title: `${name(view)} case`,
-    list: wheel.pools[view] || all[view] || [],
+    list: pool ? pool.list : wheel.pools[view] || all[view] || [],
+    pool,
     off: off(view),
     info: info(view),
-    options: order.map((k) => ({ key: k, name: name(k), count: (all[k] || []).length, off: off(k) })),
+    options: order.map((k) => {
+      const c = mode && wheel.pools[k] ? wheelCase(mode, wheel, k) : null;
+      return { key: k, name: name(k), count: (all[k] || []).length, off: off(k), custom: c && c.custom ? c.picked : null };
+    }),
   };
 }
 
@@ -2053,16 +2386,17 @@ function renderTypeOdds(type, note) {
         : "Spin the wheel to pick a type. Its tiers show here.");
     return;
   }
-  const groups = groupByRarity(roulette.pools[type]);
-  $("tr-odds-title").innerHTML = `<span class="type-chip" style="--t:${TYPE_COLORS[type]}">${typeName(type)}</span> case`;
+  const c = wheelCase("type-roulette", roulette, type);
+  const groups = groupByRarity(c.list);
+  $("tr-odds-title").innerHTML = `<span class="type-chip" style="--t:${TYPE_COLORS[type]}">${typeName(type)}</span> case${customPoolBadge(c)}`;
   renderCaseCount($("tr-odds-count"), groupsSize(groups));
-  $("tr-odds-sub").textContent = `${typeName(type)} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
+  setOddsSub($("tr-odds-sub"), `${typeName(type)} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`, c);
   renderOddsTable($("tr-odds-list"), groups);
 }
 
 // Dải thẻ lúc chưa mở hòm: Pokémon của hệ đang chọn, chưa có hệ thì Pokémon bất kỳ trong các gen đã chọn.
 function renderRouletteIdleReel() {
-  const pool = roulette.pools[roulette.selected] || custom.pool;
+  const pool = roulette.pools[roulette.selected] ? wheelCase("type-roulette", roulette, roulette.selected).list : custom.pool;
   renderIdleReel(groupByRarity(pool), $("tr-reel"));
   $("tr-reel").querySelector(".reel-empty").textContent = emptyWheelText("type", "");
 }
@@ -2112,14 +2446,15 @@ async function spinTypeWheel({ quick = false }) {
 // Hành động 2: mở hòm chỉ gồm Pokémon của hệ đang chọn (cùng tỉ lệ độ hiếm và cách hạ bậc như trang Case).
 async function openTypeCase({ quick = false }) {
   const type = roulette.selected;
-  const groups = groupByRarity(roulette.pools[type]);
+  const c = wheelCase("type-roulette", roulette, type);
+  const groups = groupByRarity(c.list);
   const result = rollOnce(groups);
   if (!result) return;
 
   // Ghi ngay vào bộ sưu tập (giống trang Case), kèm chế độ và hệ trong lịch sử.
   const isNew = !state.collection[result.pokemon.id];
   const entry = recordDrop(state.collection, state.history, result);
-  Object.assign(state.history[0], { mode: "type-roulette", detail: type });
+  Object.assign(state.history[0], { mode: "type-roulette", detail: type, ...customPoolTag(c) });
   saveProgress();
 
   const reel = $("tr-reel");
@@ -2150,7 +2485,7 @@ async function openTypeCase({ quick = false }) {
     canAgain: roulette.selected === type,
     extra: `
       <div class="result-note mode-note" style="--t:${TYPE_COLORS[type]}">
-        Type Roulette · <b>${name}</b> case. The odds above are within the ${name} case; ${name} is 1 in ${roulette.types.length} on the wheel.
+        Type Roulette · <b>${name}</b> case. The odds above are within the ${name} case; ${name} is 1 in ${roulette.types.length} on the wheel.${customPoolNote(c)}
       </div>`,
   });
 }
@@ -2166,6 +2501,7 @@ registerCustomMode({
     "Open case opens a case of only that type, with the same tier odds as the Case page. Open it as many times as you like.",
     "Your type stays until you spin the wheel again, even after reloading the page. If a generation change leaves it with no Pokémon, spin again.",
     "Dual-type Pokémon count for both types: Gyarados can drop from Water or Flying.",
+    customPoolRule("type"),
     `Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`,
   ],
   // Nhãn trong lịch sử: "Type Roulette · Fire", gọn: "Type · Fire"
@@ -2186,7 +2522,7 @@ registerCustomMode({
     },
     {
       key: "open",
-      label: () => (roulette.selected ? `Open ${typeName(roulette.selected)} case` : "Open case"),
+      label: () => wheelOpenLabel("type-roulette", roulette, typeName),
       icon: ICON_CASE,
       hint: () => (!roulette.types.length ? emptyWheelText("type", "") : roulette.selected ? "" : "Spin the wheel first."),
       run: openTypeCase,
@@ -2233,10 +2569,17 @@ registerCustomMode({
       </div>`;
   },
 
-  contents: (key) => wheelContents(key, { all: typePools(custom.pool), wheel: roulette, order: TYPE_ORDER, name: typeName }),
+  contents: (key) => wheelContents(key, {
+    all: typePools(custom.pool), wheel: roulette, order: TYPE_ORDER, name: typeName, mode: "type-roulette",
+  }),
 
   // Bảng chọn gen bị khóa trong lúc quay nên ở đây không bao giờ đang quay
   onPoolChanged: refreshRoulette,
+
+  onCustomPoolChanged() {
+    renderTypeOdds(roulette.selected);
+    renderRouletteIdleReel();
+  },
 
   realign() {
     realignReel($("tr-reel"));
@@ -2388,10 +2731,11 @@ function renderBiomeOdds(key, note) {
     return;
   }
   const g = biomeInfo(key);
-  const groups = groupByRarity(biome.pools[key]);
-  $("br-odds-title").innerHTML = `${biomeChip(key)} case`;
+  const c = wheelCase("biome-roulette", biome, key);
+  const groups = groupByRarity(c.list);
+  $("br-odds-title").innerHTML = `${biomeChip(key)} case${customPoolBadge(c)}`;
   renderCaseCount($("br-odds-count"), groupsSize(groups));
-  $("br-odds-sub").textContent = `${g.name} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`;
+  setOddsSub($("br-odds-sub"), `${g.name} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`, c);
   renderOddsTable($("br-odds-list"), groups);
   $("br-tags").hidden = false;
   $("br-tags").innerHTML = biomeTagsLine(key);
@@ -2399,7 +2743,9 @@ function renderBiomeOdds(key, note) {
 
 // Dải thẻ lúc chưa mở hòm: Pokémon của nhóm đang chọn, chưa có nhóm thì Pokémon bất kỳ có trong các nhóm.
 function renderBiomeIdleReel() {
-  const pool = biome.pools[biome.selected] || [...new Set(Object.values(biome.pools).flat())];
+  const pool = biome.pools[biome.selected]
+    ? wheelCase("biome-roulette", biome, biome.selected).list
+    : [...new Set(Object.values(biome.pools).flat())];
   renderIdleReel(groupByRarity(pool), $("br-reel"));
   $("br-reel").querySelector(".reel-empty").textContent = emptyWheelText("biome", "");
 }
@@ -2449,14 +2795,15 @@ async function spinBiomeWheel({ quick = false }) {
 // Hành động 2: mở hòm chỉ gồm Pokémon spawn ở nhóm biome đang chọn (tỉ lệ độ hiếm và hạ bậc như trang Case).
 async function openBiomeCase({ quick = false }) {
   const key = biome.selected;
-  const groups = groupByRarity(biome.pools[key]);
+  const c = wheelCase("biome-roulette", biome, key);
+  const groups = groupByRarity(c.list);
   const result = rollOnce(groups);
   if (!result) return;
 
   // Ghi ngay vào bộ sưu tập (giống trang Case), kèm chế độ và nhóm biome trong lịch sử.
   const isNew = !state.collection[result.pokemon.id];
   const entry = recordDrop(state.collection, state.history, result);
-  Object.assign(state.history[0], { mode: "biome-roulette", detail: key });
+  Object.assign(state.history[0], { mode: "biome-roulette", detail: key, ...customPoolTag(c) });
   saveProgress();
 
   const reel = $("br-reel");
@@ -2487,7 +2834,7 @@ async function openBiomeCase({ quick = false }) {
     canAgain: biome.selected === key,
     extra: `
       <div class="result-note mode-note" style="--t:${g.color}">
-        Biome Roulette · <b>${g.name}</b> case. The odds above are within the ${g.name} case; ${g.name} is 1 in ${biome.types.length} on the wheel.
+        Biome Roulette · <b>${g.name}</b> case. The odds above are within the ${g.name} case; ${g.name} is 1 in ${biome.types.length} on the wheel.${customPoolNote(c)}
       </div>`,
   });
 }
@@ -2504,6 +2851,7 @@ registerCustomMode({
     "Open case opens a case of only Pokémon that spawn there, with the same tier odds as the Case page. Open it as many times as you like.",
     "A Pokémon that spawns in several groups belongs to all of them. Pokémon without Cobbleverse spawn data, and Special forms, are not included.",
     "Your biome stays until you spin again, even after reloading the page. If a generation change leaves it with no Pokémon, spin again.",
+    customPoolRule("biome"),
     `Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`,
   ],
   // Nhãn trong lịch sử: "Biome Roulette · Forest", gọn: "Biome · Forest"
@@ -2524,7 +2872,7 @@ registerCustomMode({
     },
     {
       key: "open",
-      label: () => (biome.selected ? `Open ${biomeInfo(biome.selected).name} case` : "Open case"),
+      label: () => wheelOpenLabel("biome-roulette", biome, (k) => biomeInfo(k).name),
       icon: ICON_CASE,
       hint: () => (!biome.types.length ? emptyWheelText("biome", "") : biome.selected ? "" : "Spin the biome first."),
       run: openBiomeCase,
@@ -2575,11 +2923,16 @@ registerCustomMode({
 
   contents: (key) => wheelContents(key, {
     all: biomePools(custom.pool), wheel: biome, order: BIOME_GROUPS.map((g) => g.key),
-    name: (k) => biomeInfo(k).name, info: biomeTagsLine,
+    name: (k) => biomeInfo(k).name, info: biomeTagsLine, mode: "biome-roulette",
   }),
 
   // Bảng chọn gen bị khóa trong lúc quay nên ở đây không bao giờ đang quay
   onPoolChanged: refreshBiome,
+
+  onCustomPoolChanged() {
+    renderBiomeOdds(biome.selected);
+    renderBiomeIdleReel();
+  },
 
   realign() {
     realignReel($("br-reel"));
@@ -2757,5 +3110,6 @@ if (typeof document !== "undefined") {
     rollRarityKey, resolveRarity, effectiveChances, rollOnce, buildReelItems, simulateRolls,
     recordDrop, genProgress, filterCollection, matchesSearch, sortCollection, dropOdds, oneIn, rarityProgress,
     specialProgress, parseId, TYPE_ORDER, typePools, wheelSliceAt, wheelTarget,
-    BIOME_GROUPS, BIOME_TAG_GROUP, biomeGroupsOf, biomePools, wheelPools, COMMON_TIERS };
+    BIOME_GROUPS, BIOME_TAG_GROUP, biomeGroupsOf, biomePools, wheelPools, COMMON_TIERS,
+    CUSTOM_POOL_MIN, customPoolProblems, canCustomizePool, resolveCustomPool, mergeCustomPool };
 }

@@ -13,6 +13,7 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
   - **Type Roulette**: spin a wheel for a type, then open cases of only that type
   - **Biome Roulette**: spin a wheel for a Cobbleverse biome group, then open cases of Pokémon that spawn there
   - View case contents for the picked type or biome, or preview any other one, with each Pokémon's real odds and whether you own it
+  - Custom pool: in View case contents, pick which Pokémon of your type or biome case can drop (at least 6, with at least one Blue, Purple or Pink). Saved per type / biome and applied whenever the wheel lands on it again
 - Spawn locations for each Pokémon in the Cobbleverse modpack
 - **Special** group: the 8 Kazeran forms from the Cobblemon addon [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions), with their evolution methods. Ranked by the same BST rules, tracked separately in the collection (X/8)
 - Animated odds table, page and popup transitions. Turned off when your system asks for reduced motion, or by opening `index.html?nomotion`

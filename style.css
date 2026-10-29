@@ -1149,6 +1149,85 @@ button.mini:focus-visible {
 .mini.is-unowned .mini-name { color: var(--muted); }
 .mini.is-unowned .mini-own { color: #6b7380; }
 
+/* ===== Custom pool (Type / Biome Roulette) ===== */
+/* Chế độ xem: nút "Edit pool" và lý do đang khóa */
+.pool-edit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.pool-edit-why { font-size: 0.78rem; color: var(--muted); }
+
+/* Chế độ sửa: cột trái (bộ đếm, chọn nhanh, lý do, Save) + bảng tỉ lệ của tập đang tick */
+.pool-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  gap: 14px;
+  padding: 12px;
+  background: var(--bg-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+}
+.pool-editor-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pool-edit-count { margin: 0; font-size: 0.8rem; color: var(--muted); }
+.pool-edit-count strong { font-family: var(--font-mono); font-size: 1.05rem; color: var(--text); font-variant-numeric: tabular-nums; }
+.pool-quick, .pool-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.pool-quick .btn-ghost { padding: 5px 10px; font-size: 0.74rem; }
+.pool-actions { margin-top: auto; }
+.pool-actions .btn-spin { padding: 8px 22px; }
+.pool-actions .btn-spin:disabled { opacity: 0.45; cursor: not-allowed; }
+.pool-problems { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 0.78rem; color: var(--amber); }
+.pool-problems:empty { display: none; }
+.pool-problems li::before { content: "! "; font-weight: 700; }
+.pool-odds .rarity-row { min-height: 30px; }
+
+/* Nút chọn / bỏ cả bậc ở đầu mỗi bậc */
+.tier-pick {
+  margin-left: auto;
+  padding: 2px 8px;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--c);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+}
+.tier-pick:hover { background: color-mix(in srgb, var(--c) 14%, transparent); }
+
+/* Ô tick: cả thẻ bấm được; ô bỏ tick nhạt đi */
+label.mini.is-pickable { cursor: pointer; }
+.mini-check {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+label.mini.is-pickable:not(.is-unpicked) { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+label.mini.is-pickable:focus-within { outline: 2px solid var(--accent-hover); outline-offset: 1px; }
+.mini.is-unpicked { border-style: dashed; }
+.mini.is-unpicked .mini-img { filter: grayscale(1); opacity: 0.3; }
+.mini.is-unpicked .mini-name, .mini.is-unpicked .mini-odds { color: #6b7380; }
+
+/* Panel tỉ lệ ở trang chính: nhãn "Custom pool · 12/83" và thông báo tập không hợp lệ */
+.pool-badge {
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  vertical-align: middle;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 2px;
+}
+.pool-warn { display: block; margin-top: 4px; color: var(--amber); }
+
+/* Dấu custom pool trong nhãn Recent drops */
+.src-mark { margin-left: 3px; color: var(--accent); }
+
 @media (max-width: 480px) {
   .modal { width: calc(100% - 16px); max-width: calc(100% - 16px); max-height: 92vh; }
   .modal-inner { max-height: 92vh; padding: 14px; gap: 12px; }
@@ -1156,6 +1235,10 @@ button.mini:focus-visible {
   .contents-pick.filters { grid-template-columns: 1fr; } /* ô chọn nhóm chiếm cả hàng */
   .contents-pick select { min-width: 0; }
   .mini-img { width: 60px; height: 60px; }
+  .pool-editor { grid-template-columns: 1fr; padding: 10px; gap: 10px; }
+  /* Đang sửa custom pool: cả popup cuộn (khung sửa cao, để lại đủ chỗ cho danh sách Pokémon) */
+  #contents-modal.is-editing-pool .modal-inner { overflow-y: auto; }
+  #contents-modal.is-editing-pool .modal-body { flex: none; overflow: visible; }
 }
 
 .view[hidden] { display: none; }
