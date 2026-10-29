@@ -825,13 +825,19 @@ function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
   // Dải dừng khi trình duyệt báo transitionend. Phòng khi không báo (vd. tab bị ẩn) có đồng hồ dự phòng ms + 500,
   // tính từ lúc dải thực sự bắt đầu chạy (transitionstart): máy chậm có thể bắt đầu trễ, tính từ lúc bấm thì popup
   // hiện khi dải còn đang trượt. Không nhận được cả transitionstart thì vẫn kết thúc, chậm hơn REEL_START_WAIT_MS.
+  // Kết thúc nhờ đồng hồ dự phòng (snap) thì dải nhảy ngay tới vị trí dừng ở thẻ thắng (bỏ phần chuyển động còn lại),
+  // để popup không bao giờ hiện khi dải chưa chạy / chưa dừng. Trường hợp bình thường (transitionend) không đổi gì.
   return new Promise((resolve) => {
     let finished = false;
     let fallback = null;
-    const finish = () => {
+    const finish = (snap = false) => {
       if (finished) return;
       finished = true;
       clearTimeout(fallback);
+      if (snap) {
+        strip.style.transition = "none"; // huỷ chuyển động đang chờ / đang chạy, giá trị nhảy tới đích
+        strip.style.transform = `translateX(${target}px)`;
+      }
       stopTicks();
       reel.classList.remove("is-spinning");
       strip.removeEventListener("transitionstart", onStart);
@@ -841,12 +847,12 @@ function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
     const onStart = (e) => {
       if (e.target !== strip || e.propertyName !== "transform") return;
       clearTimeout(fallback);
-      fallback = setTimeout(finish, ms + 500);
+      fallback = setTimeout(() => finish(true), ms + 500);
     };
     const onEnd = (e) => { if (e.target === strip) finish(); };
     strip.addEventListener("transitionstart", onStart);
     strip.addEventListener("transitionend", onEnd);
-    fallback = setTimeout(finish, ms + 500 + REEL_START_WAIT_MS);
+    fallback = setTimeout(() => finish(true), ms + 500 + REEL_START_WAIT_MS);
   });
 }
 

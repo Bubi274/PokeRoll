@@ -1,8 +1,10 @@
-// Đồng hồ dự phòng của dải quay (animateReel) cho cả trang Case, Type Roulette và Biome Roulette:
+// Đồng hồ dự phòng của dải quay (animateReel) cho trang Case, Type Roulette, Biome Roulette và Letter Roulette:
 //   A. Dải bắt đầu chạy trễ (máy chậm; ở đây giả lập bằng CSS transition-delay 1,5 s):
 //      popup chỉ hiện khi dải đã dừng đúng ở thẻ thắng, không hiện lúc dải còn trượt.
 //   B. Trình duyệt không báo gì (CSS tắt transition → không có transitionstart / transitionend):
 //      popup vẫn hiện nhờ đồng hồ dự phòng, dải ở đúng thẻ thắng.
+//   C. Dải bắt đầu trễ hơn cả đồng hồ dự phòng (như máy CI chậm; transition-delay ms + 3 s): đồng hồ dự phòng mở popup
+//      lúc dải còn chưa chạy → dải nhảy ngay tới thẻ thắng, không còn chuyển động nào, cả khi đã qua lúc lẽ ra bắt đầu.
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const TMP = path.join(require("os").tmpdir(), "pokeroll-tests");
@@ -17,6 +19,7 @@ const REELS = [
   { label: "Case", reel: "reel", ms: 6000, view: "case", spin: `document.getElementById("btn-spin").click()` },
   { label: "Type Roulette", reel: "tr-reel", ms: 4000, view: "custom", mode: "type-roulette", spin: `document.querySelector('.action-main[data-action="open"]').click()` },
   { label: "Biome Roulette", reel: "br-reel", ms: 4000, view: "custom", mode: "biome-roulette", spin: `document.querySelector('.action-main[data-action="open"]').click()` },
+  { label: "Letter Roulette", reel: "lr-reel", ms: 4000, view: "custom", mode: "letter-roulette", spin: `document.querySelector('.action-main[data-action="open"]').click()` },
 ];
 
 process.on("unhandledRejection", (e) => { console.log("FAIL  test crashed: " + e); app.exit(1); });
@@ -30,11 +33,13 @@ app.whenReady().then(async () => {
   });
   const js = (code) => win.webContents.executeJavaScript(code);
   await win.loadFile(PAGE, { query: { nomotion: "1" } });
-  await js(`localStorage.clear(); localStorage.setItem("pokeroll.custom.typeRoulette.type", '"fire"'); localStorage.setItem("pokeroll.custom.biomeRoulette.biome", '"forest"')`);
+  await js(`localStorage.clear(); localStorage.setItem("pokeroll.custom.typeRoulette.type", '"fire"'); localStorage.setItem("pokeroll.custom.biomeRoulette.biome", '"forest"');
+    localStorage.setItem("pokeroll.custom.letterRoulette.letter", '"P"')`);
   await win.reload(); await sleep(500);
 
-  // Quay một lần với CSS chèn thêm; trả về thời điểm popup mở và trạng thái dải lúc đó (đo ngay trong trang)
-  const run = (R, css) => js(`(async () => {
+  // Quay một lần với CSS chèn thêm; trả về thời điểm popup mở và trạng thái dải lúc đó (đo ngay trong trang).
+  // watch (ms): sau khi popup mở, đợi thêm rồi đo lại — dải phải đứng yên đúng chỗ (moved: lệch bao nhiêu px).
+  const run = (R, css, watch = 0) => js(`(async () => {
     const style = document.createElement("style"); style.textContent = ${JSON.stringify(css)}; document.head.appendChild(style);
     ${R.mode ? `document.querySelector('.tab[data-view="custom"]').click(); document.querySelector('.mode-btn[data-mode="${R.mode}"]').click();` : `document.querySelector('.tab[data-view="case"]').click();`}
     await new Promise((r) => setTimeout(r, 300));
@@ -46,7 +51,13 @@ app.whenReady().then(async () => {
     const shown = new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41, target = parseFloat(strip.style.transform.slice(11));
     const r = reel.getBoundingClientRect(), mid = r.left + r.width / 2, c = win ? win.getBoundingClientRect() : null;
     const res = { open: modal.open, at: Math.round(at), settled: Math.abs(shown - target) < 0.5, onWinner: !!c && c.left <= mid && mid < c.right,
-      matches: !!win && win.querySelector(".card-name").textContent === document.getElementById("result-name").textContent };
+      matches: !!win && win.querySelector(".card-name").textContent === document.getElementById("result-name").textContent,
+      anims: strip.getAnimations().length };
+    if (${watch}) {
+      await new Promise((r) => setTimeout(r, ${watch}));
+      const later = new DOMMatrixReadOnly(getComputedStyle(strip).transform).m41, c2 = win.getBoundingClientRect();
+      Object.assign(res, { moved: Math.round(Math.abs(later - shown)), stillOnWinner: c2.left <= mid && mid < c2.right, animsLater: strip.getAnimations().length });
+    }
     modal.close(); style.remove();
     await new Promise((r) => setTimeout(r, 200));
     return res; })()`);
@@ -62,6 +73,14 @@ app.whenReady().then(async () => {
     check(`${R.label}, browser reports nothing: popup still opens (fallback timer), reel on the winner`, r.open && r.settled && r.onWinner && r.matches,
       `popup after ${r.at} ms (fallback ≈ ${R.ms + 2500} ms)`);
     check(`${R.label}, browser reports nothing: fallback fires ≈ ms + 500 + 2000`, r.at >= R.ms + 2400 && r.at < R.ms + 4000, `${r.at} ms`);
+    // C. Bắt đầu trễ hơn đồng hồ dự phòng: popup mở lúc dải chưa chạy → dải nhảy ngay tới thẻ thắng.
+    // Đợi tới quá lúc dải lẽ ra bắt đầu (delay) thêm 1 s rồi đo lại: không được chạy tiếp phía sau popup.
+    const late = R.ms + 3000;
+    r = await run(R, `#${R.reel} .reel-strip { transition-delay: ${late}ms !important; }`, late - (R.ms + 2500) + 1000);
+    check(`${R.label}, reel starts after the fallback: popup opens with the marker already on the winner, reel stopped`,
+      r.open && r.settled && r.onWinner && r.matches && r.anims === 0, `popup after ${r.at} ms (fallback ≈ ${R.ms + 2500} ms), settled=${r.settled}, onWinner=${r.onWinner}, animations=${r.anims}`);
+    check(`${R.label}, reel starts after the fallback: reel does not move on behind the popup`, r.moved === 0 && r.stillOnWinner && r.animsLater === 0,
+      `moved ${r.moved}px, still on winner=${r.stillOnWinner}, animations=${r.animsLater}`);
   }
 
   check("No console errors", errors.length === 0, errors.slice(0, 3).join(" | "));
