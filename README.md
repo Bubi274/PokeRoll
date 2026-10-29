@@ -12,6 +12,7 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
 - **Custom** tab, with its own generation selection:
   - **Type Roulette**: spin a wheel for a type, then open cases of only that type
   - **Biome Roulette**: spin a wheel for a Cobbleverse biome group, then open cases of Pokémon that spawn there
+  - **Letter Roulette**: spin a wheel for a letter from A to Z, then open cases of Pokémon whose name starts with it. Always uses every generation, Special forms included (under their original name)
   - View case contents for the picked type or biome, or preview any other one, with each Pokémon's real odds and whether you own it
   - Custom pool: in View case contents, pick which Pokémon of your type or biome case can drop (at least 6, with at least one Blue, Purple or Pink). Saved per type / biome and applied whenever the wheel lands on it again
 - Spawn locations for each Pokémon in the Cobbleverse modpack

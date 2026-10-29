@@ -1523,6 +1523,8 @@ async function spin({ quick = false } = {}) {
 //   defaultAction() mã nút mà phím Space bấm (mặc định: nút đầu tiên)            — tuỳ chọn
 //   status()        dòng nhắc dưới các nút (mặc định: lý do khóa của nút Space)   — tuỳ chọn
 //   onShow(), onPoolChanged() (custom.pool đã cập nhật), realign() (đổi cỡ cửa sổ) — tuỳ chọn
+//   allGens         true: chế độ luôn dùng mọi Pokémon, không theo bảng chọn gen (bảng bị khóa khi ở chế độ này;
+//                   onPoolChanged chỉ chạy một lần lúc dựng trang, không chạy khi đổi gen)                  — tuỳ chọn
 //   contents(key)   nội dung hòm cho nút "View case contents" (có khai báo thì khung tự hiện nút) — tuỳ chọn
 //                   key: nhóm muốn xem; bỏ trống = nhóm đang chọn (chưa chọn thì nhóm đầu tiên). Trả về
 //                   { key, current, title, list, off, info, options }:
@@ -1611,6 +1613,7 @@ function selectCustomMode(key, { save = true } = {}) {
   $("mode-rules-name").textContent = mode.name;
   $("mode-rule-list").innerHTML = (mode.rules || []).map((r) => `<li>${r}</li>`).join("");
   renderCustomActions();
+  renderInPlayCount();
   if (state.view === "custom") showCustomMode();
 }
 
@@ -1674,13 +1677,25 @@ function renderCustomControls(label) {
     return keys.length ? `${keys.map((k) => `<kbd>${k}</kbd>`).join(" ")} ${escHtml(lowerFirst(a.label()))}` : "";
   }).filter(Boolean).join(" · ");
 
+  const allGens = Boolean(mode && mode.allGens);
   $("custom-contents").hidden = !(mode && mode.contents);
-  $("custom-contents").disabled = state.spinning || custom.pool.length === 0;
+  $("custom-contents").disabled = state.spinning || (!allGens && custom.pool.length === 0);
   for (const b of $("mode-bar").querySelectorAll(".mode-btn")) b.disabled = state.spinning;
-  // Đang quay: khóa bảng chọn gen của trang Custom, quay xong mới đổi được
-  for (const input of $("custom-gen-grid").querySelectorAll("input")) input.disabled = state.spinning;
-  $("custom-all").disabled = state.spinning;
-  $("custom-none").disabled = state.spinning;
+  // Đang quay: khóa bảng chọn gen của trang Custom, quay xong mới đổi được.
+  // Chế độ allGens: khóa luôn (mờ đi, kèm dòng giải thích); lựa chọn gen đã lưu giữ nguyên.
+  const locked = state.spinning || allGens;
+  for (const input of $("custom-gen-grid").querySelectorAll("input")) input.disabled = locked;
+  $("custom-all").disabled = locked;
+  $("custom-none").disabled = locked;
+  $("custom-gen-panel").classList.toggle("is-locked", allGens);
+  $("custom-gen-lock").hidden = !allGens;
+  $("custom-gen-lock").textContent = allGens ? `${mode.name} always uses every generation.` : "";
+}
+
+// Ô "N Pokémon in play": số Pokémon chế độ đang chọn dùng (chế độ allGens: mọi Pokémon).
+function renderInPlayCount() {
+  const mode = custom.active;
+  countTo($("custom-pool-count"), mode && mode.allGens ? state.pokemon.length : custom.pool.length, fmtCount);
 }
 
 // Bắt đầu / kết thúc một hành động của chế độ Custom (khóa cả nút quay của trang Case).
@@ -1940,8 +1955,9 @@ function onCustomGensChanged() {
 
 function updateCustomPool() {
   custom.pool = filterByGens(state.pokemon, custom.gens);
-  countTo($("custom-pool-count"), custom.pool.length, fmtCount);
-  for (const m of CUSTOM_MODES) if (m.onPoolChanged) m.onPoolChanged();
+  renderInPlayCount();
+  // Chế độ allGens không theo gen: chỉ vẽ một lần lúc dựng trang (initCustom), đổi gen không đụng tới.
+  for (const m of CUSTOM_MODES) if (m.onPoolChanged && !m.allGens) m.onPoolChanged();
   renderCustomControls();
 }
 
@@ -1964,6 +1980,7 @@ function initCustom() {
   for (const m of CUSTOM_MODES) mountCustomMode(m);
   renderModeBar();
   updateCustomPool();
+  for (const m of CUSTOM_MODES) if (m.onPoolChanged && m.allGens) m.onPoolChanged();
   const saved = loadJson(STORAGE_KEY_CUSTOM_MODE, null, (v) => typeof v === "string");
   const first = CUSTOM_MODES.find((m) => m.key === saved) || CUSTOM_MODES[0];
   if (first) selectCustomMode(first.key, { save: false });
@@ -2238,7 +2255,8 @@ function setWheelDisc(disc, types, svg) {
 
 // Bánh xe SVG: một ô cho mỗi mục (keys), tên chạy dọc bán kính.
 // color(key) / label(key): màu và chữ của ô — mặc định theo hệ (Type Roulette).
-function wheelSvg(types, { color = (t) => TYPE_COLORS[t] || "#777", label = typeName } = {}) {
+// upright (tuỳ chọn): nhãn một ký tự (Letter Roulette) — đứng thẳng gần vành, đỉnh chữ hướng ra ngoài.
+function wheelSvg(types, { color = (t) => TYPE_COLORS[t] || "#777", label = typeName, upright = false } = {}) {
   const n = types.length, a = 360 / n, R = 97, r0 = 32;
   const pt = (deg, rad) => {
     const t = (deg - 90) * Math.PI / 180;
@@ -2254,7 +2272,7 @@ function wheelSvg(types, { color = (t) => TYPE_COLORS[t] || "#777", label = type
     return `
       <g class="wheel-slice" data-type="${t}" data-index="${i}">
         <path d="${d}" fill="${fill}" fill-rule="evenodd"/>
-        <text transform="rotate(${mid - 90}) translate(${(R + r0) / 2} 0)" fill="${inkOn(fill)}">${label(t)}</text>
+        <text transform="${upright ? `rotate(${mid}) translate(0 ${-(R - 16)})` : `rotate(${mid - 90}) translate(${(R + r0) / 2} 0)`}" fill="${inkOn(fill)}">${label(t)}</text>
       </g>`;
   }).join("");
   return `
@@ -2387,6 +2405,8 @@ function animateWheel(target, w = TYPE_WHEEL) {
 //   idlePool()      dải thẻ lúc chưa có nhóm: lấy Pokémon từ đây
 //   info(k)         dòng thêm (HTML) dưới panel tỉ lệ và trong View case contents        — tuỳ chọn
 //   blocked()       lý do cả chế độ không chạy được ("" = chạy được)                     — tuỳ chọn
+//   allGens         true: luôn dùng mọi Pokémon (groups/idlePool không theo gen); bảng gen bị khóa — tuỳ chọn
+//   upright, wheelClass  nhãn ô một ký tự đứng thẳng (wheelSvg), class thêm cho khung bánh xe  — tuỳ chọn
 //   spin            nút quay bánh xe: { key, label, hotkey }
 //   text            câu riêng: { first, again, pick, spinning, stopped }
 //                     first "Spin the wheel first."      again    "Spin the wheel again." (sau lostGroupMessage)
@@ -2546,7 +2566,7 @@ function mountWheelMode(w, stage) {
   stage.innerHTML = `
       <div class="tr-layout">
         <div class="tr-wheel-col">
-          <div class="wheel" id="${w.wheel}">
+          <div class="wheel${w.wheelClass ? ` ${w.wheelClass}` : ""}" id="${w.wheel}">
             <div class="wheel-disc" id="${w.disc}"></div>
             <div class="wheel-hub"><span class="wheel-hub-type" id="${w.hub}"></span></div>
             <div class="wheel-pointer" aria-hidden="true"></div>
@@ -2610,6 +2630,7 @@ function wheelModeParts(w) {
     contents: (key) => wheelContents(key, {
       all: w.groups(), wheel: st, order: w.order, name: w.label, info: w.info, mode: w.mode,
     }),
+    allGens: Boolean(w.allGens),
     // Bảng chọn gen bị khóa trong lúc quay nên ở đây không bao giờ đang quay
     onPoolChanged: () => refreshWheelMode(w),
     onCustomPoolChanged() {
@@ -2810,6 +2831,115 @@ registerCustomMode({
 // Gọi thẳng từ test / console: vẽ lại Biome Roulette theo các gen đang chọn.
 const refreshBiome = () => refreshWheelMode(BIOME_WHEEL);
 
+// =====================================================================
+// CHẾ ĐỘ CUSTOM: Letter Roulette (vòng quay A–Z, luôn dùng mọi gen)
+// =====================================================================
+
+const LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+
+// Chữ cái đầu của tên, bỏ dấu và ký tự đặc biệt: Flabébé → F, Mr. Mime → M, Nidoran♀ → N, Type: Null → T.
+// Pokémon Special theo tên gốc (Kazeran Vaporeon → V). Không ra được chữ A–Z thì null.
+function letterOf(p) {
+  const letters = foldText(p.baseName || p.name).replace(/[^a-z]/g, "");
+  return letters ? letters[0].toUpperCase() : null;
+}
+
+// Pokémon của từng chữ: { A: [...], ... } — chỉ gồm chữ có Pokémon, theo thứ tự A–Z.
+function letterPools(pool) {
+  const pools = {};
+  for (const p of pool) {
+    const l = letterOf(p);
+    if (l) (pools[l] = pools[l] || []).push(p);
+  }
+  return Object.fromEntries(LETTERS.filter((l) => pools[l]).map((l) => [l, pools[l]]));
+}
+
+// Mỗi chữ một màu, chuyển dần theo vòng màu A → Z (hex để inkOn chọn được chữ sáng / tối).
+function letterColor(l) {
+  const h = (LETTERS.indexOf(l) * 360) / LETTERS.length, s = 0.62, v = 0.5;
+  const f = (n) => {
+    const k = (n + h / 30) % 12;
+    const c = v - s * Math.min(v, 1 - v) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(c * 255).toString(16).padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+const STORAGE_KEY_LETTER = "pokeroll.custom.letterRoulette.letter"; // chữ đang chọn
+
+const ICON_LETTER = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20 10 4h1l6 16M6.5 14h8"/><path d="M17 4h3M18.5 4v6"/></svg>`;
+
+// Trạng thái riêng của Letter Roulette (tên trường dùng chung với hàm bánh xe).
+const letter = {
+  types: [],        // các chữ đang có trên bánh xe (đúng thứ tự các ô)
+  pools: {},        // Pokémon của từng chữ (mọi gen, gồm cả Special)
+  rotation: 0,      // góc xoay hiện tại của bánh xe
+  selected: null,   // chữ đang chọn; null = chưa quay
+  lost: null,
+  lostRare: false,
+  all: null,        // letterPools của mọi Pokémon (không đổi theo gen nên chỉ tính một lần)
+};
+
+function letterChip(l) {
+  const c = letterColor(l);
+  return `<span class="letter-chip" style="--t:${c};color:${inkOn(c)}">${l}</span>`;
+}
+
+// Bánh xe của Letter Roulette (xem phần "Khung chung cho các chế độ bánh xe").
+const LETTER_WHEEL = {
+  mode: "letter-roulette",
+  title: "Letter Roulette",
+  prefix: "lr",
+  wheel: "lr-wheel",
+  disc: "lr-disc",
+  hub: "lr-hub",
+  state: letter,
+  storageKey: STORAGE_KEY_LETTER,
+  valid: (v) => LETTERS.includes(v),
+  noun: "letter",
+  color: letterColor,
+  label: (l) => l,
+  chip: letterChip,
+  groups: () => letter.all || (letter.all = letterPools(state.pokemon)), // mọi Pokémon: dựng một lần
+  order: LETTERS,
+  idlePool: () => state.pokemon,
+  allGens: true,
+  upright: true,
+  wheelClass: "is-letters",
+  spin: { key: "letter", label: "Spin letter", hotkey: "L" },
+  text: {
+    first: "Spin the letter first.",
+    again: "Spin the letter again.",
+    pick: "Spin the wheel to pick a letter. Its tiers show here.",
+    spinning: "Spinning the letter wheel…",
+    stopped: "Letter wheel",
+  },
+};
+
+registerCustomMode({
+  key: "letter-roulette",
+  name: "Letter Roulette",
+  desc: "Spin for a letter from A to Z, then open cases of Pokémon whose name starts with it",
+  icon: ICON_LETTER,
+  rules: [
+    "Spin letter picks a letter from A to Z. Every letter is on the wheel, each with the same chance: 1 in 26.",
+    "Letter Roulette always uses every generation, Special forms included. The Select generations panel is locked here; your choice is kept for the other modes.",
+    "Open case opens a case of only Pokémon whose name starts with that letter, with the same tier odds as the Case page. Open it as many times as you like.",
+    "Names count by their first letter, ignoring accents and symbols: Flabébé is F, Mr. Mime is M, Nidoran♀ and Nidoran♂ are N, Type: Null is T, Ho-Oh is H.",
+    "Special forms count under their original name: Kazeran Vaporeon is V, next to Vaporeon.",
+    "Your letter stays until you spin again, even after reloading the page.",
+    customPoolRule("letter"),
+    `Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`,
+  ],
+  // Nhãn trong lịch sử: "Letter Roulette · A", gọn: "Letter · A"
+  label(detail, short) {
+    const name = LETTERS.includes(detail) ? detail : "?";
+    return short ? `Letter · ${name}` : `Letter Roulette · ${name}`;
+  },
+  tagColor: (detail) => (LETTERS.includes(detail) ? letterColor(detail) : ""),
+  ...wheelModeParts(LETTER_WHEEL),
+});
+
 // Bản desktop (preload.js đưa vào window.pokeroll): số phiên bản ở footer, và nút "Check for updates" trong bản
 // đã đóng gói. Bản web không có window.pokeroll nên footer giữ như cũ.
 function renderAppVersion() {
@@ -2982,5 +3112,6 @@ if (typeof document !== "undefined") {
     recordDrop, genProgress, filterCollection, matchesSearch, sortCollection, dropOdds, oneIn, rarityProgress,
     specialProgress, parseId, TYPE_ORDER, typePools, wheelSliceAt, wheelTarget,
     BIOME_GROUPS, BIOME_TAG_GROUP, biomeGroupsOf, biomePools, wheelPools, COMMON_TIERS,
-    CUSTOM_POOL_MIN, customPoolProblems, canCustomizePool, resolveCustomPool, mergeCustomPool };
+    CUSTOM_POOL_MIN, customPoolProblems, canCustomizePool, resolveCustomPool, mergeCustomPool,
+    LETTERS, letterOf, letterPools, letterColor };
 }

@@ -187,17 +187,19 @@
     </div>
 
     <div class="case-setup">
-      <section class="panel panel-gens" aria-labelledby="custom-gen-title">
+      <section class="panel panel-gens" id="custom-gen-panel" aria-labelledby="custom-gen-title">
         <div class="panel-head">
           <div class="panel-title">
             <h2 id="custom-gen-title">Select generations</h2>
-            <p class="panel-sub">Only Pokémon from these generations appear in Custom modes. Separate from the Case page.</p>
+            <p class="panel-sub">Only Pokémon from these generations appear in Custom modes (Letter Roulette always uses all of them). Separate from the Case page.</p>
           </div>
           <div class="btn-group">
             <button type="button" class="btn btn-ghost" id="custom-all">All</button>
             <button type="button" class="btn btn-ghost" id="custom-none">None</button>
           </div>
         </div>
+        <!-- Chế độ không theo gen (Letter Roulette): bảng bị khóa, dòng này giải thích -->
+        <p class="gen-lock" id="custom-gen-lock" hidden></p>
         <div class="gen-grid" id="custom-gen-grid"></div>
       </section>
 

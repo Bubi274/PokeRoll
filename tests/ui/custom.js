@@ -43,7 +43,7 @@ app.whenReady().then(async () => {
   check("Custom tab shows only the Custom page", vis === "001" && await js(`document.querySelector('.tab[data-view="custom"]').getAttribute("aria-selected") === "true"`), vis);
 
   // 2. Thanh chọn chế độ + luật
-  check("Mode bar lists Type Roulette (selected) + Biome Roulette", await js(`(() => { const b = document.querySelectorAll(".mode-btn"); return b.length === 2 && b[0].dataset.mode === "type-roulette" && b[0].getAttribute("aria-selected") === "true" && b[1].dataset.mode === "biome-roulette" && b[1].getAttribute("aria-selected") === "false"; })()`));
+  check("Mode bar lists Type Roulette (selected) + Biome Roulette + Letter Roulette", await js(`(() => { const b = document.querySelectorAll(".mode-btn"); return b.length === 3 && b[0].dataset.mode === "type-roulette" && b[0].getAttribute("aria-selected") === "true" && b[1].dataset.mode === "biome-roulette" && b[1].getAttribute("aria-selected") === "false" && b[2].dataset.mode === "letter-roulette" && b[2].getAttribute("aria-selected") === "false"; })()`));
   check("How it works shows the mode's 7 rules", (await js(`document.querySelectorAll("#mode-rule-list li").length`)) === 7 && (await $t("mode-rules-name")) === "Type Roulette");
   check("Type Roulette actions rendered: Spin wheel + Open case", (await js(`[...document.querySelectorAll("#custom-actions .action-main")].map(b => b.dataset.action + ":" + b.textContent.trim()).join()`)) === "wheel:Spin wheel,open:Open case");
 
@@ -78,7 +78,7 @@ app.whenReady().then(async () => {
     },
   })`);
   await sleep(100);
-  check("Registered mode appears in the mode bar", (await js(`document.querySelectorAll(".mode-btn").length`)) === 3);
+  check("Registered mode appears in the mode bar", (await js(`document.querySelectorAll(".mode-btn").length`)) === 4);
   await js(`document.querySelector('.mode-btn[data-mode="test-mode"]').click()`); await sleep(100);
   check("Selecting it: stage, rules and saved mode switch",
     await js(`!document.getElementById("mode-test-mode").hidden && document.getElementById("mode-type-roulette").hidden
