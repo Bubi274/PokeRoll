@@ -36,7 +36,7 @@ After that the app updates itself. A few seconds after it starts, it checks for 
 
 **Desktop app (Electron)** — requires the LTS version of [Node.js](https://nodejs.org):
 
-```
+```bash
 npm install
 npm start              # run in development (no update checks)
 npm run dist           # build the Windows installer → dist/
@@ -52,7 +52,7 @@ To publish a new version:
 1. Push your changes to `main` and wait for CI to pass on that commit ([CI runs](https://github.com/Bubi274/PokeRoll/actions/workflows/ci.yml)).
 2. Run one of:
 
-```
+```bash
 npm run release -- patch    # 1.1.0 → 1.1.1  (fixes)
 npm run release -- minor    # 1.1.0 → 1.2.0  (new features)
 npm run release -- major    # 1.1.0 → 2.0.0
@@ -66,7 +66,7 @@ It then bumps the version in `package.json`, commits, tags `vX.Y.Z` and pushes. 
 
 Requires `npm install` (the UI tests run the app in a hidden Electron window).
 
-```
+```bash
 npm test                  # run every test suite
 npm test -- roulette      # only suites whose name contains "roulette"
 npm test -- -v            # print every check, not just failures
@@ -76,7 +76,7 @@ npm test -- -v            # print every check, not just failures
 
 ## Updating data
 
-```
+```bash
 node scripts/build-data.js     # data.js — Pokémon info from PokeAPI
 node scripts/build-spawns.js   # spawns.js — spawn locations from the Cobbleverse Wiki
 node scripts/build-images.js   # images/ — Pokémon images bundled with the app (works offline)
@@ -93,7 +93,7 @@ node scripts/build-special.js  # special.js + images/special/ — Special group,
 
 ## Credits
 
-Kazeran Eeveelutions by Kazerio (https://modrinth.com/datapack/kazeran-eeveelutions), licensed CC-BY-NC-4.0.
+Kazeran Eeveelutions by Kazerio (<https://modrinth.com/datapack/kazeran-eeveelutions>), licensed CC-BY-NC-4.0.
 
 The Kazeran forms (designs, names and images) belong to their original author, Kazerio. They are included here for non-commercial use only, under the terms of the [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/) license.
 
