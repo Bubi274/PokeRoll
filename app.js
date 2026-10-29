@@ -2279,16 +2279,33 @@ const roulette = {
   lostRare: false,  // true nếu hệ đó bị bỏ vì chỉ còn Pokémon hiếm (Red/Gold)
 };
 
-// Các hàm bánh xe bên dưới nhận w = bánh xe nào: id các phần tử (khung, phần quay, tâm), trạng thái
-// (state.types = các ô, state.rotation = góc xoay) và cách tô màu / ghi tên ô.
-// Mặc định là bánh xe của Type Roulette.
+// Bánh xe của Type Roulette (xem phần "Khung chung cho các chế độ bánh xe" bên dưới).
+// Các hàm bánh xe nhận w = bánh xe nào; bỏ trống = bánh xe này.
 const TYPE_WHEEL = {
+  mode: "type-roulette",
+  title: "Type Roulette",
+  prefix: "tr",
   wheel: "tr-wheel",
   disc: "tr-disc",
   hub: "tr-hub",
   state: roulette,
+  storageKey: STORAGE_KEY_ROULETTE_TYPE,
+  valid: (v) => TYPE_ORDER.includes(v),
+  noun: "type",
   color: (t) => TYPE_COLORS[t] || "#777",
   label: typeName,
+  chip: (t) => `<span class="type-chip" style="--t:${TYPE_COLORS[t]}">${typeName(t)}</span>`,
+  groups: () => typePools(custom.pool),
+  order: TYPE_ORDER,
+  idlePool: () => custom.pool,
+  spin: { key: "wheel", label: "Spin wheel", hotkey: "W" },
+  text: {
+    first: "Spin the wheel first.",
+    again: "Spin the wheel again.",
+    pick: "Spin the wheel to pick a type. Its tiers show here.",
+    spinning: "Spinning the wheel…",
+    stopped: "Wheel",
+  },
 };
 
 // Đặt ngay góc xoay của bánh xe, không có hiệu ứng.
@@ -2297,24 +2314,6 @@ function setWheelRotation(deg, w = TYPE_WHEEL) {
   disc.style.transition = "none";
   disc.style.transform = `rotate(${deg}deg)`;
   w.state.rotation = deg;
-}
-
-// Vẽ lại bánh xe theo các hệ hiện có; đang có hệ thì kim chỉ vào giữa ô của hệ đó.
-function renderWheel() {
-  setWheelRotation(roulette.rotation % 360);
-  setWheelDisc($("tr-disc"), roulette.types, roulette.types.length ? wheelSvg(roulette.types) : "");
-  $("tr-wheel").classList.toggle("is-empty", roulette.types.length === 0);
-  $("tr-wheel").classList.remove("has-winner");
-  $("tr-hub").textContent = roulette.types.length ? "?" : "";
-  $("tr-hub").style.removeProperty("--t");
-  const n = roulette.types.length;
-  $("tr-wheel-caption").textContent = n
-    ? `${n} type${n > 1 ? "s" : ""} on the wheel · each 1 in ${n}`
-    : custom.pool.length ? "No types on the wheel" : "No types: select at least one generation";
-  if (roulette.pools[roulette.selected]) {
-    setWheelRotation(wheelTarget(0, roulette.types.indexOf(roulette.selected), n, 0, 0));
-    markWheelWinner(roulette.selected);
-  }
 }
 
 // Làm sáng ô trúng, các ô khác mờ đi; tên ô hiện ở giữa bánh xe.
@@ -2372,92 +2371,142 @@ function animateWheel(target, w = TYPE_WHEEL) {
   });
 }
 
-// Panel tỉ lệ: có hệ thì hiện số Pokémon và tỉ lệ thật mỗi bậc của hệ đó, chưa có thì nhắc quay bánh xe.
-function renderTypeOdds(type, note) {
-  const n = roulette.types.length;
-  if (!type) {
-    $("tr-odds-title").textContent = "Type case";
-    $("tr-odds-count").innerHTML = "";
-    $("tr-odds-list").innerHTML = "";
-    $("tr-odds-sub").textContent = note || (!n
-      ? emptyWheelText("type", "below")
-      : roulette.lost
-        ? lostGroupMessage(typeName(roulette.lost), roulette.lostRare, "Spin the wheel again.")
-        : "Spin the wheel to pick a type. Its tiers show here.");
+// ----- Khung chung cho các chế độ bánh xe (Type Roulette, Biome Roulette…) -----
+// Mỗi chế độ bánh xe là một mô tả w; mọi hàm bên dưới chỉ đọc mô tả đó, nên thêm chế độ mới không phải viết lại.
+//   mode            mã chế độ (như registerCustomMode, dùng cho custom pool và lịch sử)
+//   title           tên chế độ trong popup kết quả, vd. "Type Roulette"
+//   prefix          đầu id các phần tử của chế độ, vd. "tr" → tr-wheel, tr-reel, tr-odds-title…
+//   wheel, disc, hub id khung bánh xe, phần quay, tâm (= prefix + "-wheel" / "-disc" / "-hub")
+//   state           trạng thái: { types, pools, rotation, selected, lost, lostRare }
+//   storageKey      khóa localStorage của nhóm đang chọn; valid(key): nhóm đọc lại được không
+//   noun            tên một nhóm, vd. "type" (→ "Type case", "18 types on the wheel"…)
+//   color(k), label(k)   màu và tên của nhóm (ô bánh xe, tâm, popup kết quả)
+//   chip(k)         HTML tên nhóm trong tiêu đề panel tỉ lệ
+//   groups()        Pokémon của từng nhóm trong các gen đang chọn (trước khi lọc bánh xe)
+//   order           mọi nhóm theo thứ tự ô (ô chọn trong View case contents)
+//   idlePool()      dải thẻ lúc chưa có nhóm: lấy Pokémon từ đây
+//   info(k)         dòng thêm (HTML) dưới panel tỉ lệ và trong View case contents        — tuỳ chọn
+//   blocked()       lý do cả chế độ không chạy được ("" = chạy được)                     — tuỳ chọn
+//   spin            nút quay bánh xe: { key, label, hotkey }
+//   text            câu riêng: { first, again, pick, spinning, stopped }
+//                     first "Spin the wheel first."      again    "Spin the wheel again." (sau lostGroupMessage)
+//                     pick  nhắc khi chưa có nhóm         spinning dòng panel lúc đang quay   stopped tên trong lỗi console
+const capFirst = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+const wheelCaseTitle = (w) => `${capFirst(w.noun)} case`;
+const wheelValid = (w) => w.state.pools[w.state.selected] ? w.state.selected : null;
+
+// Vẽ lại bánh xe theo các nhóm hiện có; đang có nhóm thì kim chỉ vào giữa ô của nhóm đó.
+function renderModeWheel(w) {
+  const st = w.state, n = st.types.length;
+  setWheelRotation(st.rotation % 360, w);
+  setWheelDisc($(w.disc), st.types, n ? wheelSvg(st.types, w) : "");
+  $(w.wheel).classList.toggle("is-empty", n === 0);
+  $(w.wheel).classList.remove("has-winner");
+  $(w.hub).textContent = n ? "?" : "";
+  $(w.hub).style.removeProperty("--t");
+  $(`${w.prefix}-wheel-caption`).textContent = n
+    ? `${n} ${w.noun}${n > 1 ? "s" : ""} on the wheel · each 1 in ${n}`
+    : custom.pool.length ? `No ${w.noun}s on the wheel` : `No ${w.noun}s: select at least one generation`;
+  if (st.pools[st.selected]) {
+    setWheelRotation(wheelTarget(0, st.types.indexOf(st.selected), n, 0, 0), w);
+    markWheelWinner(st.selected, w);
+  }
+}
+
+// Panel tỉ lệ: có nhóm thì hiện số Pokémon và tỉ lệ thật mỗi bậc của hòm (đã áp custom pool), chưa có thì nhắc quay.
+// note: dòng thay cho lời nhắc (vd. lúc đang quay).
+function renderWheelOdds(w, key, note) {
+  const st = w.state, n = st.types.length, p = w.prefix;
+  const info = w.info ? $(`${p}-tags`) : null;
+  if (!key) {
+    $(`${p}-odds-title`).textContent = wheelCaseTitle(w);
+    $(`${p}-odds-count`).innerHTML = "";
+    $(`${p}-odds-list`).innerHTML = "";
+    if (info) info.hidden = true;
+    $(`${p}-odds-sub`).textContent = note || (!n
+      ? emptyWheelText(w.noun, "below")
+      : st.lost
+        ? lostGroupMessage(w.label(st.lost), st.lostRare, w.text.again)
+        : w.text.pick);
     return;
   }
-  const c = wheelCase("type-roulette", roulette, type);
+  const c = wheelCase(w.mode, st, key);
   const groups = groupByRarity(c.list);
-  $("tr-odds-title").innerHTML = `<span class="type-chip" style="--t:${TYPE_COLORS[type]}">${typeName(type)}</span> case${customPoolBadge(c)}`;
-  renderCaseCount($("tr-odds-count"), groupsSize(groups));
-  setOddsSub($("tr-odds-sub"), `${typeName(type)} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`, c);
-  renderOddsTable($("tr-odds-list"), groups);
+  $(`${p}-odds-title`).innerHTML = `${w.chip(key)} case${customPoolBadge(c)}`;
+  renderCaseCount($(`${p}-odds-count`), groupsSize(groups));
+  setOddsSub($(`${p}-odds-sub`), `${w.label(key)} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`, c);
+  renderOddsTable($(`${p}-odds-list`), groups);
+  if (info) {
+    info.hidden = false;
+    info.innerHTML = w.info(key);
+  }
 }
 
-// Dải thẻ lúc chưa mở hòm: Pokémon của hệ đang chọn, chưa có hệ thì Pokémon bất kỳ trong các gen đã chọn.
-function renderRouletteIdleReel() {
-  const pool = roulette.pools[roulette.selected] ? wheelCase("type-roulette", roulette, roulette.selected).list : custom.pool;
-  renderIdleReel(groupByRarity(pool), $("tr-reel"));
-  $("tr-reel").querySelector(".reel-empty").textContent = emptyWheelText("type", "");
+// Dải thẻ lúc chưa mở hòm: Pokémon của hòm đang chọn (đã áp custom pool), chưa có nhóm thì từ w.idlePool().
+function renderWheelIdleReel(w) {
+  const st = w.state;
+  const pool = st.pools[st.selected] ? wheelCase(w.mode, st, st.selected).list : w.idlePool();
+  renderIdleReel(groupByRarity(pool), $(`${w.prefix}-reel`));
+  $(`${w.prefix}-reel`).querySelector(".reel-empty").textContent = emptyWheelText(w.noun, "");
 }
 
-// Đổi gen (và lúc tải trang): giữ / bỏ hệ đang chọn theo refreshWheelGroups, rồi vẽ lại bánh xe.
-function refreshRoulette() {
-  refreshWheelGroups(roulette, typePools(custom.pool));
-  renderWheel();
-  renderTypeOdds(roulette.pools[roulette.selected] ? roulette.selected : null);
-  renderRouletteIdleReel();
+// Đổi gen (và lúc tải trang): giữ / bỏ nhóm đang chọn theo refreshWheelGroups, rồi vẽ lại bánh xe.
+function refreshWheelMode(w) {
+  refreshWheelGroups(w.state, w.groups());
+  renderModeWheel(w);
+  renderWheelOdds(w, wheelValid(w));
+  renderWheelIdleReel(w);
 }
 
-// Hành động 1: quay bánh xe ra một hệ (mỗi hệ trên bánh xe có cơ hội như nhau). Không mở hòm.
-async function spinTypeWheel({ quick = false }) {
-  const types = roulette.types;
-  const type = pickRandom(types, Math.random());
-  const target = wheelTarget(roulette.rotation % 360, types.indexOf(type), types.length);
+// Hành động 1: quay bánh xe ra một nhóm (mỗi nhóm trên bánh xe có cơ hội như nhau). Không mở hòm.
+async function spinModeWheel(w, { quick = false }) {
+  const st = w.state, keys = st.types;
+  const key = pickRandom(keys, Math.random());
+  const target = wheelTarget(st.rotation % 360, keys.indexOf(key), keys.length);
   // Lưu ngay kết quả (tải lại trang giữa chừng vẫn giữ), nhưng chỉ hiện ra khi bánh xe dừng
-  roulette.selected = null;
-  roulette.lost = null;
-  saveJson(STORAGE_KEY_ROULETTE_TYPE, type);
-  $("tr-wheel").classList.remove("has-winner");
-  $("tr-hub").textContent = "?";
-  $("tr-hub").style.removeProperty("--t");
+  st.selected = null;
+  st.lost = null;
+  saveJson(w.storageKey, key);
+  $(w.wheel).classList.remove("has-winner");
+  $(w.hub).textContent = "?";
+  $(w.hub).style.removeProperty("--t");
 
   if (quick) {
     setCustomSpinning(true);
-    setWheelRotation(target);
+    setWheelRotation(target, w);
   } else {
     setCustomSpinning(true, "Spinning…");
     audio(); // mở âm thanh ngay trong lúc bấm
-    renderTypeOdds(null, "Spinning the wheel…");
-    setWheelRotation(roulette.rotation % 360); // thu góc về 0–360° (nhìn không đổi) để số không lớn dần
-    await animateWheel(target);
-    const landed = types[wheelSliceOnScreen()];
-    if (landed !== type) console.error(`Wheel stopped on ${landed}, expected ${type}`);
+    renderWheelOdds(w, null, w.text.spinning);
+    setWheelRotation(st.rotation % 360, w); // thu góc về 0–360° (nhìn không đổi) để số không lớn dần
+    await animateWheel(target, w);
+    const landed = keys[wheelSliceOnScreen(w)];
+    if (landed !== key) console.error(`${w.text.stopped} stopped on ${landed}, expected ${key}`);
   }
 
-  roulette.selected = type;
-  markWheelWinner(type);
-  renderTypeOdds(type);
-  renderRouletteIdleReel();
+  st.selected = key;
+  markWheelWinner(key, w);
+  renderWheelOdds(w, key);
+  renderWheelIdleReel(w);
   setCustomSpinning(false);
   playReveal("blue", false);
 }
 
-// Hành động 2: mở hòm chỉ gồm Pokémon của hệ đang chọn (cùng tỉ lệ độ hiếm và cách hạ bậc như trang Case).
-async function openTypeCase({ quick = false }) {
-  const type = roulette.selected;
-  const c = wheelCase("type-roulette", roulette, type);
+// Hành động 2: mở hòm của nhóm đang chọn (đã áp custom pool), cùng tỉ lệ độ hiếm và cách hạ bậc như trang Case.
+async function openWheelCase(w, { quick = false }) {
+  const st = w.state, key = st.selected;
+  const c = wheelCase(w.mode, st, key);
   const groups = groupByRarity(c.list);
   const result = rollOnce(groups);
   if (!result) return;
 
-  // Ghi ngay vào bộ sưu tập (giống trang Case), kèm chế độ và hệ trong lịch sử.
+  // Ghi ngay vào bộ sưu tập (giống trang Case), kèm chế độ và nhóm trong lịch sử.
   const isNew = !state.collection[result.pokemon.id];
   const entry = recordDrop(state.collection, state.history, result);
-  Object.assign(state.history[0], { mode: "type-roulette", detail: type, ...customPoolTag(c) });
+  Object.assign(state.history[0], { mode: w.mode, detail: key, ...customPoolTag(c) });
   saveProgress();
 
-  const reel = $("tr-reel");
+  const reel = $(`${w.prefix}-reel`);
   const items = buildReelItems(result, groups);
   if (quick) {
     setCustomSpinning(true);
@@ -2478,16 +2527,99 @@ async function openTypeCase({ quick = false }) {
   renderRecent();
   updateCollectionTab();
   if (state.view === "collection") renderCollection();
-  const name = typeName(type);
+  const name = w.label(key);
   showResultModal(result, {
     isNew, count: entry.count, groups,
     again: () => runCustomAction("open"),
-    canAgain: roulette.selected === type,
+    canAgain: st.selected === key,
     extra: `
-      <div class="result-note mode-note" style="--t:${TYPE_COLORS[type]}">
-        Type Roulette · <b>${name}</b> case. The odds above are within the ${name} case; ${name} is 1 in ${roulette.types.length} on the wheel.${customPoolNote(c)}
+      <div class="result-note mode-note" style="--t:${w.color(key)}">
+        ${w.title} · <b>${name}</b> case. The odds above are within the ${name} case; ${name} is 1 in ${st.types.length} on the wheel.${customPoolNote(c)}
       </div>`,
   });
+}
+
+// Khung của chế độ bánh xe: bánh xe, dải thẻ, panel tỉ lệ (+ dòng info nếu có). Nhóm đang chọn đọc lại từ localStorage.
+function mountWheelMode(w, stage) {
+  w.state.selected = loadJson(w.storageKey, null, w.valid);
+  const p = w.prefix, title = wheelCaseTitle(w);
+  stage.innerHTML = `
+      <div class="tr-layout">
+        <div class="tr-wheel-col">
+          <div class="wheel" id="${w.wheel}">
+            <div class="wheel-disc" id="${w.disc}"></div>
+            <div class="wheel-hub"><span class="wheel-hub-type" id="${w.hub}"></span></div>
+            <div class="wheel-pointer" aria-hidden="true"></div>
+          </div>
+          <p class="wheel-caption" id="${p}-wheel-caption" aria-live="polite"></p>
+        </div>
+        <div class="tr-side">
+          <section class="reel" id="${p}-reel" aria-label="${title} reel">
+            <div class="reel-strip"></div>
+            <div class="reel-marker" aria-hidden="true"></div>
+            <p class="reel-empty">Select at least one generation</p>
+          </section>
+          <section class="panel tr-odds" aria-live="polite">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2 id="${p}-odds-title">${title}</h2>
+                <p class="panel-sub" id="${p}-odds-sub"></p>
+              </div>
+              <p class="pool-total" id="${p}-odds-count"></p>
+            </div>
+            <ul class="rarity-list is-compact" id="${p}-odds-list"></ul>
+            ${w.info ? `<p class="br-tags" id="${p}-tags" hidden></p>` : ""}
+          </section>
+        </div>
+      </div>`;
+}
+
+// Phần đăng ký dùng chung của một chế độ bánh xe — trải vào registerCustomMode({ key, name, …, ...wheelModeParts(w) }).
+function wheelModeParts(w) {
+  const st = w.state;
+  const empty = () => emptyWheelText(w.noun, "");
+  return {
+    actions: [
+      {
+        key: w.spin.key,
+        label: () => w.spin.label,
+        icon: ICON_WHEEL_BTN,
+        hotkey: w.spin.hotkey,
+        hint: () => (st.types.length ? "" : empty()),
+        run: (opts) => spinModeWheel(w, opts),
+      },
+      {
+        key: "open",
+        label: () => wheelOpenLabel(w.mode, st, w.label),
+        icon: ICON_CASE,
+        hint: () => (!st.types.length ? empty() : st.selected ? "" : w.text.first),
+        run: (opts) => openWheelCase(w, opts),
+      },
+    ],
+    // Space: mở hòm nếu đã có nhóm, chưa có thì quay bánh xe
+    defaultAction: () => (st.selected ? "open" : w.spin.key),
+    status() {
+      const blocked = w.blocked ? w.blocked() : "";
+      if (blocked) return blocked;
+      if (!st.types.length) return emptyWheelText(w.noun);
+      if (st.lost) return lostGroupMessage(w.label(st.lost), st.lostRare, w.text.again);
+      if (!st.selected) return w.text.first;
+      return "";
+    },
+    mount: (stage) => mountWheelMode(w, stage),
+    contents: (key) => wheelContents(key, {
+      all: w.groups(), wheel: st, order: w.order, name: w.label, info: w.info, mode: w.mode,
+    }),
+    // Bảng chọn gen bị khóa trong lúc quay nên ở đây không bao giờ đang quay
+    onPoolChanged: () => refreshWheelMode(w),
+    onCustomPoolChanged() {
+      renderWheelOdds(w, st.selected);
+      renderWheelIdleReel(w);
+    },
+    realign() {
+      realignReel($(`${w.prefix}-reel`));
+    },
+  };
 }
 
 registerCustomMode({
@@ -2511,80 +2643,11 @@ registerCustomMode({
   },
   tagColor: (detail) => TYPE_COLORS[detail] || "",
 
-  actions: [
-    {
-      key: "wheel",
-      label: () => "Spin wheel",
-      icon: ICON_WHEEL_BTN,
-      hotkey: "W",
-      hint: () => (roulette.types.length ? "" : emptyWheelText("type", "")),
-      run: spinTypeWheel,
-    },
-    {
-      key: "open",
-      label: () => wheelOpenLabel("type-roulette", roulette, typeName),
-      icon: ICON_CASE,
-      hint: () => (!roulette.types.length ? emptyWheelText("type", "") : roulette.selected ? "" : "Spin the wheel first."),
-      run: openTypeCase,
-    },
-  ],
-  // Space: mở hòm nếu đã có hệ, chưa có thì quay bánh xe
-  defaultAction: () => (roulette.selected ? "open" : "wheel"),
-  status() {
-    if (!roulette.types.length) return emptyWheelText("type");
-    if (roulette.lost) return lostGroupMessage(typeName(roulette.lost), roulette.lostRare, "Spin the wheel again.");
-    if (!roulette.selected) return "Spin the wheel first.";
-    return "";
-  },
-
-  mount(stage) {
-    roulette.selected = loadJson(STORAGE_KEY_ROULETTE_TYPE, null, (v) => TYPE_ORDER.includes(v));
-    stage.innerHTML = `
-      <div class="tr-layout">
-        <div class="tr-wheel-col">
-          <div class="wheel" id="tr-wheel">
-            <div class="wheel-disc" id="tr-disc"></div>
-            <div class="wheel-hub"><span class="wheel-hub-type" id="tr-hub"></span></div>
-            <div class="wheel-pointer" aria-hidden="true"></div>
-          </div>
-          <p class="wheel-caption" id="tr-wheel-caption" aria-live="polite"></p>
-        </div>
-        <div class="tr-side">
-          <section class="reel" id="tr-reel" aria-label="Type case reel">
-            <div class="reel-strip"></div>
-            <div class="reel-marker" aria-hidden="true"></div>
-            <p class="reel-empty">Select at least one generation</p>
-          </section>
-          <section class="panel tr-odds" aria-live="polite">
-            <div class="panel-head">
-              <div class="panel-title">
-                <h2 id="tr-odds-title">Type case</h2>
-                <p class="panel-sub" id="tr-odds-sub"></p>
-              </div>
-              <p class="pool-total" id="tr-odds-count"></p>
-            </div>
-            <ul class="rarity-list is-compact" id="tr-odds-list"></ul>
-          </section>
-        </div>
-      </div>`;
-  },
-
-  contents: (key) => wheelContents(key, {
-    all: typePools(custom.pool), wheel: roulette, order: TYPE_ORDER, name: typeName, mode: "type-roulette",
-  }),
-
-  // Bảng chọn gen bị khóa trong lúc quay nên ở đây không bao giờ đang quay
-  onPoolChanged: refreshRoulette,
-
-  onCustomPoolChanged() {
-    renderTypeOdds(roulette.selected);
-    renderRouletteIdleReel();
-  },
-
-  realign() {
-    realignReel($("tr-reel"));
-  },
+  ...wheelModeParts(TYPE_WHEEL),
 });
+
+// Gọi thẳng từ test / console: vẽ lại Type Roulette theo các gen đang chọn.
+const refreshRoulette = () => refreshWheelMode(TYPE_WHEEL);
 
 // =====================================================================
 // CHẾ ĐỘ CUSTOM: Biome Roulette (dữ liệu spawn Cobbleverse trong spawns.js)
@@ -2678,33 +2741,6 @@ const biome = {
   lostRare: false,  // true nếu nhóm đó bị bỏ vì chỉ còn Pokémon hiếm (Red/Gold)
 };
 
-const BIOME_WHEEL = {
-  wheel: "br-wheel",
-  disc: "br-disc",
-  hub: "br-hub",
-  state: biome,
-  color: (key) => biomeInfo(key).color,
-  label: (key) => biomeInfo(key).name,
-};
-
-// Vẽ lại bánh xe theo các nhóm hiện có; đang có nhóm thì kim chỉ vào giữa ô của nhóm đó.
-function renderBiomeWheel() {
-  const n = biome.types.length;
-  setWheelRotation(biome.rotation % 360, BIOME_WHEEL);
-  setWheelDisc($("br-disc"), biome.types, n ? wheelSvg(biome.types, BIOME_WHEEL) : "");
-  $("br-wheel").classList.toggle("is-empty", n === 0);
-  $("br-wheel").classList.remove("has-winner");
-  $("br-hub").textContent = n ? "?" : "";
-  $("br-hub").style.removeProperty("--t");
-  $("br-wheel-caption").textContent = n
-    ? `${n} biome${n > 1 ? "s" : ""} on the wheel · each 1 in ${n}`
-    : custom.pool.length ? "No biomes on the wheel" : "No biomes: select at least one generation";
-  if (biome.pools[biome.selected]) {
-    setWheelRotation(wheelTarget(0, biome.types.indexOf(biome.selected), n, 0, 0), BIOME_WHEEL);
-    markWheelWinner(biome.selected, BIOME_WHEEL);
-  }
-}
-
 function biomeChip(key) {
   const g = biomeInfo(key);
   return `<span class="biome-chip" style="--t:${g.color};color:${inkOn(g.color)}">${g.name}</span>`;
@@ -2715,129 +2751,36 @@ function biomeTagsLine(key) {
   return `<span class="br-tags-label">Cobbleverse biomes</span> ${biomeInfo(key).tags.map(escHtml).join(", ")}`;
 }
 
-// Panel tỉ lệ: số Pokémon và tỉ lệ thật mỗi bậc của nhóm đang chọn, kèm các biome Cobbleverse trong nhóm.
-function renderBiomeOdds(key, note) {
-  const n = biome.types.length;
-  if (!key) {
-    $("br-odds-title").textContent = "Biome case";
-    $("br-odds-count").innerHTML = "";
-    $("br-odds-list").innerHTML = "";
-    $("br-tags").hidden = true;
-    $("br-odds-sub").textContent = note || (!n
-      ? emptyWheelText("biome", "below")
-      : biome.lost
-        ? lostGroupMessage(biomeInfo(biome.lost).name, biome.lostRare, "Spin the biome again.")
-        : "Spin the biome wheel to pick a biome. Its tiers show here.");
-    return;
-  }
-  const g = biomeInfo(key);
-  const c = wheelCase("biome-roulette", biome, key);
-  const groups = groupByRarity(c.list);
-  $("br-odds-title").innerHTML = `${biomeChip(key)} case${customPoolBadge(c)}`;
-  renderCaseCount($("br-odds-count"), groupsSize(groups));
-  setOddsSub($("br-odds-sub"), `${g.name} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`, c);
-  renderOddsTable($("br-odds-list"), groups);
-  $("br-tags").hidden = false;
-  $("br-tags").innerHTML = biomeTagsLine(key);
-}
-
-// Dải thẻ lúc chưa mở hòm: Pokémon của nhóm đang chọn, chưa có nhóm thì Pokémon bất kỳ có trong các nhóm.
-function renderBiomeIdleReel() {
-  const pool = biome.pools[biome.selected]
-    ? wheelCase("biome-roulette", biome, biome.selected).list
-    : [...new Set(Object.values(biome.pools).flat())];
-  renderIdleReel(groupByRarity(pool), $("br-reel"));
-  $("br-reel").querySelector(".reel-empty").textContent = emptyWheelText("biome", "");
-}
-
-// Đổi gen (và lúc tải trang): giữ / bỏ nhóm biome đang chọn theo refreshWheelGroups, rồi vẽ lại bánh xe.
-function refreshBiome() {
-  refreshWheelGroups(biome, biomePools(custom.pool));
-  renderBiomeWheel();
-  renderBiomeOdds(biome.pools[biome.selected] ? biome.selected : null);
-  renderBiomeIdleReel();
-}
-
-// Hành động 1: quay bánh xe ra một nhóm biome (mỗi nhóm trên bánh xe có cơ hội như nhau). Không mở hòm.
-async function spinBiomeWheel({ quick = false }) {
-  const keys = biome.types;
-  const key = pickRandom(keys, Math.random());
-  const target = wheelTarget(biome.rotation % 360, keys.indexOf(key), keys.length);
-  // Lưu ngay kết quả (tải lại trang giữa chừng vẫn giữ), nhưng chỉ hiện ra khi bánh xe dừng
-  biome.selected = null;
-  biome.lost = null;
-  saveJson(STORAGE_KEY_BIOME, key);
-  $("br-wheel").classList.remove("has-winner");
-  $("br-hub").textContent = "?";
-  $("br-hub").style.removeProperty("--t");
-
-  if (quick) {
-    setCustomSpinning(true);
-    setWheelRotation(target, BIOME_WHEEL);
-  } else {
-    setCustomSpinning(true, "Spinning…");
-    audio(); // mở âm thanh ngay trong lúc bấm
-    renderBiomeOdds(null, "Spinning the biome wheel…");
-    setWheelRotation(biome.rotation % 360, BIOME_WHEEL); // thu góc về 0–360° (nhìn không đổi)
-    await animateWheel(target, BIOME_WHEEL);
-    const landed = keys[wheelSliceOnScreen(BIOME_WHEEL)];
-    if (landed !== key) console.error(`Biome wheel stopped on ${landed}, expected ${key}`);
-  }
-
-  biome.selected = key;
-  markWheelWinner(key, BIOME_WHEEL);
-  renderBiomeOdds(key);
-  renderBiomeIdleReel();
-  setCustomSpinning(false);
-  playReveal("blue", false);
-}
-
-// Hành động 2: mở hòm chỉ gồm Pokémon spawn ở nhóm biome đang chọn (tỉ lệ độ hiếm và hạ bậc như trang Case).
-async function openBiomeCase({ quick = false }) {
-  const key = biome.selected;
-  const c = wheelCase("biome-roulette", biome, key);
-  const groups = groupByRarity(c.list);
-  const result = rollOnce(groups);
-  if (!result) return;
-
-  // Ghi ngay vào bộ sưu tập (giống trang Case), kèm chế độ và nhóm biome trong lịch sử.
-  const isNew = !state.collection[result.pokemon.id];
-  const entry = recordDrop(state.collection, state.history, result);
-  Object.assign(state.history[0], { mode: "biome-roulette", detail: key, ...customPoolTag(c) });
-  saveProgress();
-
-  const reel = $("br-reel");
-  const items = buildReelItems(result, groups);
-  if (quick) {
-    setCustomSpinning(true);
-    renderReel(items, reel);
-    jumpReel(WIN_INDEX, undefined, reel);
-  } else {
-    setCustomSpinning(true, "Loading…");
-    audio();
-    const visible = items.filter((_, i) => i < IDLE_REEL_SIZE || Math.abs(i - WIN_INDEX) <= 6);
-    await preloadImages([...new Set(visible.map((it) => imageUrl(it.pokemon, it.shiny)))], PRELOAD_TIMEOUT_MS);
-    renderReel(items, reel);
-    setCustomSpinning(true, "Opening…");
-    await animateReel(WIN_INDEX, reel, ROULETTE_REEL_MS);
-  }
-
-  stripOf(reel).children[WIN_INDEX].classList.add("is-winner");
-  setCustomSpinning(false);
-  renderRecent();
-  updateCollectionTab();
-  if (state.view === "collection") renderCollection();
-  const g = biomeInfo(key);
-  showResultModal(result, {
-    isNew, count: entry.count, groups,
-    again: () => runCustomAction("open"),
-    canAgain: biome.selected === key,
-    extra: `
-      <div class="result-note mode-note" style="--t:${g.color}">
-        Biome Roulette · <b>${g.name}</b> case. The odds above are within the ${g.name} case; ${g.name} is 1 in ${biome.types.length} on the wheel.${customPoolNote(c)}
-      </div>`,
-  });
-}
+// Bánh xe của Biome Roulette (xem phần "Khung chung cho các chế độ bánh xe").
+const BIOME_WHEEL = {
+  mode: "biome-roulette",
+  title: "Biome Roulette",
+  prefix: "br",
+  wheel: "br-wheel",
+  disc: "br-disc",
+  hub: "br-hub",
+  state: biome,
+  storageKey: STORAGE_KEY_BIOME,
+  valid: (v) => Boolean(biomeInfo(v)),
+  noun: "biome",
+  color: (key) => biomeInfo(key).color,
+  label: (key) => biomeInfo(key).name,
+  chip: biomeChip,
+  groups: () => biomePools(custom.pool),
+  order: BIOME_GROUPS.map((g) => g.key),
+  // Chưa có nhóm: Pokémon bất kỳ có trong các nhóm trên bánh xe
+  idlePool: () => [...new Set(Object.values(biome.pools).flat())],
+  info: biomeTagsLine,
+  blocked: () => (typeof SPAWN_DATA === "undefined" ? "Spawn data not found — make sure spawns.js is next to index.html." : ""),
+  spin: { key: "biome", label: "Spin biome", hotkey: "B" },
+  text: {
+    first: "Spin the biome first.",
+    again: "Spin the biome again.",
+    pick: "Spin the biome wheel to pick a biome. Its tiers show here.",
+    spinning: "Spinning the biome wheel…",
+    stopped: "Biome wheel",
+  },
+};
 
 registerCustomMode({
   key: "biome-roulette",
@@ -2861,83 +2804,11 @@ registerCustomMode({
   },
   tagColor: (detail) => (biomeInfo(detail) ? biomeInfo(detail).color : ""),
 
-  actions: [
-    {
-      key: "biome",
-      label: () => "Spin biome",
-      icon: ICON_WHEEL_BTN,
-      hotkey: "B",
-      hint: () => (biome.types.length ? "" : emptyWheelText("biome", "")),
-      run: spinBiomeWheel,
-    },
-    {
-      key: "open",
-      label: () => wheelOpenLabel("biome-roulette", biome, (k) => biomeInfo(k).name),
-      icon: ICON_CASE,
-      hint: () => (!biome.types.length ? emptyWheelText("biome", "") : biome.selected ? "" : "Spin the biome first."),
-      run: openBiomeCase,
-    },
-  ],
-  // Space: mở hòm nếu đã có nhóm biome, chưa có thì quay bánh xe
-  defaultAction: () => (biome.selected ? "open" : "biome"),
-  status() {
-    if (typeof SPAWN_DATA === "undefined") return "Spawn data not found — make sure spawns.js is next to index.html.";
-    if (!biome.types.length) return emptyWheelText("biome");
-    if (biome.lost) return lostGroupMessage(biomeInfo(biome.lost).name, biome.lostRare, "Spin the biome again.");
-    if (!biome.selected) return "Spin the biome first.";
-    return "";
-  },
-
-  mount(stage) {
-    biome.selected = loadJson(STORAGE_KEY_BIOME, null, (v) => Boolean(biomeInfo(v)));
-    stage.innerHTML = `
-      <div class="tr-layout">
-        <div class="tr-wheel-col">
-          <div class="wheel" id="br-wheel">
-            <div class="wheel-disc" id="br-disc"></div>
-            <div class="wheel-hub"><span class="wheel-hub-type" id="br-hub"></span></div>
-            <div class="wheel-pointer" aria-hidden="true"></div>
-          </div>
-          <p class="wheel-caption" id="br-wheel-caption" aria-live="polite"></p>
-        </div>
-        <div class="tr-side">
-          <section class="reel" id="br-reel" aria-label="Biome case reel">
-            <div class="reel-strip"></div>
-            <div class="reel-marker" aria-hidden="true"></div>
-            <p class="reel-empty">Select at least one generation</p>
-          </section>
-          <section class="panel tr-odds" aria-live="polite">
-            <div class="panel-head">
-              <div class="panel-title">
-                <h2 id="br-odds-title">Biome case</h2>
-                <p class="panel-sub" id="br-odds-sub"></p>
-              </div>
-              <p class="pool-total" id="br-odds-count"></p>
-            </div>
-            <ul class="rarity-list is-compact" id="br-odds-list"></ul>
-            <p class="br-tags" id="br-tags" hidden></p>
-          </section>
-        </div>
-      </div>`;
-  },
-
-  contents: (key) => wheelContents(key, {
-    all: biomePools(custom.pool), wheel: biome, order: BIOME_GROUPS.map((g) => g.key),
-    name: (k) => biomeInfo(k).name, info: biomeTagsLine, mode: "biome-roulette",
-  }),
-
-  // Bảng chọn gen bị khóa trong lúc quay nên ở đây không bao giờ đang quay
-  onPoolChanged: refreshBiome,
-
-  onCustomPoolChanged() {
-    renderBiomeOdds(biome.selected);
-    renderBiomeIdleReel();
-  },
-
-  realign() {
-    realignReel($("br-reel"));
-  },
+  ...wheelModeParts(BIOME_WHEEL),
 });
+
+// Gọi thẳng từ test / console: vẽ lại Biome Roulette theo các gen đang chọn.
+const refreshBiome = () => refreshWheelMode(BIOME_WHEEL);
 
 // Bản desktop (preload.js đưa vào window.pokeroll): số phiên bản ở footer, và nút "Check for updates" trong bản
 // đã đóng gói. Bản web không có window.pokeroll nên footer giữ như cũ.
