@@ -78,7 +78,8 @@ function updateSpinButton(label) {
 function onSelectionChanged() {
   saveSelectedGens(state.selectedGens);
   renderPoolStats();
-  // Đổi gen thì vẽ lại dải thẻ theo hòm mới (không đụng vào khi đang quay).
-  if (!state.spinning) renderIdleReel();
+  // Đổi gen thì vẽ lại dải thẻ theo hòm mới (không đụng vào khi dải này đang quay;
+  // trang Custom đang quay thì dải trang Case vẫn vẽ lại).
+  if (!state.caseSpinning) renderIdleReel();
 }
 

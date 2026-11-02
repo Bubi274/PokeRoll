@@ -17,6 +17,7 @@ async function spin({ quick = false } = {}) {
   saveProgress();
 
   state.spinning = true;
+  state.caseSpinning = true;
   const items = buildReelItems(result, state.groups);
 
   if (quick) {
@@ -37,6 +38,7 @@ async function spin({ quick = false } = {}) {
 
   $("reel-strip").children[WIN_INDEX].classList.add("is-winner");
   state.spinning = false;
+  state.caseSpinning = false;
   updateSpinButton();
   renderRecent();
   updateCollectionTab();

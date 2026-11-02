@@ -89,6 +89,45 @@ app.whenReady().then(async () => {
   check("Back on the Case page at a new width: reel on the winner", s.onWinner && s.anims === 0, `onWinner=${s.onWinner}`);
   win.setContentSize(1300, 900); await sleep(300);
 
+  // ---- 3. Đổi gen ở trang Case trong lúc Custom đang quay ----
+  const caseCards = () => js(`(() => {
+    const ids = new Set(Object.values(state.groups).flat().map((p) => p.name));
+    const names = [...document.querySelectorAll("#reel-strip .card-name")].map((n) => n.textContent);
+    return { cards: names.length, outside: names.filter((n) => !ids.has(n)).length, empty: document.getElementById("reel").classList.contains("is-empty") }; })()`);
+  const onlyGen = async (gen) => {
+    await js(`document.getElementById("btn-none").click(); document.querySelector('#gen-grid input[value="${gen}"]').click()`);
+    await sleep(100);
+  };
+  await tab("custom"); await sleep(300);
+  await js(`document.querySelector('.action-main[data-action="wheel"]').click()`); await sleep(400);
+  await tab("case"); await sleep(100);
+  await onlyGen(1);
+  let c = await caseCards();
+  check("Gen changed while Custom spins: Case reel redrawn from the new case", c.cards > 0 && c.outside === 0, `${c.outside} of ${c.cards} cards outside the case`);
+  await js(`document.getElementById("btn-none").click()`); await sleep(100);
+  c = await caseCards();
+  check("No gen selected while Custom spins: Case reel empty", c.cards === 0 && c.empty, `${c.cards} cards`);
+  await js(`document.getElementById("btn-all").click()`);
+  for (let t = 0; t < TIMING.WHEEL_MS && (await js(`state.spinning`)); t += 50) await sleep(50);
+
+  // Trang Case đang quay: đổi gen vẫn không đụng vào dải
+  await js(`document.getElementById("btn-spin").click()`); await sleep(1000);
+  const running = await js(`document.getElementById("reel-strip").children.length`);
+  await onlyGen(2);
+  const during = await js(`document.getElementById("reel-strip").children.length`);
+  check("Gen changed while the Case reel itself spins: reel left alone", during === running && during > 20, `${running} → ${during} cards`);
+  await js(`document.getElementById("btn-all").click()`);
+  await waitPopup(TIMING.CASE_POPUP_MS); await closePopup();
+
+  // Cùng tình huống, khi một hành động Custom trước đó kết thúc mà không xoá cờ custom.running
+  await js(`custom.running = "open"; document.getElementById("btn-spin").click()`); await sleep(1000);
+  await onlyGen(4);
+  const kept = await js(`document.getElementById("reel-strip").children.length`);
+  await js(`document.getElementById("btn-all").click()`);
+  await waitPopup(TIMING.CASE_POPUP_MS); s = await stateOf("reel");
+  check("…even with a Custom flag left over: reel left alone, spin ends on the winner", kept === running && s.onWinner && s.matches, `${kept} cards, onWinner=${s.onWinner}`);
+  await closePopup(); await js(`custom.running = null`);
+
   check("No console errors", errors.length === 0, errors.slice(0, 3).join(" | "));
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
   app.exit(fails ? 1 : 0);

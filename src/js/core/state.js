@@ -20,6 +20,7 @@ const state = {
   selectedGens: new Set(),
   groups: groupByRarity([]), // Pokémon trong hòm hiện tại, chia theo độ hiếm
   spinning: false,
+  caseSpinning: false,  // dải trang Case đang quay (spinning khóa chung cả trang Case lẫn Custom)
   collection: {},       // bộ sưu tập: { [id]: { count, shiny, first } }
   history: [],          // lịch sử quay, mới nhất trước
   saveFailed: false,    // true nếu không lưu được vào localStorage
