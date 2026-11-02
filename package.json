@@ -6,6 +6,9 @@
   "author": "Bubi",
   "private": true,
   "main": "electron/main.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "electron .",
     "images": "node scripts/build-images.js",

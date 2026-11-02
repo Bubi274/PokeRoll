@@ -1,7 +1,7 @@
 // Tải sẵn ảnh Pokémon #1–#1025 vào thư mục assets/images/ để app không phải tải ảnh qua mạng mỗi lần quay.
 //   assets/images/artwork[/shiny]/{id}.webp — ảnh artwork thu nhỏ còn 256px (WebP)
 //   assets/images/sprite[/shiny]/{id}.png   — ảnh nhỏ 96×96 giữ nguyên
-// Chạy (cần Node.js 18 trở lên và đã `npm install`):  node scripts/build-images.js
+// Chạy (cần Node.js 22 trở lên và đã `npm install`):  node scripts/build-images.js
 // File đã có sẽ được bỏ qua, nên chạy lại chỉ tải phần còn thiếu.
 
 const fs = require("fs");
