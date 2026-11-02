@@ -75,6 +75,20 @@ app.whenReady().then(async () => {
   check("Type Roulette, back during the spin: reel runs on to the winner", s.onWinner && s.matches && s.anims === 0, `onWinner=${s.onWinner}, matches=${s.matches}`);
   await closePopup();
 
+  // ---- 2. Đổi cỡ cửa sổ khi đang ở tab khác ----
+  await tab("case"); await sleep(100);
+  await js(`document.getElementById("btn-quick").click()`); await waitPopup(3000); await closePopup();
+  const before = await stateOf("reel");
+  await tab("collection"); await sleep(100);
+  win.setContentSize(1300, 700); await sleep(300);
+  const hidden = await stateOf("reel");
+  check("Resize on another page: Case reel left where it is", hidden.inline === before.inline, `${before.inline} → ${hidden.inline}`);
+  win.setContentSize(800, 700); await sleep(300);
+  await tab("case"); await sleep(100);
+  s = await stateOf("reel");
+  check("Back on the Case page at a new width: reel on the winner", s.onWinner && s.anims === 0, `onWinner=${s.onWinner}`);
+  win.setContentSize(1300, 900); await sleep(300);
+
   check("No console errors", errors.length === 0, errors.slice(0, 3).join(" | "));
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
   app.exit(fails ? 1 : 0);

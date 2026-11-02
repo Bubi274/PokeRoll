@@ -60,7 +60,9 @@ function jumpReel(winIndex, offsetFrac, reel = $("reel")) {
 
 // Đổi cỡ cửa sổ / xoay điện thoại: căn lại để vạch chỉ vẫn nằm trên thẻ thắng.
 // Dải đang quay thì chạy tiếp tới điểm dừng tính theo cỡ mới.
+// Dải đang ẩn (ở trang khác) thì không đo được nên để nguyên, căn lại khi trang hiện ra.
 function realignReel(reel = $("reel")) {
+  if (!reel.clientWidth) return;
   const retarget = reelSpins.get(reel);
   if (retarget) return retarget();
   const strip = stripOf(reel);
