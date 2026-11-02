@@ -62,9 +62,12 @@ function sourceTag(src) {
     ? `<span class="src-mark" title="Custom pool" aria-label="Custom pool">✦</span>` : ""}</span>`;
 }
 
+// Lịch sử để hiện ra: bỏ qua mục hỏng (độ hiếm không hợp lệ). Mục hỏng vẫn giữ nguyên trong dữ liệu đã lưu.
+const shownHistory = () => state.history.filter((h) => rarityInfo(h.rarity));
+
 // Lịch sử lưu mới nhất trước → lượt mới nhất nằm trên cùng.
 function renderRecent() {
-  const recent = state.history.slice(0, RECENT_DROPS);
+  const recent = shownHistory().slice(0, RECENT_DROPS);
   $("recent-row").innerHTML = recent.length
     ? recent.map(recentItem).join("")
     : `<li class="recent-empty">No drops yet</li>`;

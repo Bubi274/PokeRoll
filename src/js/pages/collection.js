@@ -71,11 +71,12 @@ function renderCollection() {
     ? `No Pokémon match “${escHtml(query)}” with these filters.`
     : "No Pokémon match these filters."}</p>`;
 
-  $("history-count").textContent = state.history.length
-    ? `Last ${state.history.length} opens` : "";
+  const history = shownHistory();
+  $("history-count").textContent = history.length
+    ? `Last ${history.length} opens` : "";
   const fmtTime = (t) => new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  $("history-list").innerHTML = state.history.length
-    ? state.history.map((h) => {
+  $("history-list").innerHTML = history.length
+    ? history.map((h) => {
       const p = state.byId.get(h.id);
       return `
         <li>
