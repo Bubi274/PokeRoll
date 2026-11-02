@@ -1385,7 +1385,7 @@ function renderSpawnEntry(e) {
 
 function renderSpawnSection(p) {
   if (typeof SPAWN_DATA === "undefined") {
-    return `<p class="hint">Spawn data not found — make sure <b>spawns.js</b> is next to index.html.</p>`;
+    return `<p class="hint">Spawn data not found — make sure <b>data/spawns.js</b> is next to index.html.</p>`;
   }
   const info = SPAWN_DATA[p.id];
   if (!info) {
@@ -2798,7 +2798,7 @@ const BIOME_WHEEL = {
   // Chưa có nhóm: Pokémon bất kỳ có trong các nhóm trên bánh xe
   idlePool: () => [...new Set(Object.values(biome.pools).flat())],
   info: biomeTagsLine,
-  blocked: () => (typeof SPAWN_DATA === "undefined" ? "Spawn data not found — make sure spawns.js is next to index.html." : ""),
+  blocked: () => (typeof SPAWN_DATA === "undefined" ? "Spawn data not found — make sure data/spawns.js is next to index.html." : ""),
   spin: { key: "biome", label: "Spin biome", hotkey: "B" },
   text: {
     first: "Spin the biome first.",
@@ -2971,7 +2971,7 @@ function init() {
   if (new URLSearchParams(location.search).has("nomotion")) document.documentElement.classList.add("no-motion");
   if (typeof POKEMON_DATA === "undefined") {
     document.querySelector("main").innerHTML =
-      `<p class="error">Data not found. Make sure <b>data.js</b> is in the same folder as index.html.</p>`;
+      `<p class="error">Data not found. Make sure <b>data/data.js</b> is next to index.html.</p>`;
     return;
   }
 
