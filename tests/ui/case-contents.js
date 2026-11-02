@@ -267,6 +267,27 @@ app.whenReady().then(async () => {
   await shot("cc-390.png");
   await closeAll();
 
+  // ---- 10. Tìm kiếm không phân biệt dấu, ở mọi ô tìm kiếm ----
+  win.setContentSize(1300, 900); await sleep(300);
+  const search = async (id, q) => { await js(`(() => { const s = document.getElementById("${id}"); s.value = ${JSON.stringify(q)}; s.dispatchEvent(new Event("input", { bubbles: true })); })()`); await sleep(150); };
+  const contentsShown = () => js(`[...document.querySelectorAll("#contents-body .mini:not([hidden]) .mini-name")].map((n) => n.textContent)`);
+  await tab("case"); await js(`document.getElementById("btn-all").click(); document.getElementById("btn-contents").click()`); await sleep(300);
+  for (const q of ["flabebe", "FLABEBE", "Flabébé", "flabe"]) {
+    await search("contents-search", q);
+    const shown = await contentsShown();
+    check(`Case contents: "${q}" finds Flabébé`, shown.length === 1 && shown[0] === "Flabébé", shown.join());
+  }
+  await closeAll();
+  await toMode("type-roulette"); await openCC(); await pick("fairy");
+  await search("contents-search", "flabebe");
+  check(`Custom contents: "flabebe" finds Flabébé`, (await contentsShown()).join() === "Flabébé", (await contentsShown()).join());
+  await closeAll();
+  await tab("collection"); await sleep(300);
+  await search("coll-search", "flabebe");
+  const inGrid = await js(`[...document.querySelectorAll("#coll-grid .mini-name")].map((n) => n.textContent)`);
+  check(`Collection: "flabebe" finds Flabébé`, inGrid.join() === "Flabébé", inGrid.join());
+  await search("coll-search", "");
+
   check("No console errors", errors.length === 0, errors.slice(0, 3).join(" | "));
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
   app.exit(fails ? 1 : 0);

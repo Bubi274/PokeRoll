@@ -32,7 +32,7 @@ function openContents({ groups = state.groups, title = "Case contents", note = "
     const rate = odds ? dropOdds({ rarity: r.key, shiny: false }, groups).pokemon : 0;
     const tiles = list.map((p) => {
       const entry = owned && state.collection[p.id];
-      const search = `data-search="${p.name.toLowerCase()} ${p.baseId || p.id}"`;
+      const search = `data-search="${foldText(p.name)} ${p.baseId || p.id}"`;
       const body = (oddsHtml) => `
         <img class="mini-img" src="${thumbUrl(p)}" alt="" loading="lazy">
         <span class="mini-name">${p.name}</span>
@@ -66,7 +66,8 @@ function openContents({ groups = state.groups, title = "Case contents", note = "
 }
 
 // Từ khóa ô tìm kiếm của popup nội dung hòm, và ô nào khớp (dùng chung cho filterContents và custom pool).
-const contentsQuery = () => $("contents-search").value.trim().toLowerCase();
+// Bỏ dấu cả hai bên như ô tìm kiếm bộ sưu tập: gõ "flabebe" vẫn ra "Flabébé".
+const contentsQuery = () => foldText($("contents-search").value.trim());
 const matchesContents = (tile, q) => !q || tile.dataset.search.includes(q);
 
 function filterContents() {
