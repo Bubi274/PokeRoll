@@ -3,20 +3,21 @@
 // Tuỳ chọn: node tests/logic/case.js <app.js cũ> — so thêm với bản cũ, cùng seed phải quay ra giống hệt.
 const fs = require("fs"), vm = require("vm"), path = require("path");
 const dir = path.join(__dirname, "..", "..");
+const { appSource } = require("../sources");
 const baseline = process.argv[2];
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
 
-// Nạp app.js (và dữ liệu) vào một môi trường riêng, Math.random thay bằng bộ sinh số có seed.
-function load(appFile) {
+// Nạp code app (và dữ liệu) vào một môi trường riêng, Math.random thay bằng bộ sinh số có seed.
+function load(appCode) {
   let seed = 12345;
   const ctx = { console: { log() {}, table() {}, warn() {} }, Math: Object.create(Math), module: {} };
   ctx.Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
   vm.createContext(ctx);
   vm.runInContext(["data/data.js", "data/special.js"].map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n")
-    + "\n" + fs.readFileSync(appFile, "utf8")
+    + "\n" + appCode
     + "\n;globalThis.__all=[...POKEMON_DATA,...SPECIAL_DATA].map(p=>({...p,rarity:getRarity(p)}));", ctx);
-  return { ...ctx.module.exports, __all: ctx.__all }; // các hàm app.js xuất ra khi chạy bằng Node
+  return { ...ctx.module.exports, __all: ctx.__all }; // các hàm app xuất ra khi chạy bằng Node
 }
 
 // Quay n lần một hòm; trả về số lần ra mỗi bậc, số shiny và chuỗi id để so hai bản.
@@ -36,7 +37,7 @@ function roll(ctx, gens, n) {
 
 const N = 200000;
 const CASES = [["All gens + Special", null], ["Gen 1 only", new Set([1])], ["Gen 9 only", new Set([9])]];
-const ctx = load(path.join(dir, "src", "js", "app.js"));
+const ctx = load(appSource());
 const runs = [];
 for (const [label, gens] of CASES) {
   const r = roll(ctx, gens, N);
@@ -56,7 +57,7 @@ for (const [label, gens] of CASES) {
 check("Gen 1: empty Red tier never drops (folded into Pink)", runs[1].groups.red.length > 0 || runs[1].counts.red === 0, `Red ${runs[1].groups.red.length} Pokémon, ${runs[1].counts.red} drops`);
 
 if (baseline) {
-  const old = load(baseline);
+  const old = load(fs.readFileSync(baseline, "utf8"));
   const same = CASES.every(([, gens], i) => {
     const a = roll(old, gens, N);
     return a.trace === runs[i].trace && JSON.stringify(a.counts) === JSON.stringify(runs[i].counts) && a.shiny === runs[i].shiny;

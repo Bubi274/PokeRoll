@@ -1,0 +1,57 @@
+/* Màu sắc, biến chung và kiểu nền của trang. */
+
+/* ===== Màu sắc & biến chung ===== */
+:root {
+  color-scheme: dark; /* thanh cuộn, ô nhập... theo giao diện tối */
+  --bg: #0b0e13;
+  --bg-2: #0f131a;          /* ô chìm bên trong panel */
+  --panel: #121720;         /* nền đặc (popup) */
+  --panel-2: #1a2230;       /* nền nổi (thẻ, nút) */
+  --glass: rgba(18, 23, 32, 0.75);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --border: #252c38;
+  --text: #dfe2eb;
+  --muted: #8b949e;
+  --accent: #52b72a;        /* xanh lá: nút mở hòm, gen đang chọn */
+  --accent-hover: #63c93a;
+  --accent-ink: #081204;
+  --amber: #ffb82e;         /* điểm nhấn: tab đang mở, logo */
+
+  /* Màu độ hiếm kiểu CS2 */
+  --r-blue: #4b69ff;
+  --r-purple: #8847ff;
+  --r-pink: #d32ce6;
+  --r-red: #eb4b4b;
+  --r-gold: #ffd700;
+
+  --font-display: "Space Grotesk", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-body: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+
+  /* Khung nội dung chung cho header, trang Case và trang Collection — mọi khối dùng chung để thẳng mép */
+  --content-max: 1600px;    /* Đổi số này để chỉnh độ rộng trang */
+  --page-gutter: 32px;      /* khoảng cách hai bên mép màn hình (màn hình ≤760px: 16px) */
+
+  --radius: 4px;
+  --radius-lg: 8px;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+html { scrollbar-color: #3a4250 var(--bg); } /* thanh cuộn tối (nhất là trong app desktop) */
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 420px at 50% 230px, rgba(82, 183, 42, 0.07), transparent 70%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.45;
+}
+
+h1, h2 { margin: 0; }
+

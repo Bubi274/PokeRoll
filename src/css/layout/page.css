@@ -1,0 +1,79 @@
+/* Bố cục chung của trang. */
+
+/* ===== Bố cục ===== */
+.container {
+  max-width: calc(var(--content-max) + 2 * var(--page-gutter));
+  margin: 0 auto;
+  padding: 24px var(--page-gutter) 48px;
+  display: grid;
+  gap: 20px;
+}
+
+/* Không cho nội dung rộng (vd. hàng Recent drops) kéo giãn cả trang */
+.container > * { min-width: 0; }
+
+/* Khu vực mở hòm (dải quay + nút) và Recent drops: màn hình nhỏ xếp chồng như cũ */
+.case-top,
+.case-stage { display: grid; gap: inherit; min-width: 0; }
+.case-stage > * { min-width: 0; }
+
+/* Khối "Select generations" + "Current case": màn hình nhỏ xếp chồng, khoảng cách bằng khoảng cách giữa các panel */
+.case-setup { display: grid; gap: inherit; min-width: 0; }
+.case-setup > .panel { min-width: 0; }
+
+/* Màn hình rộng: 2 cột 50/50, dải quay và Recent drops thẳng hàng với khối 2 cột */
+@media (min-width: 1024px) {
+  /* Hàng trên: khu vực mở hòm 80% | Recent drops 20%, cao bằng nhau, cùng mép với khối 2 cột bên dưới */
+  .case-top { grid-template-columns: 4fr 1fr; align-items: stretch; }
+  .case-setup { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .panel-gens { container-type: inline-size; } /* để lưới gen tự chuyển 2 cột khi cột hẹp */
+
+  /* Cột hẹp hơn trước: giữ tiêu đề và nút / số Pokémon trên cùng một hàng, dòng mô tả tự xuống dòng */
+  .case-setup .panel-head { flex-wrap: nowrap; align-items: flex-start; }
+  .case-setup .panel-title { flex: 1 1 auto; }
+  .case-setup .panel-head > :last-child { flex-shrink: 0; }
+
+  /* Bảng tỉ lệ giãn đều các hàng để lấp hết chiều cao panel */
+  .panel-pool { display: flex; flex-direction: column; }
+  .panel-pool .rarity-list { flex: 1; grid-auto-rows: 1fr; }
+}
+
+.panel {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.panel-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.panel-head h2::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(82, 183, 42, 0.8);
+}
+

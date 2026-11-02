@@ -1,7 +1,8 @@
-// Giao diện app là tiếng Anh: không có chữ tiếng Việt trong chuỗi của app.js / main.js / special.js
-// (comment thì được) và trong index.html / style.css ngoài phần comment.
+// Giao diện app là tiếng Anh: không có chữ tiếng Việt trong chuỗi của src/js / main.js / special.js
+// (comment thì được) và trong index.html / src/css ngoài phần comment.
 const fs = require("fs"), path = require("path");
 const dir = path.join(__dirname, "..", "..");
+const { appFiles, cssFiles } = require("../sources");
 const VI = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
 const NAMES = /Pok(é|<span>é<\/span>)(mon|dex|Roll)|Flabébé/g; // tên riêng có chữ é
 let fails = 0;
@@ -37,7 +38,7 @@ function scanHtml(file) { const s = fs.readFileSync(file, "utf8").replace(/<!--[
   return s.split("\n").map((t, k) => VI.test(t.replace(NAMES, "")) ? `${file}:${k + 1}: ${t.trim().slice(0, 120)}` : null).filter(Boolean); }
 function scanCss(file) { const s = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
   return s.split("\n").map((t, k) => VI.test(t.replace(NAMES, "")) ? `${file}:${k + 1}: ${t.trim().slice(0, 120)}` : null).filter(Boolean); }
-for (const f of ["src/js/app.js", "electron/main.js", "data/special.js", "index.html", "src/css/style.css"]) {
+for (const f of [...appFiles, "electron/main.js", "data/special.js", "index.html", ...cssFiles]) {
   const file = path.join(dir, f);
   const hits = (f.endsWith(".html") ? scanHtml(file) : f.endsWith(".css") ? scanCss(file) : scanJs(file)).map((h) => h.replace(dir + path.sep, ""));
   check(`${f}: no Vietnamese text in the UI`, hits.length === 0, hits.slice(0, 3).join(" | "));

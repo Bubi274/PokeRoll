@@ -1,0 +1,84 @@
+/* Chân trang, trạng thái focus bằng bàn phím và chỉnh cho màn hình nhỏ. */
+
+/* ===== Chân trang: credit & disclaimer ===== */
+.site-footer {
+  margin-top: 8px;
+  padding: 28px 16px 32px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+.site-footer p { max-width: 680px; margin: 0 auto 4px; }
+.site-footer p:last-of-type { margin-top: 10px; }
+.site-footer a { color: inherit; text-decoration: underline; text-decoration-color: rgba(255, 255, 255, 0.25); text-underline-offset: 3px; }
+.site-footer a:hover { color: var(--text); }
+/* Bản desktop: số phiên bản + nút kiểm tra cập nhật (trông như link) */
+.app-version { margin-top: 10px; font-family: var(--font-mono); font-size: 0.72rem; }
+.app-version[hidden], #app-update[hidden] { display: none; }
+.link-btn {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.25);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.link-btn:hover:not(:disabled) { color: var(--text); }
+.link-btn:disabled { cursor: progress; }
+
+/* ===== Trạng thái focus bằng bàn phím ===== */
+button { -webkit-tap-highlight-color: transparent; }
+.btn:focus-visible,
+.tab:focus-visible,
+.gp:focus-visible,
+.hist:focus-visible,
+button.mini:focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.is-winner { animation: none; }
+  .btn-spin:hover:not(:disabled) { transform: none; }
+}
+
+/* Màn hình hẹp: đưa "Created by" xuống dưới dòng mô tả để không đè lên logo */
+@media (max-width: 760px) {
+  :root { --page-gutter: 16px; }
+  .credit { position: static; transform: none; margin-top: 4px; font-size: 0.78rem; }
+}
+
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .topbar { padding: 16px var(--page-gutter) 10px; }
+  .logo { font-size: 1.7rem; }
+  .logo-mark { width: 26px; height: 26px; }
+  .logo-mark svg { width: 15px; height: 15px; }
+  .tabs { gap: 14px; padding: 0 8px; }
+  .tab { font-size: 0.78rem; gap: 6px; }
+
+  .container { padding: 16px var(--page-gutter) 32px; gap: 14px; }
+  .panel { padding: 14px; }
+  .panel-head { margin-bottom: 12px; }
+
+  .reel { --card-w: 112px; padding: 18px 0; }
+  .reel-strip { gap: 6px; }
+  .card { padding: 7px 6px 9px; }
+  .card-type { display: none; }
+  .card-shiny { top: 6px; right: 7px; }
+  .card-name { font-size: 0.8rem; }
+  .card-meta { font-size: 0.6rem; }
+
+  .btn-spin { padding: 14px 20px; font-size: 0.95rem; }
+  .spin-actions { width: 100%; }
+  .spin-actions .btn { flex: 1 1 auto; padding: 9px 10px; }
+  .recent-row { grid-auto-columns: 150px; }
+  .mini-img { width: 60px; height: 60px; }
+  .site-footer { padding: 20px 12px 24px; font-size: 0.7rem; }
+}
+

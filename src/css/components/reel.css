@@ -1,0 +1,234 @@
+/* Khu vực nút quay, dải thẻ quay và thẻ Pokémon trên dải. */
+
+/* ===== Khu vực nút quay ===== */
+.spin-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.spin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.hint {
+  margin: 0;
+  min-height: 1.4em;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.error {
+  padding: 16px;
+  border: 1px solid var(--r-red);
+  border-radius: var(--radius);
+  background: rgba(235, 75, 75, 0.1);
+}
+
+/* Gợi ý phím tắt (chỉ hiện khi có bàn phím + chuột, ẩn trên điện thoại/máy tính bảng) */
+.kbd-hint {
+  display: none;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #6b7380;
+}
+.kbd-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  font: inherit;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .kbd-hint { display: block; }
+}
+.result-actions .kbd-hint { align-self: center; margin-right: auto; }
+
+/* ===== Dải thẻ quay ===== */
+.reel {
+  --card-w: 156px;
+  --reel-bg: #0d1117;
+  position: relative;
+  overflow: hidden;
+  padding: 26px 0;
+  background:
+    radial-gradient(60% 90% at 50% 100%, rgba(255, 255, 255, 0.035), transparent 70%),
+    var(--reel-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+}
+
+/* Làm mờ hai mép trái/phải */
+.reel::before,
+.reel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14%;
+  z-index: 2;
+  pointer-events: none;
+}
+.reel::before { left: 0; background: linear-gradient(90deg, var(--reel-bg), transparent); }
+.reel::after { right: 0; background: linear-gradient(270deg, var(--reel-bg), transparent); }
+
+.reel-strip {
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  will-change: transform;
+}
+
+/* Vạch chỉ ở chính giữa: lúc đứng yên chỉ còn hai mũi tam giác (không đè lên thẻ thắng),
+   lúc quay hiện thêm kim vàng chạy dọc dải */
+.reel-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: rgba(255, 184, 46, 0);
+  z-index: 3;
+  pointer-events: none;
+  transition: box-shadow 0.4s, background 0.4s;
+}
+.reel-marker::before,
+.reel-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
+}
+.reel-marker::before { top: 0; border-top-color: var(--amber); }
+.reel-marker::after { bottom: 0; border-bottom-color: var(--amber); }
+
+/* Kim sáng hơn khi đang quay */
+.reel.is-spinning .reel-marker {
+  background: var(--amber);
+  box-shadow: 0 0 14px 1px rgba(255, 215, 0, 0.7);
+}
+
+.reel-empty {
+  display: none;
+  margin: 0;
+  padding: 80px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+.reel.is-empty .reel-empty { display: block; }
+.reel.is-empty .reel-marker { display: none; }
+
+/* ===== Thẻ Pokémon trên dải quay ===== */
+/* Màu độ hiếm: thẻ nào có lớp r-* thì lấy màu đó (thẻ quay, hàng tỉ lệ luôn có lớp này) */
+.r-blue   { --c: var(--r-blue); }
+.r-purple { --c: var(--r-purple); }
+.r-pink   { --c: var(--r-pink); }
+.r-red    { --c: var(--r-red); }
+.r-gold   { --c: var(--r-gold); }
+
+.card {
+  position: relative;
+  flex: 0 0 var(--card-w);
+  aspect-ratio: 4 / 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 10px 12px;
+  background:
+    radial-gradient(90% 60% at 50% 100%, color-mix(in srgb, var(--c) 30%, transparent), transparent 75%),
+    linear-gradient(180deg, #1a2230, #121720);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top-color: rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  box-shadow: inset 0 -3px 0 var(--c), 0 6px 14px -8px color-mix(in srgb, var(--c) 80%, transparent);
+  user-select: none;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1;
+}
+.card-id { color: var(--muted); }
+.card-type {
+  min-width: 0;
+  padding: 3px 5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--t);
+  background: color-mix(in srgb, var(--t) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--t) 45%, transparent);
+  border-radius: 2px;
+}
+
+.card-img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  margin: 6px 0 4px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+}
+
+.card-name {
+  max-width: 100%;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-meta {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.card-tier { display: none; color: var(--c); font-weight: 600; }
+
+.card-shiny {
+  position: absolute;
+  top: 28px;
+  right: 10px;
+  color: var(--r-gold);
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.9);
+}
+
+/* Thẻ thắng: phóng to nhẹ, viền phát sáng theo độ hiếm */
+.card.is-winner {
+  z-index: 1;
+  transform: scale(1.04);
+  border-color: var(--c);
+  box-shadow: inset 0 -3px 0 var(--c), 0 0 24px -2px color-mix(in srgb, var(--c) 75%, transparent);
+  animation: winner-pop 0.6s ease-out;
+}
+.card.is-winner .card-tier { display: inline; }
+@keyframes winner-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.1); }
+  100% { transform: scale(1.04); }
+}
+

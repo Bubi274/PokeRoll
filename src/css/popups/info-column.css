@@ -1,0 +1,220 @@
+/* Popup kết quả và chi tiết: nhãn hệ và cột thông tin. */
+
+/* ===== Hệ (type) ===== */
+.type-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.type-chip {
+  padding: 3px 9px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--t) 85%, black);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* ----- Cột thông tin ----- */
+.reveal-info { display: grid; gap: 14px; min-width: 0; align-content: start; }
+
+.tier-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 16px;
+  padding: 16px 18px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 12%, transparent), transparent 70%), var(--bg-2);
+  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+  border-radius: 6px;
+}
+.result-rarity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c);
+}
+.result-rarity::before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 10px var(--c);
+}
+.tier-rule { margin: 4px 0 0; color: var(--muted); font-size: 0.88rem; }
+.tier-odds {
+  display: grid;
+  justify-items: end;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.tier-odds b { font-size: 1.15rem; color: var(--c); letter-spacing: 0; }
+.tier-fold { font-size: 0.66rem; text-transform: none; letter-spacing: 0; text-align: right; }
+
+/* Khung "1 in N" */
+.odds {
+  display: grid;
+  gap: 2px;
+  padding: 14px 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c);
+  border-radius: var(--radius);
+}
+.odds-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.odds-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--c);
+}
+.is-epic .odds-value { text-shadow: 0 0 16px color-mix(in srgb, var(--c) 55%, transparent); }
+.odds-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.shiny-tag {
+  padding: 2px 8px;
+  border-radius: 2px;
+  background: var(--r-gold);
+  color: #2a1d00;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-shadow: none;
+}
+
+.result-note {
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  color: var(--amber);
+  background: rgba(255, 184, 46, 0.08);
+  border: 1px solid rgba(255, 184, 46, 0.3);
+  border-radius: var(--radius);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.facts > div {
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.facts dt {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.facts dd {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.owned-line {
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: var(--bg-2);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+}
+.owned-line.is-owned {
+  color: #8fd16a;
+  border: 1px solid rgba(82, 183, 42, 0.35);
+  background: rgba(82, 183, 42, 0.07);
+}
+
+/* Thanh 5 nấc độ hiếm */
+.tier-ladder {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding: 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.rung {
+  display: grid;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: #5d6570;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.rung i {
+  display: block;
+  height: 5px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--c) 30%, transparent);
+}
+.rung.is-current { color: var(--c); font-weight: 700; }
+.rung.is-current i { background: var(--c); box-shadow: 0 0 10px var(--c); }
+
+/* Nút cuối popup kết quả */
+.result-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.btn-again {
+  width: auto;
+  padding: 11px 24px;
+  font-size: 0.9rem;
+}
+.btn-again::before {
+  content: "";
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 11a8 8 0 1 0-2.3 5.7'/%3E%3Cpath d='M20 4v7h-7'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 11a8 8 0 1 0-2.3 5.7'/%3E%3Cpath d='M20 4v7h-7'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.result-actions .btn-ghost { padding: 11px 20px; }
+
+/* Ô vừa được tìm tới bằng "View in collection": viền vàng nháy 2 lần rồi mờ dần */
+.mini.is-located {
+  z-index: 1;
+  animation: locate-pulse 1.6s ease-out 2;
+}
+@keyframes locate-pulse {
+  0%, 45% { box-shadow: inset 0 -3px 0 var(--c), 0 0 0 2px var(--amber), 0 0 22px 2px rgba(255, 184, 46, 0.7); }
+  100% { box-shadow: inset 0 -3px 0 var(--c), 0 0 0 2px rgba(255, 184, 46, 0), 0 0 22px 2px rgba(255, 184, 46, 0); }
+}
+

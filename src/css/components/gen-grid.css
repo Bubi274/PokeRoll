@@ -1,0 +1,85 @@
+/* Lưới chọn gen. */
+
+/* ===== Dòng mô tả ngắn dưới tiêu đề panel ===== */
+.panel-title { display: grid; gap: 4px; min-width: 0; }
+.panel-sub { margin: 0; color: var(--muted); font-size: 0.82rem; }
+
+/* ===== Lưới chọn gen ===== */
+.gen-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.gen-option { cursor: pointer; }
+.gen-option.is-special { grid-column: 1 / -1; } /* nhóm Special nằm riêng một hàng dưới 9 gen */
+
+/* Cột chọn gen quá hẹp (dưới ~400px khi chia 2 cột): 3 ô một hàng sẽ chật chữ → chuyển 2 cột */
+@container (max-width: 400px) {
+  .gen-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Ẩn checkbox gốc nhưng vẫn dùng được bằng bàn phím */
+.gen-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gen-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 40px 12px 14px;
+  background: var(--bg-2);
+  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.15s;
+  user-select: none;
+}
+
+/* Ô tick vẽ bằng CSS ở góc phải trên */
+.gen-card::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  border-radius: 3px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.gen-option:hover .gen-card { border-color: rgba(255, 255, 255, 0.18); }
+.gen-option:hover input:checked:not(:disabled) + .gen-card { border-color: var(--accent-hover); box-shadow: inset 0 0 18px -8px rgba(82, 183, 42, 0.6), 0 0 12px -4px rgba(82, 183, 42, 0.5); }
+
+.gen-option input:checked + .gen-card {
+  background: rgba(82, 183, 42, 0.08);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 18px -8px rgba(82, 183, 42, 0.6);
+}
+.gen-option input:checked + .gen-card::after {
+  border-color: var(--accent);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23081204' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 8.5 3 3 6-7'/%3E%3C/svg%3E") center / 12px no-repeat,
+    var(--accent);
+}
+
+.gen-option input:focus-visible + .gen-card {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
+}
+
+.gen-name { font-family: var(--font-mono); font-weight: 600; font-size: 0.95rem; }
+.gen-region { font-size: 0.85rem; color: var(--text); }
+.gen-count { margin-top: 4px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+
+/* Gen chưa chọn: chữ mờ đi để thấy rõ không nằm trong hòm */
+.gen-option input:not(:checked) + .gen-card .gen-name,
+.gen-option input:not(:checked) + .gen-card .gen-region { color: var(--muted); }
+
+/* Nút All / None nhỏ gọn */
+.btn-group .btn-ghost { padding: 6px 14px; font-size: 0.75rem; }
+

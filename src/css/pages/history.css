@@ -1,0 +1,131 @@
+/* Lịch sử quay. */
+
+/* ===== Lịch sử quay ===== */
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px 0 0;
+  display: grid;
+  gap: 6px;
+  max-height: 460px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3a4250 transparent;
+}
+
+.hist {
+  --c: var(--muted);
+  display: grid;
+  grid-template-columns: 52px 1fr auto 112px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 6px 14px 6px 8px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--c) 10%, transparent), transparent 40%),
+    var(--bg-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.hist:hover { border-color: color-mix(in srgb, var(--c) 50%, transparent); border-left-color: var(--c); }
+.hist.r-blue   { --c: var(--r-blue); }
+.hist.r-purple { --c: var(--r-purple); }
+.hist.r-pink   { --c: var(--r-pink); }
+.hist.r-red    { --c: var(--r-red); }
+.hist.r-gold   { --c: var(--r-gold); }
+
+.hist-thumb {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  background: radial-gradient(circle at 50% 70%, color-mix(in srgb, var(--c) 30%, transparent), transparent 70%), #0c1016;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 2px solid var(--c);
+  border-radius: 3px;
+}
+.hist .mini-img { width: 46px; height: 46px; }
+
+.hist-main { display: grid; gap: 1px; min-width: 0; }
+.hist-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+}
+.hist.r-red .hist-name,
+.hist.r-gold .hist-name { color: var(--c); }
+.hist-name .mini-shiny {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 0.64rem;
+  color: #2a1d00;
+  background: var(--r-gold);
+  border-radius: 2px;
+  text-shadow: none;
+  vertical-align: 2px;
+}
+.hist-meta { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); }
+
+.hist-rarity {
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  border-radius: 2px;
+}
+.hist-time { justify-self: end; font-family: var(--font-mono); color: var(--muted); font-size: 0.72rem; }
+
+.history-list .hint { padding: 24px 0; }
+
+@media (max-width: 760px) {
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stat:first-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 480px) {
+  .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { padding: 11px; }
+  .stat-label { font-size: 0.6rem; letter-spacing: 0.04em; }
+  .stat-value { font-size: 1.3rem; }
+  .stat:first-child .stat-value { font-size: 1.9rem; }
+  .rarity-progress { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .rp { grid-column: span 2; padding: 9px 10px; }
+  .rp:nth-child(n + 4) { grid-column: span 3; } /* 3 ô trên, 2 ô dưới */
+  .rp-count b { font-size: 1.05rem; }
+  .gen-progress { grid-template-columns: repeat(2, 1fr); gap: 6px; } /* 10 ô → 5 hàng đều nhau */
+  .gp { padding: 8px; gap: 5px; }
+  .gp-top { flex-wrap: wrap; gap: 0 5px; font-size: 0.76rem; }
+  .gp-region { font-size: 0.7rem; }
+  .gp-count { font-size: 0.62rem; }
+  .filters { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .filters select { flex: 1 1 0; min-width: 0; padding: 8px 24px 8px 9px; font-size: 0.7rem; text-overflow: ellipsis; background-position: right 6px center, 0 0; }
+  #view-collection #coll-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  #view-collection #coll-grid .mini { padding: 6px 4px 8px; }
+  #view-collection #coll-grid .mini-img { width: 64px; height: 64px; }
+  #view-collection #coll-grid .mini-name { font-size: 0.72rem; }
+  .hist { grid-template-columns: 44px 1fr auto; gap: 10px; padding: 5px 10px 5px 6px; }
+  .hist-thumb { width: 44px; height: 44px; }
+  .hist .mini-img { width: 40px; height: 40px; }
+  .hist-thumb, .hist-main { grid-row: span 2; }
+  .hist-name { white-space: normal; font-size: 0.92rem; }
+  .hist-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.62rem; }
+  .hist-rarity { align-self: end; justify-self: end; }
+  .hist-time { align-self: start; font-size: 0.62rem; }
+}
+

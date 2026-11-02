@@ -1,0 +1,57 @@
+/* Hiệu ứng chuyển động, chỉ để hiển thị. */
+
+/* ===== Hiệu ứng chuyển động (chỉ hiển thị) =====
+   Chỉ bật khi hệ điều hành không yêu cầu giảm chuyển động và <html> không có class no-motion
+   (app.js thêm class này khi trang mở với ?nomotion, dùng cho test). Không đụng tới dải quay và bánh xe. */
+@media (prefers-reduced-motion: no-preference) {
+  /* Bảng tỉ lệ: thanh chạy từ độ dài cũ tới mới, giảm tốc cuối, các hàng lệch nhau 40ms (--i do app.js đặt).
+     % đọc trực tiếp từ thanh (followBar trong app.js), số Pokémon đếm dần cùng nhịp (countTo). */
+  html:not(.no-motion) .rarity-row {
+    transition: --p 550ms cubic-bezier(0.33, 1, 0.68, 1) calc(var(--i, 0) * 40ms);
+  }
+
+  /* Ô chọn gen: dấu tick bật ra nhẹ */
+  html:not(.no-motion) .gen-option input:checked + .gen-card::after {
+    animation: tick-pop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+
+  /* Chuyển tab và chuyển chế độ Custom: nội dung mờ dần vào, trượt lên vài px */
+  html:not(.no-motion) .view:not([hidden]),
+  html:not(.no-motion) .mode-panel:not([hidden]) {
+    animation: view-in 0.2s ease-out;
+  }
+
+  /* Popup (kết quả, View case contents, chi tiết): fade + phóng nhẹ */
+  html:not(.no-motion) .modal[open] { animation: modal-enter 0.2s ease-out; }
+  html:not(.no-motion) .modal[open]::backdrop { animation: backdrop-in 0.2s ease-out; }
+
+  /* Bánh xe vẽ lại vì đổi gen làm thêm / bớt ô */
+  html:not(.no-motion) .wheel-disc svg.is-redrawn { animation: wheel-redraw 0.35s ease-out; }
+
+  /* Hover: nhấc nhẹ thẻ Pokémon, ô gen, nút */
+  html:not(.no-motion) button.mini:hover,
+  html:not(.no-motion) .gen-option:not(:has(input:disabled)):hover .gen-card { transform: translateY(-2px); }
+  html:not(.no-motion) .recent-item:hover,
+  html:not(.no-motion) .btn-ghost:hover:not(:disabled),
+  html:not(.no-motion) .mode-btn:hover:not(:disabled) { transform: translateY(-1px); }
+}
+
+@keyframes tick-pop {
+  from { transform: scale(0.5); }
+  to   { transform: scale(1); }
+}
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes modal-enter {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes backdrop-in {
+  from { opacity: 0; }
+}
+@keyframes wheel-redraw {
+  from { opacity: 0.25; }
+  to   { opacity: 1; }
+}

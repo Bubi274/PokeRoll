@@ -1,0 +1,43 @@
+/* Thẻ nhỏ dùng ở Recent drops, nội dung hòm và bộ sưu tập. */
+
+/* ===== Thẻ nhỏ (recent drops, nội dung hòm, bộ sưu tập) ===== */
+.mini {
+  --c: var(--muted);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 6px 4px 8px;
+  background:
+    radial-gradient(90% 55% at 50% 100%, color-mix(in srgb, var(--c) 22%, transparent), transparent 75%),
+    linear-gradient(180deg, #1a2230, #121720);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  box-shadow: inset 0 -3px 0 var(--c);
+}
+.mini[hidden] { display: none; }
+
+.mini-img {
+  width: 72px;
+  height: 72px;
+  image-rendering: pixelated;
+}
+.mini-name {
+  max-width: 100%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mini-id { font-family: var(--font-mono); font-size: 0.66rem; color: var(--muted); }
+
+button.mini {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+button.mini:hover { border-color: color-mix(in srgb, var(--c) 60%, transparent); box-shadow: inset 0 -3px 0 var(--c), 0 0 12px -4px color-mix(in srgb, var(--c) 70%, transparent); }
+

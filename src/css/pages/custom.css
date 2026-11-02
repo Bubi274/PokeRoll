@@ -1,0 +1,132 @@
+/* Trang Custom: thanh chọn chế độ, nút hành động, panel luật chơi. */
+
+/* ===== Trang Custom ===== */
+
+/* Thanh chọn chế độ: mỗi chế độ đã đăng ký là một nút; nhiều chế độ thì cuộn ngang */
+.mode-bar {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 2px;
+}
+
+.mode-btn {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "icon name" "icon desc";
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 1px;
+  flex: 0 1 380px;
+  min-width: 250px;
+  padding: 11px 16px 11px 11px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.mode-btn:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.18); }
+.mode-btn:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+.mode-btn:disabled { cursor: not-allowed; }
+.mode-btn:disabled:not([aria-selected="true"]) { opacity: 0.5; }
+
+.mode-icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--muted);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+.mode-name { grid-area: name; font-family: var(--font-display); font-size: 1rem; font-weight: 600; }
+.mode-desc { grid-area: desc; font-size: 0.8rem; color: var(--muted); }
+
+/* Chế độ đang chọn: viền và biểu tượng màu hổ phách, giống tab đang mở */
+.mode-btn[aria-selected="true"] {
+  background: rgba(255, 184, 46, 0.06);
+  border-color: var(--amber);
+}
+.mode-btn[aria-selected="true"] .mode-icon {
+  color: var(--amber);
+  border-color: var(--amber);
+  background: rgba(255, 184, 46, 0.1);
+}
+
+.mode-stage, .mode-panel { min-width: 0; }
+.mode-panel[hidden] { display: none; }
+
+/* Nút hành động trang Custom: mỗi hành động = nút chính + nút ⚡ (quick).
+   Nút mà phím Space bấm thì xanh đặc, các nút khác viền xanh. */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+.action-group { display: flex; gap: 6px; flex: 0 1 360px; min-width: 0; }
+.spin-area .action-main {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  letter-spacing: 0.1em;
+}
+.spin-area .action-main::before { content: none; } /* bỏ ổ khóa của nút "Open case" trang Case */
+.action-main svg { flex-shrink: 0; }
+.action-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.action-quick { flex: 0 0 54px; padding: 0; }
+.action-quick svg { color: var(--amber); }
+.action-quick:disabled svg { color: var(--muted); }
+
+.btn-spin.is-secondary:not(:disabled) {
+  color: var(--accent);
+  background: rgba(82, 183, 42, 0.06);
+  border-color: rgba(82, 183, 42, 0.7);
+}
+.btn-spin.is-secondary:hover:not(:disabled) {
+  background: rgba(82, 183, 42, 0.14);
+  box-shadow: 0 0 16px rgba(82, 183, 42, 0.3);
+}
+
+/* Bảng chọn gen bị khóa trong lúc quay (trang Custom) */
+.gen-option:has(input:disabled) { cursor: not-allowed; }
+.gen-option input:disabled + .gen-card { opacity: 0.55; }
+
+/* Panel "How it works": luật của chế độ đang chọn */
+.mode-rule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.mode-rule-list li {
+  position: relative;
+  padding: 10px 14px 10px 30px;
+  font-size: 0.88rem;
+  background: var(--bg-2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius);
+}
+.mode-rule-list li::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: calc(10px + 0.5em);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+@media (min-width: 1024px) {
+  .mode-rules { display: flex; flex-direction: column; }
+}
+

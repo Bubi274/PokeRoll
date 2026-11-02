@@ -1,13 +1,12 @@
-// Thời gian chờ tối đa trong test giao diện, tính từ chính các hằng số thời gian trong app.js cho trường hợp xấu nhất
+// Thời gian chờ tối đa trong test giao diện, tính từ chính các hằng số thời gian trong src/js cho trường hợp xấu nhất
 // (máy chậm như GitHub Actions): chờ tải ảnh hết hạn, dải bắt đầu trễ, đồng hồ dự phòng, cộng thêm phần dư.
-// Đổi thời gian quay trong app.js thì test tự theo, không phải sửa con số ở từng file test.
-const fs = require("fs");
-const path = require("path");
+// Đổi thời gian quay trong src/js thì test tự theo, không phải sửa con số ở từng file test.
+const { appSource } = require("../sources");
 
-const src = fs.readFileSync(path.join(__dirname, "..", "..", "src", "js", "app.js"), "utf8");
+const src = appSource();
 function constant(name) {
   const m = src.match(new RegExp(`^const ${name} = (\\d+);`, "m"));
-  if (!m) throw new Error(`${name} not found in app.js`);
+  if (!m) throw new Error(`${name} not found in src/js`);
   return Number(m[1]);
 }
 

@@ -19,6 +19,26 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
 - **Special** group: the 8 Kazeran forms from the Cobblemon addon [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions), with their evolution methods. Ranked by the same BST rules, tracked separately in the collection (X/8)
 - Animated odds table, page and popup transitions. Turned off when your system asks for reduced motion, or by opening `index.html?nomotion`
 
+## Project structure
+
+```text
+index.html       the page; lists every stylesheet and script in load order
+src/js/core/     configuration, rolling and odds logic, storage, shared state
+src/js/ui/       parts used across pages: reel, odds table, popups, sound, images, motion
+src/js/pages/    the Case, Collection and Custom pages, and switching between them
+src/js/modes/    Custom modes: wheel code, custom pool editor, Type, Biome and Letter Roulette
+src/js/boot/     desktop footer and app start-up
+src/css/         fonts.css, plus base/, layout/, components/, popups/, pages/ and modes/ styles
+data/            generated data files (Pokémon, spawns, Special group)
+assets/          bundled images and fonts
+electron/        desktop app: main process and preload
+scripts/         data generators and the release script
+tests/           logic tests (Node) and UI tests (Electron)
+build/           icons used when packaging the desktop app
+```
+
+The site has no build step and uses plain `<script>` tags so it also runs from `file://`. **When you add a JS or CSS file, add its tag to `index.html` in the right position:** a script must come after any file its top-level code depends on, stylesheets apply in the order they are listed, and `src/js/boot/init.js` stays last. The tests read the file list from `index.html`, so a file without a tag is not tested either.
+
 ## Installing
 
 Download the latest version from the [Releases page](https://github.com/Bubi274/PokeRoll/releases/latest):
