@@ -81,9 +81,11 @@ function trackTicks(reel = $("reel")) {
     const step = strip.children[1].offsetLeft - first.offsetLeft;
     const t = getComputedStyle(strip).transform;
     const x = (t && t !== "none" ? new DOMMatrixReadOnly(t).m41 : 0) + (parseFloat(strip.style.translate) || 0);
-    const index = Math.floor((reel.clientWidth / 2 - x - first.offsetLeft) / step);
-    if (last !== null && index !== last) playTick();
-    last = index;
+    if (step > 0) { // dải đang ẩn (ở trang khác): không đo được vị trí, không phát tiếng tick
+      const index = Math.floor((reel.clientWidth / 2 - x - first.offsetLeft) / step);
+      if (last !== null && index !== last) playTick();
+      last = index;
+    }
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
@@ -98,6 +100,7 @@ function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
   const offsetFrac = reelOffsets.get(reel);
   let shift = 0;                       // dời thêm vì đổi cỡ giữa lượt quay (thuộc tính translate, không có hiệu ứng)
   let duration = ms;                   // thời gian của chuyển động đang chạy
+  let started = false;                 // dải đã thực sự bắt đầu chạy (transitionstart)
   let endsAt = performance.now() + ms; // lúc dải dừng; tính lại khi dải thực sự bắt đầu chạy
 
   void strip.offsetWidth; // ép trình duyệt áp vị trí đầu trước khi bắt đầu chạy
@@ -132,6 +135,7 @@ function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
     };
     const onStart = (e) => {
       if (e.target !== strip || e.propertyName !== "transform") return;
+      started = true;
       endsAt = performance.now() + duration;
       clearTimeout(fallback);
       fallback = setTimeout(() => finish(true), duration + 500);
@@ -151,10 +155,12 @@ function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
         strip.style.translate = shift ? `${shift}px` : "";
         return;
       }
-      // Dải chưa chạy (vd. bắt đầu quay lúc còn ẩn ở trang khác): chạy tới điểm dừng trong thời gian còn lại.
       target = next;
       shift = 0;
       strip.style.translate = "";
+      // Đã chạy rồi bị huỷ (trang bị ẩn giữa lượt quay): dải đã nhảy tới cuối, dừng luôn ở thẻ thắng.
+      if (started) return finish(true);
+      // Chưa từng chạy (bắt đầu quay lúc còn ẩn ở trang khác): chạy tới điểm dừng trong thời gian còn lại.
       duration = Math.max(0, endsAt - performance.now());
       if (duration === 0) return finish(true);
       strip.style.transition = `transform ${duration}ms ${ease}`;

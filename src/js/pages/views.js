@@ -11,6 +11,7 @@ function showView(view) {
     tab.classList.toggle("is-active", active);
     tab.setAttribute("aria-selected", String(active));
   }
+  if (view === "case") realignReel(); // dải có thể đã quay hoặc dừng lúc trang còn ẩn (chưa đo được kích thước)
   if (view === "collection") renderCollection();
   if (view === "custom") showCustomMode(); // trang vừa hiện ra mới đo được kích thước để căn dải quay
   window.scrollTo(0, 0);
