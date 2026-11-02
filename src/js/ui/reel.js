@@ -59,8 +59,10 @@ function jumpReel(winIndex, offsetFrac, reel = $("reel")) {
 }
 
 // Đổi cỡ cửa sổ / xoay điện thoại: căn lại để vạch chỉ vẫn nằm trên thẻ thắng.
+// Dải đang quay thì chạy tiếp tới điểm dừng tính theo cỡ mới.
 function realignReel(reel = $("reel")) {
-  if (state.spinning) return;
+  const retarget = reelSpins.get(reel);
+  if (retarget) return retarget();
   const strip = stripOf(reel);
   const winner = strip.querySelector(".is-winner");
   if (winner) jumpReel([...strip.children].indexOf(winner), reelOffsets.get(reel), reel);
@@ -71,15 +73,15 @@ function realignReel(reel = $("reel")) {
 function trackTicks(reel = $("reel")) {
   const strip = stripOf(reel);
   const first = strip.children[0];
-  const step = strip.children[1].offsetLeft - first.offsetLeft;
-  const center = reel.clientWidth / 2;
   let last = null;
   let running = true;
   const loop = () => {
     if (!running) return;
+    // Đo lại mỗi khung hình: cỡ dải có thể đổi giữa lượt quay (đổi cỡ cửa sổ)
+    const step = strip.children[1].offsetLeft - first.offsetLeft;
     const t = getComputedStyle(strip).transform;
-    const x = t && t !== "none" ? new DOMMatrixReadOnly(t).m41 : 0;
-    const index = Math.floor((center - x - first.offsetLeft) / step);
+    const x = (t && t !== "none" ? new DOMMatrixReadOnly(t).m41 : 0) + (parseFloat(strip.style.translate) || 0);
+    const index = Math.floor((reel.clientWidth / 2 - x - first.offsetLeft) / step);
     if (last !== null && index !== last) playTick();
     last = index;
     requestAnimationFrame(loop);
@@ -91,10 +93,15 @@ function trackTicks(reel = $("reel")) {
 // Chạy dải thẻ tới thẻ thắng trong ms mili giây (mặc định SPIN_MS như trang Case). Trả về Promise xong khi dải dừng.
 function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
   const strip = stripOf(reel);
-  const target = reelTarget(winIndex, undefined, reel);
+  const ease = "cubic-bezier(0.08, 0.6, 0, 1)";
+  let target = reelTarget(winIndex, undefined, reel); // điểm dừng = đích của transform + shift
+  const offsetFrac = reelOffsets.get(reel);
+  let shift = 0;                       // dời thêm vì đổi cỡ giữa lượt quay (thuộc tính translate, không có hiệu ứng)
+  let duration = ms;                   // thời gian của chuyển động đang chạy
+  let endsAt = performance.now() + ms; // lúc dải dừng; tính lại khi dải thực sự bắt đầu chạy
 
   void strip.offsetWidth; // ép trình duyệt áp vị trí đầu trước khi bắt đầu chạy
-  strip.style.transition = `transform ${ms}ms cubic-bezier(0.08, 0.6, 0, 1)`;
+  strip.style.transition = `transform ${ms}ms ${ease}`;
   strip.style.transform = `translateX(${target}px)`;
   reel.classList.add("is-spinning");
   const stopTicks = trackTicks(reel);
@@ -111,9 +118,11 @@ function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
       if (finished) return;
       finished = true;
       clearTimeout(fallback);
-      if (snap) {
+      reelSpins.delete(reel);
+      if (snap || shift) {
         strip.style.transition = "none"; // huỷ chuyển động đang chờ / đang chạy, giá trị nhảy tới đích
-        strip.style.transform = `translateX(${target}px)`;
+        strip.style.transform = `translateX(${target}px)`; // gộp phần dời vào transform: vị trí trên màn hình không đổi
+        strip.style.translate = "";
       }
       stopTicks();
       reel.classList.remove("is-spinning");
@@ -123,13 +132,34 @@ function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
     };
     const onStart = (e) => {
       if (e.target !== strip || e.propertyName !== "transform") return;
+      endsAt = performance.now() + duration;
       clearTimeout(fallback);
-      fallback = setTimeout(() => finish(true), ms + 500);
+      fallback = setTimeout(() => finish(true), duration + 500);
     };
     const onEnd = (e) => { if (e.target === strip) finish(); };
     strip.addEventListener("transitionstart", onStart);
     strip.addEventListener("transitionend", onEnd);
     fallback = setTimeout(() => finish(true), ms + 500 + REEL_START_WAIT_MS);
+    // Cỡ dải đổi giữa lượt quay: tính lại điểm dừng (cùng độ lệch).
+    reelSpins.set(reel, () => {
+      const next = reelTarget(winIndex, offsetFrac, reel);
+      if (strip.getAnimations().length) {
+        // Dải đang chạy: dời cả dải đúng bằng độ lệch của điểm dừng, ngay lúc đổi cỡ (lúc mọi thẻ cũng vừa đổi chỗ).
+        // Chuyển động đang chạy giữ nguyên tốc độ và lúc dừng. Cỡ không đổi thì không có gì thay đổi.
+        shift += next - target;
+        target = next;
+        strip.style.translate = shift ? `${shift}px` : "";
+        return;
+      }
+      // Dải chưa chạy (vd. bắt đầu quay lúc còn ẩn ở trang khác): chạy tới điểm dừng trong thời gian còn lại.
+      target = next;
+      shift = 0;
+      strip.style.translate = "";
+      duration = Math.max(0, endsAt - performance.now());
+      if (duration === 0) return finish(true);
+      strip.style.transition = `transform ${duration}ms ${ease}`;
+      strip.style.transform = `translateX(${target}px)`;
+    });
   });
 }
 
