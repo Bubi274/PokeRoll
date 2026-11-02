@@ -9,7 +9,7 @@ const fs = require("fs"), os = require("os"), path = require("path");
 const SUITES = [
   ["logic", "case"], ["logic", "type-roulette"], ["logic", "biome-roulette"], ["logic", "custom-pool"], ["logic", "letter-roulette"], ["logic", "ui-text"], ["logic", "release"],
   ["ui", "case"], ["ui", "case-odds"], ["ui", "custom"], ["ui", "layout"], ["ui", "type-roulette"], ["ui", "biome-roulette"], ["ui", "case-contents"], ["ui", "wheel-keep"], ["ui", "motion"], ["ui", "desktop"], ["ui", "reel-timing"], ["ui", "custom-pool"], ["ui", "letter-roulette"],
-  ["ui", "reel-resize"], ["ui", "reel-hidden"], ["ui", "wheel-fallback"], ["ui", "history"], ["ui", "favicon"],
+  ["ui", "reel-resize"], ["ui", "reel-hidden"], ["ui", "wheel-fallback"], ["ui", "history"], ["ui", "favicon"], ["ui", "navigation"],
 ];
 const args = process.argv.slice(2);
 const verbose = args.includes("-v");

@@ -41,11 +41,13 @@ function createWindow() {
     openExternal(url);
     return { action: "deny" };
   });
+  // Chỉ cho điều hướng trong chính trang app (index.html, kể cả có ?query như ?nomotion). Điều hướng khác bị chặn,
+  // vd. kéo một file vào cửa sổ (Chromium mở file đó thay cho app); link https thì mở bằng trình duyệt.
+  const pageOf = (url) => url.split(/[?#]/)[0];
   win.webContents.on("will-navigate", (event, url) => {
-    if (!url.startsWith("file://")) {
-      event.preventDefault();
-      openExternal(url);
-    }
+    if (pageOf(url) === pageOf(win.webContents.getURL())) return;
+    event.preventDefault();
+    openExternal(url);
   });
 }
 
