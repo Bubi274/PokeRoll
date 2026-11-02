@@ -4,7 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const src = fs.readFileSync(path.join(__dirname, "..", "..", "app.js"), "utf8");
+const src = fs.readFileSync(path.join(__dirname, "..", "..", "src", "js", "app.js"), "utf8");
 function constant(name) {
   const m = src.match(new RegExp(`^const ${name} = (\\d+);`, "m"));
   if (!m) throw new Error(`${name} not found in app.js`);

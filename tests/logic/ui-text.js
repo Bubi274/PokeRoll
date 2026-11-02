@@ -37,7 +37,7 @@ function scanHtml(file) { const s = fs.readFileSync(file, "utf8").replace(/<!--[
   return s.split("\n").map((t, k) => VI.test(t.replace(NAMES, "")) ? `${file}:${k + 1}: ${t.trim().slice(0, 120)}` : null).filter(Boolean); }
 function scanCss(file) { const s = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
   return s.split("\n").map((t, k) => VI.test(t.replace(NAMES, "")) ? `${file}:${k + 1}: ${t.trim().slice(0, 120)}` : null).filter(Boolean); }
-for (const f of ["app.js", "main.js", "special.js", "index.html", "style.css"]) {
+for (const f of ["src/js/app.js", "electron/main.js", "data/special.js", "index.html", "src/css/style.css"]) {
   const file = path.join(dir, f);
   const hits = (f.endsWith(".html") ? scanHtml(file) : f.endsWith(".css") ? scanCss(file) : scanJs(file)).map((h) => h.replace(dir + path.sep, ""));
   check(`${f}: no Vietnamese text in the UI`, hits.length === 0, hits.slice(0, 3).join(" | "));

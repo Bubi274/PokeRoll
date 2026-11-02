@@ -1,4 +1,4 @@
-// Sinh file spawns.js (nơi xuất hiện của Pokémon trong modpack Cobbleverse)
+// Sinh file data/spawns.js (nơi xuất hiện của Pokémon trong modpack Cobbleverse)
 // từ trang Cobbleverse Wiki: https://thenolan1234.github.io/cobbleverse-wiki/spawns.html
 // Chạy (cần Node.js 18 trở lên):  node scripts/build-spawns.js
 
@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 
 const SOURCE_URL = "https://thenolan1234.github.io/cobbleverse-wiki/spawns.html";
-const OUTPUT = path.join(__dirname, "..", "spawns.js");
+const OUTPUT = path.join(__dirname, "..", "data", "spawns.js");
 const MAX_RETRIES = 5;
 
 const BUCKET_ORDER = ["common", "uncommon", "rare", "ultra-rare"];

@@ -5,7 +5,7 @@
   "description": "CS2-style Pokémon case opening",
   "author": "Bubi",
   "private": true,
-  "main": "main.js",
+  "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
     "images": "node scripts/build-images.js",
@@ -18,16 +18,11 @@
     "appId": "com.bubi.pokeroll",
     "productName": "PokeRoll",
     "files": [
-      "main.js",
-      "preload.js",
+      "electron/**",
       "index.html",
-      "style.css",
-      "app.js",
-      "data.js",
-      "spawns.js",
-      "special.js",
-      "images/**",
-      "fonts/**",
+      "src/**",
+      "data/**",
+      "assets/**",
       "build/icon.png"
     ],
     "directories": {

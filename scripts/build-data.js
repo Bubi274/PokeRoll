@@ -1,4 +1,4 @@
-// Sinh file data.js từ PokeAPI cho Pokémon #1–#1025.
+// Sinh file data/data.js từ PokeAPI cho Pokémon #1–#1025.
 // Chạy (cần Node.js 18 trở lên):  node scripts/build-data.js
 
 const fs = require("fs");
@@ -9,7 +9,7 @@ const TOTAL = 1025;
 const CONCURRENCY = 10; // số request chạy cùng lúc
 const MAX_RETRIES = 5;
 const TIMEOUT_MS = 20000;
-const OUTPUT = path.join(__dirname, "..", "data.js");
+const OUTPUT = path.join(__dirname, "..", "data", "data.js");
 
 // Gen theo khoảng ID: [gen, idĐầu, idCuối]
 const GEN_RANGES = [

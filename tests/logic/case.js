@@ -13,7 +13,7 @@ function load(appFile) {
   const ctx = { console: { log() {}, table() {}, warn() {} }, Math: Object.create(Math), module: {} };
   ctx.Math.random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
   vm.createContext(ctx);
-  vm.runInContext(["data.js", "special.js"].map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n")
+  vm.runInContext(["data/data.js", "data/special.js"].map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n")
     + "\n" + fs.readFileSync(appFile, "utf8")
     + "\n;globalThis.__all=[...POKEMON_DATA,...SPECIAL_DATA].map(p=>({...p,rarity:getRarity(p)}));", ctx);
   return { ...ctx.module.exports, __all: ctx.__all }; // các hàm app.js xuất ra khi chạy bằng Node
@@ -36,7 +36,7 @@ function roll(ctx, gens, n) {
 
 const N = 200000;
 const CASES = [["All gens + Special", null], ["Gen 1 only", new Set([1])], ["Gen 9 only", new Set([9])]];
-const ctx = load(path.join(dir, "app.js"));
+const ctx = load(path.join(dir, "src", "js", "app.js"));
 const runs = [];
 for (const [label, gens] of CASES) {
   const r = roll(ctx, gens, N);

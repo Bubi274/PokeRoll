@@ -23,7 +23,7 @@ async function open(args) {
   const errors = [];
   const win = new BrowserWindow({ width: 1300, height: 900, show: false, webPreferences: {
     offscreen: true, contextIsolation: true, nodeIntegration: false, sandbox: true,
-    ...(args ? { preload: path.join(ROOT, "preload.js"), additionalArguments: args } : {}) } });
+    ...(args ? { preload: path.join(ROOT, "electron", "preload.js"), additionalArguments: args } : {}) } });
   win.webContents.on("console-message", (e, level, msg) => {
     const lv = e.level !== undefined ? e.level : level, text = e.message !== undefined ? e.message : msg;
     if (lv === "error" || lv === 3) errors.push(text);

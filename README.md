@@ -77,10 +77,10 @@ npm test -- -v            # print every check, not just failures
 ## Updating data
 
 ```bash
-node scripts/build-data.js     # data.js — Pokémon info from PokeAPI
-node scripts/build-spawns.js   # spawns.js — spawn locations from the Cobbleverse Wiki
-node scripts/build-images.js   # images/ — Pokémon images bundled with the app (works offline)
-node scripts/build-special.js  # special.js + images/special/ — Special group, read from the mod file in special-src/
+node scripts/build-data.js     # data/data.js — Pokémon info from PokeAPI
+node scripts/build-spawns.js   # data/spawns.js — spawn locations from the Cobbleverse Wiki
+node scripts/build-images.js   # assets/images/ — Pokémon images bundled with the app (works offline)
+node scripts/build-special.js  # data/special.js + assets/images/special/ — Special group, read from the mod file in special-src/
 ```
 
 `build-special.js` needs the mod file (e.g. `Kazeran_Eeveelutions_v1.6.1.zip`, downloaded from Modrinth) in `special-src/`. That folder is not committed.

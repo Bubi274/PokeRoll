@@ -23,7 +23,7 @@ function createWindow() {
     minHeight: 600,
     title: "PokéRoll",
     backgroundColor: "#121418", // tránh nháy trắng lúc mở
-    icon: path.join(__dirname, "build", "icon.png"),
+    icon: path.join(__dirname, "..", "build", "icon.png"),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -34,7 +34,7 @@ function createWindow() {
     },
   });
 
-  win.loadFile(path.join(__dirname, "index.html"));
+  win.loadFile(path.join(__dirname, "..", "index.html"));
 
   // Link ra ngoài (vd. Cobbleverse Wiki) mở bằng trình duyệt mặc định, không mở trong app.
   win.webContents.setWindowOpenHandler(({ url }) => {

@@ -1,5 +1,5 @@
-// Sinh file special.js (nhóm "Special" — Pokémon custom từ addon Cobblemon) từ file mod đã tải về special-src/,
-// và tải ảnh GIF của từng con vào images/special/ (bỏ qua ảnh đã có).
+// Sinh file data/special.js (nhóm "Special" — Pokémon custom từ addon Cobblemon) từ file mod đã tải về special-src/,
+// và tải ảnh GIF của từng con vào assets/images/special/ (bỏ qua ảnh đã có).
 // Chạy (cần Node.js 18 trở lên):  node scripts/build-special.js
 //
 // Muốn thêm một nhóm custom mới: thêm một mục vào GROUPS bên dưới (file mod, danh sách Pokémon, link ảnh)
@@ -12,8 +12,8 @@ const zlib = require("zlib");
 
 const ROOT = path.join(__dirname, "..");
 const SRC_DIR = path.join(ROOT, "special-src");
-const IMAGE_DIR = path.join(ROOT, "images", "special");
-const OUTPUT = path.join(ROOT, "special.js");
+const IMAGE_DIR = path.join(ROOT, "assets", "images", "special");
+const OUTPUT = path.join(ROOT, "data", "special.js");
 
 const GROUPS = [
   {
@@ -118,7 +118,7 @@ function describeEvolution(evo, fromName) {
 // Tên và số Pokédex của dạng gốc lấy từ data.js (không sửa data.js).
 function loadBaseDex() {
   const ctx = {};
-  vm.runInNewContext(fs.readFileSync(path.join(ROOT, "data.js"), "utf8") + "\nthis.list = POKEMON_DATA;", ctx);
+  vm.runInNewContext(fs.readFileSync(path.join(ROOT, "data", "data.js"), "utf8") + "\nthis.list = POKEMON_DATA;", ctx);
   return new Map(ctx.list.map((p) => [p.name.toLowerCase(), p]));
 }
 
@@ -157,7 +157,7 @@ function buildGroup(group, baseDex) {
       bst: Object.values(form.baseStats).reduce((sum, v) => sum + v, 0),
       isLegendary: false,
       isMythical: false,
-      image: `images/special/${slug}.gif`,
+      image: `assets/images/special/${slug}.gif`,
       evolution: describeEvolution(evo, fromDex.name),
     };
   });

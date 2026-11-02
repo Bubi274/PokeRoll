@@ -1,6 +1,6 @@
-// Tải sẵn ảnh Pokémon #1–#1025 vào thư mục images/ để app không phải tải ảnh qua mạng mỗi lần quay.
-//   images/artwork[/shiny]/{id}.webp — ảnh artwork thu nhỏ còn 256px (WebP)
-//   images/sprite[/shiny]/{id}.png   — ảnh nhỏ 96×96 giữ nguyên
+// Tải sẵn ảnh Pokémon #1–#1025 vào thư mục assets/images/ để app không phải tải ảnh qua mạng mỗi lần quay.
+//   assets/images/artwork[/shiny]/{id}.webp — ảnh artwork thu nhỏ còn 256px (WebP)
+//   assets/images/sprite[/shiny]/{id}.png   — ảnh nhỏ 96×96 giữ nguyên
 // Chạy (cần Node.js 18 trở lên và đã `npm install`):  node scripts/build-images.js
 // File đã có sẽ được bỏ qua, nên chạy lại chỉ tải phần còn thiếu.
 
@@ -15,7 +15,7 @@ const MAX_RETRIES = 5;
 const TIMEOUT_MS = 30000;
 const ARTWORK_SIZE = 256;
 const WEBP_QUALITY = 80;
-const OUT_DIR = path.join(__dirname, "..", "images");
+const OUT_DIR = path.join(__dirname, "..", "assets", "images");
 
 // Mỗi loại ảnh: nguồn tải và nơi lưu.
 const KINDS = [
@@ -116,7 +116,7 @@ async function main() {
   const count = (r) => results.filter((x) => x === r).length;
   console.log(`\nXong sau ${((Date.now() - started) / 1000).toFixed(1)} giây.`);
   console.log(`  Tải mới: ${count("ok")}, đã có sẵn: ${count("skip")}, lỗi: ${count("fail")}`);
-  console.log(`  Tổng dung lượng images/: ${(dirSize(OUT_DIR) / 1024 / 1024).toFixed(1)} MB`);
+  console.log(`  Tổng dung lượng assets/images/: ${(dirSize(OUT_DIR) / 1024 / 1024).toFixed(1)} MB`);
 }
 
 main().catch((err) => {

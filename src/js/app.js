@@ -47,8 +47,8 @@ const PSEUDO_LEGENDARY_IDS = new Set([
 const SHINY_CHANCE = 1 / 100;
 
 // Ảnh có sẵn trong app (tạo bằng scripts/build-images.js) — dùng trước, không cần mạng.
-const LOCAL_ARTWORK = "images/artwork";
-const LOCAL_SPRITE = "images/sprite";
+const LOCAL_ARTWORK = "assets/images/artwork";
+const LOCAL_SPRITE = "assets/images/sprite";
 // Thiếu ảnh local thì tải qua CDN jsDelivr (nhanh và cache lâu hơn raw.githubusercontent).
 const ARTWORK_URL = "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork";
 // Ảnh nhỏ (96×96, vài KB) dùng cho danh sách nội dung hòm — nhẹ hơn ảnh artwork rất nhiều.
@@ -691,7 +691,7 @@ function onSelectionChanged() {
 // ----- Ảnh -----
 
 // Gắn ảnh Pokémon cho thẻ <img>: ảnh local → ảnh CDN → (shiny) ảnh thường trên CDN → ảnh dự phòng.
-// Pokémon Special: ảnh GIF trong images/special/ (shiny dùng chung ảnh thường) → ảnh dự phòng.
+// Pokémon Special: ảnh GIF trong assets/images/special/ (shiny dùng chung ảnh thường) → ảnh dự phòng.
 function setPokemonImage(img, p, shiny) {
   if (isSpecial(p)) {
     img.onerror = () => { img.onerror = null; img.src = FALLBACK_IMG; };

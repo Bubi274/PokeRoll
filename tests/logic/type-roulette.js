@@ -3,7 +3,7 @@ const fs = require("fs"), vm = require("vm"), path = require("path");
 const dir = path.join(__dirname, "..", "..");
 const ctx = { console, Math, module: {} };
 vm.createContext(ctx);
-vm.runInContext(["data.js", "special.js", "app.js"].map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n")
+vm.runInContext(["data/data.js", "data/special.js", "src/js/app.js"].map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n")
   + "\n;globalThis.__all=[...POKEMON_DATA,...SPECIAL_DATA].map(p=>({...p,rarity:getRarity(p)}));", ctx);
 const A = ctx.module.exports, ALL = ctx.__all;
 let fails = 0;
