@@ -17,7 +17,7 @@ const reelPopup = (reelMs) => constant("PRELOAD_TIMEOUT_MS") + reelMs + 500 + co
 module.exports = {
   CASE_POPUP_MS: reelPopup(constant("SPIN_MS")),               // Open case ở trang Case → popup kết quả
   ROULETTE_POPUP_MS: reelPopup(constant("ROULETTE_REEL_MS")),  // Open <hệ / biome> case ở trang Custom → popup kết quả
-  WHEEL_MS: constant("WHEEL_SPIN_MS") + 500 + SLACK_MS,        // quay bánh xe (Type / Biome Roulette) → dừng
+  WHEEL_MS: constant("WHEEL_SPIN_MS") + 500 + constant("REEL_START_WAIT_MS") + SLACK_MS, // quay bánh xe → dừng (cả 3 chế độ)
   // Popup đã mở → dải dừng hẳn. Trình duyệt không báo dải bắt đầu chạy (máy chậm) thì popup mở nhờ đồng hồ dự phòng
   // lúc dải có thể còn chưa chạy, nên dải cần thêm trọn một lượt chạy nữa.
   CASE_SETTLE_MS: constant("SPIN_MS") + SLACK_MS,

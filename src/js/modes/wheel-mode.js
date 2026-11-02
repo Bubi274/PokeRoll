@@ -112,7 +112,8 @@ async function spinModeWheel(w, { quick = false }) {
     renderWheelOdds(w, null, w.text.spinning);
     setWheelRotation(st.rotation % 360, w); // thu góc về 0–360° (nhìn không đổi) để số không lớn dần
     await animateWheel(target, w);
-    const landed = keys[wheelSliceOnScreen(w)];
+    // Bánh xe đang ẩn (ở tab khác) thì không đọc được góc trên màn hình
+    const landed = $(w.disc).getClientRects().length ? keys[wheelSliceOnScreen(w)] : key;
     if (landed !== key) console.error(`${w.text.stopped} stopped on ${landed}, expected ${key}`);
   }
 
