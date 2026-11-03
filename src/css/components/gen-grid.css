@@ -83,3 +83,13 @@
 /* Nút All / None nhỏ gọn */
 .btn-group .btn-ghost { padding: 6px 14px; font-size: 0.75rem; }
 
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .gen-grid { gap: 6px; }
+  .gen-card { padding: 9px 8px 9px 9px; }
+  .gen-card::after { top: 9px; right: 8px; width: 14px; height: 14px; }
+  .gen-option input:checked + .gen-card::after { background-size: 10px, auto; }
+  .gen-name { font-size: 0.85rem; }
+  .gen-region { font-size: 0.75rem; }
+  .gen-count { font-size: 0.66rem; }
+}

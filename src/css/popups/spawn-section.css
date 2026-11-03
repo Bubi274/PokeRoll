@@ -1,4 +1,4 @@
-/* Mục nơi xuất hiện, cách tiến hóa và bố cục popup trên màn hình nhỏ. */
+/* Popup kết quả và chi tiết: mục nơi xuất hiện trong Cobbleverse, cách tiến hóa, dòng nguồn dữ liệu. */
 
 /* ===== Nơi xuất hiện trong Cobbleverse ===== */
 .detail-section {
@@ -96,47 +96,13 @@
 .evo-list li + li { margin-top: 3px; }
 .evo-list li::marker { color: var(--muted); }
 
-/* Ảnh GIF của Pokémon Special: ảnh to thu nhỏ lại nên làm mịn thay vì giữ pixel như sprite 96px */
-.mini-img[src$=".gif"] { image-rendering: auto; object-fit: contain; }
-
 .modal-credit {
   margin: 16px 8px 0;
   font-size: 0.75rem;
   color: var(--muted);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .mini.is-located { animation: none; box-shadow: inset 0 -3px 0 var(--c), 0 0 0 2px var(--amber); }
-  .is-epic .reveal-rays, .is-epic .reveal-glow, .sparkle, .reveal-img { animation: none; }
-}
-
-/* Máy tính bảng / điện thoại: 1 cột, thẻ ở trên */
-@media (max-width: 760px) {
-  .showcase { grid-template-columns: 1fr; gap: 18px; padding: 6px; }
-  .slab { position: relative; width: 100%; max-width: 340px; justify-self: center; }
-}
-
+/* ===== Điện thoại ===== */
 @media (max-width: 480px) {
-  .result-heading { font-size: 0.72rem; padding: 6px 16px; letter-spacing: 0.16em; }
-  .result-modal.is-epic .result-heading { font-size: 0.8rem; }
-  .reveal { height: 190px; }
-  .reveal-img { width: 175px; height: 175px; }
-  .slab-art { height: 200px; }
-  .detail-img { width: 165px; height: 165px; }
-  .reveal-name, .detail-name { font-size: 1.45rem; }
-  .tier-panel { padding: 13px 14px; gap: 10px; }
-  .result-rarity { font-size: 1.15rem; }
-  .odds { padding: 12px 14px; }
-  .result-actions .kbd-hint { display: none; }
-  .odds-value { font-size: 1.35rem; }
-  .facts { grid-template-columns: 1fr 1fr; }
-  .rung { font-size: 0.56rem; letter-spacing: 0.02em; }
-  .result-actions { flex-wrap: wrap; }
-  .result-actions .btn { flex: 1; }
-  #result-view { flex-basis: 100%; }
-  .result-modal, .detail-modal { width: calc(100% - 16px); max-width: calc(100% - 16px); }
-  .btn-again { padding: 11px 12px; font-size: 0.82rem; letter-spacing: 0.06em; white-space: nowrap; }
-  .facts > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .spawn-label { display: block; min-width: 0; }
 }
-

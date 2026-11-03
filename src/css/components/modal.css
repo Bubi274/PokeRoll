@@ -89,3 +89,8 @@
   scrollbar-color: #3a4250 transparent;
 }
 
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .modal { width: calc(100% - 16px); max-width: calc(100% - 16px); max-height: 92vh; }
+  .modal-inner { max-height: 92vh; padding: 14px; gap: 12px; }
+}

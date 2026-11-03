@@ -1,4 +1,4 @@
-/* Chân trang, trạng thái focus bằng bàn phím và chỉnh cho màn hình nhỏ. */
+/* Chân trang: credit, disclaimer, số phiên bản của bản desktop. */
 
 /* ===== Chân trang: credit & disclaimer ===== */
 .site-footer {
@@ -31,54 +31,6 @@
 .link-btn:hover:not(:disabled) { color: var(--text); }
 .link-btn:disabled { cursor: progress; }
 
-/* ===== Trạng thái focus bằng bàn phím ===== */
-button { -webkit-tap-highlight-color: transparent; }
-.btn:focus-visible,
-.tab:focus-visible,
-.gp:focus-visible,
-.hist:focus-visible,
-button.mini:focus-visible {
-  outline: 2px solid var(--accent-hover);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card.is-winner { animation: none; }
-  .btn-spin:hover:not(:disabled) { transform: none; }
-}
-
-/* Màn hình hẹp: đưa "Created by" xuống dưới dòng mô tả để không đè lên logo */
-@media (max-width: 760px) {
-  :root { --page-gutter: 16px; }
-  .credit { position: static; transform: none; margin-top: 4px; font-size: 0.78rem; }
-}
-
-/* ===== Điện thoại ===== */
 @media (max-width: 480px) {
-  .topbar { padding: 16px var(--page-gutter) 10px; }
-  .logo { font-size: 1.7rem; }
-  .logo-mark { width: 26px; height: 26px; }
-  .logo-mark svg { width: 15px; height: 15px; }
-  .tabs { gap: 14px; padding: 0 8px; }
-  .tab { font-size: 0.78rem; gap: 6px; }
-
-  .container { padding: 16px var(--page-gutter) 32px; gap: 14px; }
-  .panel { padding: 14px; }
-  .panel-head { margin-bottom: 12px; }
-
-  .reel { --card-w: 112px; padding: 18px 0; }
-  .reel-strip { gap: 6px; }
-  .card { padding: 7px 6px 9px; }
-  .card-type { display: none; }
-  .card-shiny { top: 6px; right: 7px; }
-  .card-name { font-size: 0.8rem; }
-  .card-meta { font-size: 0.6rem; }
-
-  .btn-spin { padding: 14px 20px; font-size: 0.95rem; }
-  .spin-actions { width: 100%; }
-  .spin-actions .btn { flex: 1 1 auto; padding: 9px 10px; }
-  .recent-row { grid-auto-columns: 150px; }
-  .mini-img { width: 60px; height: 60px; }
   .site-footer { padding: 20px 12px 24px; font-size: 0.7rem; }
 }
-

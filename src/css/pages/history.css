@@ -93,32 +93,8 @@
 
 .history-list .hint { padding: 24px 0; }
 
-@media (max-width: 760px) {
-  .stats { grid-template-columns: 1fr 1fr; }
-  .stat:first-child { grid-column: 1 / -1; }
-}
-
+/* ===== Điện thoại ===== */
 @media (max-width: 480px) {
-  .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .stat { padding: 11px; }
-  .stat-label { font-size: 0.6rem; letter-spacing: 0.04em; }
-  .stat-value { font-size: 1.3rem; }
-  .stat:first-child .stat-value { font-size: 1.9rem; }
-  .rarity-progress { grid-template-columns: repeat(6, 1fr); gap: 6px; }
-  .rp { grid-column: span 2; padding: 9px 10px; }
-  .rp:nth-child(n + 4) { grid-column: span 3; } /* 3 ô trên, 2 ô dưới */
-  .rp-count b { font-size: 1.05rem; }
-  .gen-progress { grid-template-columns: repeat(2, 1fr); gap: 6px; } /* 10 ô → 5 hàng đều nhau */
-  .gp { padding: 8px; gap: 5px; }
-  .gp-top { flex-wrap: wrap; gap: 0 5px; font-size: 0.76rem; }
-  .gp-region { font-size: 0.7rem; }
-  .gp-count { font-size: 0.62rem; }
-  .filters { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .filters select { flex: 1 1 0; min-width: 0; padding: 8px 24px 8px 9px; font-size: 0.7rem; text-overflow: ellipsis; background-position: right 6px center, 0 0; }
-  #view-collection #coll-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  #view-collection #coll-grid .mini { padding: 6px 4px 8px; }
-  #view-collection #coll-grid .mini-img { width: 64px; height: 64px; }
-  #view-collection #coll-grid .mini-name { font-size: 0.72rem; }
   .hist { grid-template-columns: 44px 1fr auto; gap: 10px; padding: 5px 10px 5px 6px; }
   .hist-thumb { width: 44px; height: 44px; }
   .hist .mini-img { width: 40px; height: 40px; }
@@ -128,4 +104,3 @@
   .hist-rarity { align-self: end; justify-self: end; }
   .hist-time { align-self: start; font-size: 0.62rem; }
 }
-

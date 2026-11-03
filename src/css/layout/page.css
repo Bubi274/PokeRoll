@@ -77,3 +77,11 @@
   box-shadow: 0 0 8px rgba(82, 183, 42, 0.8);
 }
 
+.view[hidden] { display: none; }
+
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .container { padding: 16px var(--page-gutter) 32px; gap: 14px; }
+  .panel { padding: 14px; }
+  .panel-head { margin-bottom: 12px; }
+}

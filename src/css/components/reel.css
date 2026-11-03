@@ -52,7 +52,6 @@
 @media (hover: hover) and (pointer: fine) {
   .kbd-hint { display: block; }
 }
-.result-actions .kbd-hint { align-self: center; margin-right: auto; }
 
 /* ===== Dải thẻ quay ===== */
 .reel {
@@ -133,13 +132,6 @@
 .reel.is-empty .reel-marker { display: none; }
 
 /* ===== Thẻ Pokémon trên dải quay ===== */
-/* Màu độ hiếm: thẻ nào có lớp r-* thì lấy màu đó (thẻ quay, hàng tỉ lệ luôn có lớp này) */
-.r-blue   { --c: var(--r-blue); }
-.r-purple { --c: var(--r-purple); }
-.r-pink   { --c: var(--r-pink); }
-.r-red    { --c: var(--r-red); }
-.r-gold   { --c: var(--r-gold); }
-
 .card {
   position: relative;
   flex: 0 0 var(--card-w);
@@ -232,3 +224,20 @@
   100% { transform: scale(1.04); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .card.is-winner { animation: none; }
+}
+
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .spin-actions { width: 100%; }
+  .spin-actions .btn { flex: 1 1 auto; padding: 9px 10px; }
+
+  .reel { --card-w: 112px; padding: 18px 0; }
+  .reel-strip { gap: 6px; }
+  .card { padding: 7px 6px 9px; }
+  .card-type { display: none; }
+  .card-shiny { top: 6px; right: 7px; }
+  .card-name { font-size: 0.8rem; }
+  .card-meta { font-size: 0.6rem; }
+}

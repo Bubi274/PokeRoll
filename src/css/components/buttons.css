@@ -30,6 +30,7 @@
 #btn-quick svg { color: var(--amber); }
 .btn-icon[aria-pressed="false"] { color: var(--muted); }
 .btn-icon[aria-pressed="true"] svg { color: var(--accent); }
+.btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn-spin {
   display: inline-flex;
@@ -72,3 +73,22 @@
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='4' y='11' width='16' height='10' rx='1.5'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 7.9-1'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
+/* ===== Trạng thái focus bằng bàn phím ===== */
+button { -webkit-tap-highlight-color: transparent; }
+.btn:focus-visible,
+.tab:focus-visible,
+.gp:focus-visible,
+.hist:focus-visible,
+button.mini:focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-spin:hover:not(:disabled) { transform: none; }
+}
+
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .btn-spin { padding: 14px 20px; font-size: 0.95rem; }
+}

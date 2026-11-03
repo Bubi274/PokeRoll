@@ -1,4 +1,4 @@
-/* Màu sắc, biến chung và kiểu nền của trang. */
+/* Màu sắc, biến chung (cả màu theo độ hiếm) và kiểu nền của trang. */
 
 /* ===== Màu sắc & biến chung ===== */
 :root {
@@ -55,3 +55,14 @@ body {
 
 h1, h2 { margin: 0; }
 
+/* Màu độ hiếm: thẻ nào có lớp r-* thì lấy màu đó (thẻ quay, hàng tỉ lệ luôn có lớp này) */
+.r-blue   { --c: var(--r-blue); }
+.r-purple { --c: var(--r-purple); }
+.r-pink   { --c: var(--r-pink); }
+.r-red    { --c: var(--r-red); }
+.r-gold   { --c: var(--r-gold); }
+
+/* Màn hình hẹp: lề trang nhỏ hơn */
+@media (max-width: 760px) {
+  :root { --page-gutter: 16px; }
+}

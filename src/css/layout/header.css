@@ -97,3 +97,22 @@
   border-radius: var(--radius);
 }
 
+/* Màn hình hẹp: đưa "Created by" xuống dưới dòng mô tả để không đè lên logo */
+@media (max-width: 760px) {
+  .credit { position: static; transform: none; margin-top: 4px; font-size: 0.78rem; }
+}
+
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .topbar { padding: 16px var(--page-gutter) 10px; }
+  .logo { font-size: 1.7rem; }
+  .logo-mark { width: 26px; height: 26px; }
+  .logo-mark svg { width: 15px; height: 15px; }
+  .tabs { gap: 14px; padding: 0 8px; }
+  .tab { font-size: 0.78rem; gap: 6px; }
+}
+
+/* Điện thoại nhỏ: 3 tab không đủ chỗ → bỏ biểu tượng, giữ chữ */
+@media (max-width: 400px) {
+  .tab-icon { display: none; }
+}

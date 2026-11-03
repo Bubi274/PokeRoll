@@ -1,8 +1,6 @@
 /* Danh sách nội dung hòm. */
 
 /* ===== Danh sách nội dung hòm ===== */
-.btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
-
 .contents-group { --c: var(--muted); margin-bottom: 20px; }
 .contents-group.r-blue   { --c: var(--r-blue); }
 .contents-group.r-purple { --c: var(--r-purple); }
@@ -67,3 +65,9 @@
 .mini.is-unowned .mini-name { color: var(--muted); }
 .mini.is-unowned .mini-own { color: #6b7380; }
 
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .contents-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; }
+  .contents-pick.filters { grid-template-columns: 1fr; } /* ô chọn nhóm chiếm cả hàng */
+  .contents-pick select { min-width: 0; }
+}

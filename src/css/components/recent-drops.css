@@ -1,4 +1,4 @@
-/* Danh sách Recent drops. */
+/* Danh sách Recent drops và nhãn nguồn của lượt quay (cả ở Roll history). */
 
 /* ===== Recent drops =====
    Màn hình rộng: danh sách dọc trong cột hẹp, cuộn bên trong panel.
@@ -69,6 +69,25 @@
   opacity: 0.7;
 }
 
+/* Nhãn nguồn lượt quay (Recent drops, Roll history): "Case" hoặc "Type · Fire" */
+.src-tag {
+  --t: var(--muted);
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--t) 70%, white);
+  border: 1px solid color-mix(in srgb, var(--t) 55%, transparent);
+  border-radius: 2px;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+/* Dấu custom pool trong nhãn Recent drops */
+.src-mark { margin-left: 3px; color: var(--accent); }
+
 @media (min-width: 1024px) {
   /* Cột 20%: tiêu đề trên, danh sách lấp phần giữa (cuộn khi nhiều), nút ở cuối full chiều rộng */
   .recent-panel {
@@ -93,3 +112,7 @@
   .recent-more { width: 100%; padding: 8px 10px; font-size: 0.75rem; }
 }
 
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .recent-row { grid-auto-columns: 150px; }
+}

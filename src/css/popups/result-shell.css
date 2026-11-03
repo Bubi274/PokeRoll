@@ -262,3 +262,24 @@
 }
 .is-epic .reveal-name { text-shadow: 0 0 18px color-mix(in srgb, var(--c) 70%, transparent); }
 
+@media (prefers-reduced-motion: reduce) {
+  .is-epic .reveal-rays, .is-epic .reveal-glow, .sparkle, .reveal-img { animation: none; }
+}
+
+/* Máy tính bảng / điện thoại: 1 cột, thẻ ở trên */
+@media (max-width: 760px) {
+  .showcase { grid-template-columns: 1fr; gap: 18px; padding: 6px; }
+  .slab { position: relative; width: 100%; max-width: 340px; justify-self: center; }
+}
+
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .result-modal, .detail-modal { width: calc(100% - 16px); max-width: calc(100% - 16px); }
+  .result-heading { font-size: 0.72rem; padding: 6px 16px; letter-spacing: 0.16em; }
+  .result-modal.is-epic .result-heading { font-size: 0.8rem; }
+  .reveal { height: 190px; }
+  .reveal-img { width: 175px; height: 175px; }
+  .slab-art { height: 200px; }
+  .detail-img { width: 165px; height: 165px; }
+  .reveal-name, .detail-name { font-size: 1.45rem; }
+}

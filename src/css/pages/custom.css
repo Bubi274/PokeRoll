@@ -1,4 +1,4 @@
-/* Trang Custom: thanh chọn chế độ, nút hành động, panel luật chơi. */
+/* Trang Custom: thanh chọn chế độ, nút hành động, bảng chọn gen bị khóa, panel luật chơi. */
 
 /* ===== Trang Custom ===== */
 
@@ -99,6 +99,14 @@
 .gen-option:has(input:disabled) { cursor: not-allowed; }
 .gen-option input:disabled + .gen-card { opacity: 0.55; }
 
+/* Bảng chọn gen của trang Custom bị khóa (chế độ luôn dùng mọi gen) */
+.panel-gens.is-locked .gen-grid,
+.panel-gens.is-locked .btn-group { opacity: 0.45; }
+/* …và chỉ mờ một lần: bỏ lớp mờ riêng của ô / nút bị khóa bên trong (không thì còn ~0.2, khó đọc) */
+.panel-gens.is-locked .gen-option input:disabled + .gen-card,
+.panel-gens.is-locked .btn-ghost:disabled { opacity: 1; }
+.gen-lock { margin: 0 0 12px; font-size: 0.82rem; color: var(--amber); }
+
 /* Panel "How it works": luật của chế độ đang chọn */
 .mode-rule-list {
   list-style: none;
@@ -130,3 +138,14 @@
   .mode-rules { display: flex; flex-direction: column; }
 }
 
+/* ===== Điện thoại ===== */
+@media (max-width: 480px) {
+  .mode-btn { min-width: 230px; padding: 9px 12px 9px 9px; column-gap: 10px; }
+  .mode-icon { width: 34px; height: 34px; }
+  .mode-desc { font-size: 0.74rem; }
+  .mode-rule-list li { font-size: 0.82rem; padding: 9px 12px 9px 26px; }
+  .action-row { gap: 8px; }
+  .action-group { flex-basis: 100%; }
+  .spin-area .action-main { letter-spacing: 0.06em; font-size: 0.9rem; }
+  .mode-rule-list li::before { left: 11px; }
+}

@@ -1,6 +1,6 @@
-/* Custom pool của Type Roulette và Biome Roulette. */
+/* Custom pool của các chế độ bánh xe: sửa trong popup View case contents, nhãn trên panel tỉ lệ. */
 
-/* ===== Custom pool (Type / Biome Roulette) ===== */
+/* ===== Custom pool (Type / Biome / Letter Roulette) ===== */
 /* Chế độ xem: nút "Edit pool" và lý do đang khóa */
 .pool-edit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .pool-edit-why { font-size: 0.78rem; color: var(--muted); }
@@ -76,21 +76,10 @@ label.mini.is-pickable:focus-within { outline: 2px solid var(--accent-hover); ou
 }
 .pool-warn { display: block; margin-top: 4px; color: var(--amber); }
 
-/* Dấu custom pool trong nhãn Recent drops */
-.src-mark { margin-left: 3px; color: var(--accent); }
-
+/* ===== Điện thoại ===== */
 @media (max-width: 480px) {
-  .modal { width: calc(100% - 16px); max-width: calc(100% - 16px); max-height: 92vh; }
-  .modal-inner { max-height: 92vh; padding: 14px; gap: 12px; }
-  .contents-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; }
-  .contents-pick.filters { grid-template-columns: 1fr; } /* ô chọn nhóm chiếm cả hàng */
-  .contents-pick select { min-width: 0; }
-  .mini-img { width: 60px; height: 60px; }
   .pool-editor { grid-template-columns: 1fr; padding: 10px; gap: 10px; }
   /* Đang sửa custom pool: cả popup cuộn (khung sửa cao, để lại đủ chỗ cho danh sách Pokémon) */
   #contents-modal.is-editing-pool .modal-inner { overflow-y: auto; }
   #contents-modal.is-editing-pool .modal-body { flex: none; overflow: visible; }
 }
-
-.view[hidden] { display: none; }
-
