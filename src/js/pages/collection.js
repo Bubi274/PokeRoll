@@ -89,12 +89,15 @@ function renderCollection() {
     ? `No Pokémon match “${escHtml(query)}” with these filters.`
     : "No Pokémon match these filters."}</p>`;
 
+  renderMinigameCollections();
+
   const history = shownHistory();
   $("history-count").textContent = history.length
     ? `Last ${history.length} opens` : "";
   const fmtTime = (t) => new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   $("history-list").innerHTML = history.length
     ? history.map((h) => {
+      if (isMinigameEntry(h)) return minigameHistoryRow(h, fmtTime(h.t));
       const p = state.byId.get(h.id);
       return `
         <li>
@@ -113,10 +116,11 @@ function renderCollection() {
 }
 
 function clearData() {
-  if (!confirm("Delete your whole collection and roll history?\nThis cannot be undone.")) return;
+  if (!confirm("Delete your whole collection (Pokémon and Mega Stones) and roll history?\nThis cannot be undone.")) return;
   state.collection = {};
   state.history = [];
   saveProgress();
+  clearMinigameProgress(); // bộ sưu tập và lịch sử riêng của Minigame
   renderRecent();
   updateCollectionTab();
   renderCollection();
@@ -132,7 +136,11 @@ function locateInCollection(id) {
     for (const f of ["f-gen", "f-rarity", "f-status"]) $(f).value = "all";
     renderCollection();
   }
-  const tile = find();
+  flashTile(find());
+}
+
+// Cuộn tới một ô trong trang Collection và nháy sáng ô đó (dùng cả cho bộ sưu tập Minigame).
+function flashTile(tile) {
   if (!tile) return;
   const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   tile.scrollIntoView({ block: "center", behavior: smooth ? "smooth" : "auto" });

@@ -61,6 +61,8 @@ function openContents({ groups = state.groups, title = "Case contents", note = "
   }).join("");
 
   $("contents-search").value = "";
+  $("contents-search").placeholder = "Search by name or Pokédex number…"; // popup Minigame đặt chữ riêng
+  $("contents-empty").textContent = "No Pokémon match your search.";
   $("contents-empty").hidden = true;
   if (!$("contents-modal").open) $("contents-modal").showModal(); // đổi nhóm khi popup đang mở thì chỉ vẽ lại
 }

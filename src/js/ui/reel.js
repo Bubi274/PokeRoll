@@ -8,7 +8,9 @@ const reelOffsets = new WeakMap();
 // Dải thẻ đang quay → hàm tính lại điểm dừng theo cỡ mới (realignReel gọi khi đổi cỡ cửa sổ giữa lượt quay).
 const reelSpins = new WeakMap();
 
+// Mục của hòm Minigame ({ minigame, item }) do hòm đó tự vẽ (minigameCard ở modes/minigame.js).
 function createCard(item) {
+  if (item.minigame) return minigameCard(item);
   const card = document.createElement("div");
   const p = item.pokemon;
   card.className = `card r-${item.rarity}${item.shiny ? " is-shiny" : ""}${isSpecial(p) ? " is-special" : ""}`;

@@ -114,7 +114,7 @@ app.whenReady().then(async () => {
   await installHelpers();
 
   // ---- 0. Thanh chế độ, bảng gen, bánh xe ----
-  check("Mode bar: Type, Biome, Letter Roulette", (await js(`[...document.querySelectorAll(".mode-btn")].map(b => b.dataset.mode).join()`)) === "type-roulette,biome-roulette,letter-roulette");
+  check("Mode bar: Type, Biome, Letter Roulette, Minigame Case", (await js(`[...document.querySelectorAll(".mode-btn")].map(b => b.dataset.mode).join()`)) === "type-roulette,biome-roulette,letter-roulette,minigame");
   let g = await js(`genPanel()`);
   check("Type Roulette: gen panel open, no lock note, Gen 1 only = 151 in play", g.unlocked && !g.dim && g.note === null && g.inPlay === "151", JSON.stringify(g));
   await toMode("letter-roulette");

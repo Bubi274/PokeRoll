@@ -105,7 +105,9 @@ function init() {
   $("btn-see-collection").addEventListener("click", () => showView("collection"));
   $("result-view").addEventListener("click", () => {
     resultModal.close();
-    locateInCollection(parseId($("result-view").dataset.target));
+    const target = $("result-view").dataset;
+    if (target.minigame) locateMinigameItem(target.minigame, target.target);
+    else locateInCollection(parseId(target.target));
   });
 
   // Trang bộ sưu tập
@@ -133,6 +135,9 @@ function init() {
   document.addEventListener("click", (e) => {
     const tile = e.target.closest("[data-pokemon]");
     if (tile) openPokemonDetail(state.byId.get(parseId(tile.dataset.pokemon)), tile.dataset.shiny === "1");
+    // Vật phẩm Minigame có bộ sưu tập (vd. đá Mega) → chi tiết của vật phẩm đó
+    const item = e.target.closest("[data-minigame]");
+    if (item) openMinigameDetail(item.dataset.minigame, item.dataset.item);
   });
   // Ảnh nhỏ bị lỗi: ảnh local → ảnh CDN → ảnh dự phòng
   document.addEventListener("error", (e) => {
@@ -153,5 +158,6 @@ if (typeof document !== "undefined") {
     specialProgress, parseId, TYPE_ORDER, typePools, wheelSliceAt, wheelTarget,
     BIOME_GROUPS, BIOME_TAG_GROUP, biomeGroupsOf, biomePools, wheelPools, COMMON_TIERS,
     CUSTOM_POOL_MIN, customPoolProblems, canCustomizePool, resolveCustomPool, mergeCustomPool,
-    LETTERS, letterOf, letterPools, letterColor };
+    LETTERS, letterOf, letterPools, letterColor,
+    MINIGAME_CASES, MINIGAME_HISTORY_LIMIT, pickUniform, buildUniformReel, recordMinigameDrop, minigameCase, MEGA_STONES };
 }

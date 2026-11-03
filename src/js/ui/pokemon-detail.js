@@ -72,6 +72,8 @@ function ownedLine(p) {
 
 function openPokemonDetail(p, shiny = false) {
   const r = rarityInfo(p.rarity);
+  $("detail-title").textContent = "Pokémon details"; // popup chi tiết Minigame dùng chung khung này
+  $("detail-modal").setAttribute("aria-label", "Pokémon details");
   $("detail-body").innerHTML = `
     <div class="showcase r-${p.rarity}">
       <div class="slab${shiny ? " is-shiny" : ""}">

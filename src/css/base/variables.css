@@ -24,6 +24,7 @@
   --r-pink: #d32ce6;
   --r-red: #eb4b4b;
   --r-gold: #ffd700;
+  --r-minigame: #9aa7b8;    /* màu trung tính chung của Minigame (không độ hiếm), JS dùng qua MINIGAME_COLOR */
 
   --font-display: "Space Grotesk", "Segoe UI", Roboto, Arial, sans-serif;
   --font-body: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -61,6 +62,7 @@ h1, h2 { margin: 0; }
 .r-pink   { --c: var(--r-pink); }
 .r-red    { --c: var(--r-red); }
 .r-gold   { --c: var(--r-gold); }
+.r-minigame { --c: var(--r-minigame); }
 
 /* Màn hình hẹp: lề trang nhỏ hơn */
 @media (max-width: 760px) {

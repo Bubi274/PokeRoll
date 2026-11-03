@@ -63,9 +63,18 @@ function loadHistory(validIds) {
     .slice(0, HISTORY_LIMIT);
 }
 
+// Phần dữ liệu đang lưu lỗi ("progress": bộ sưu tập + lịch sử chính, "minigame": dữ liệu Minigame).
+// state.saveFailed = true khi còn phần nào lỗi, để lưu thành công phần này không che lỗi của phần kia.
+const saveFailures = new Set();
+function markSaved(part, ok) {
+  if (ok) saveFailures.delete(part);
+  else saveFailures.add(part);
+  state.saveFailed = saveFailures.size > 0;
+}
+
 // Lưu bộ sưu tập và lịch sử quay; state.saveFailed = true nếu không lưu được.
 function saveProgress() {
   const ok = saveJson(STORAGE_KEY_COLLECTION, state.collection) &&
              saveJson(STORAGE_KEY_HISTORY, state.history);
-  state.saveFailed = !ok;
+  markSaved("progress", ok);
 }

@@ -5,6 +5,7 @@
 
 // Một dòng trong Recent drops: ảnh nhỏ, tên, số # (hoặc "Special"), vạch màu độ hiếm, ★ nếu shiny.
 function recentItem(h) {
+  if (isMinigameEntry(h)) return minigameRecentItem(h);
   const p = state.byId.get(h.id);
   return `
     <li>
@@ -37,8 +38,20 @@ function sourceTag(src) {
     ? `<span class="src-mark" title="Custom pool" aria-label="Custom pool">✦</span>` : ""}</span>`;
 }
 
-// Lịch sử để hiện ra: bỏ qua mục hỏng (độ hiếm không hợp lệ). Mục hỏng vẫn giữ nguyên trong dữ liệu đã lưu.
-const shownHistory = () => state.history.filter((h) => rarityInfo(h.rarity));
+// Lịch sử để hiện ra: lịch sử chính gộp với lịch sử Minigame (lưu riêng).
+// Bỏ qua mục hỏng (độ hiếm không hợp lệ, hoặc vật phẩm Minigame không còn). Mục hỏng vẫn giữ nguyên trong dữ liệu đã lưu.
+// Hai danh sách đều đã mới nhất trước: trộn theo thời gian, giữ nguyên thứ tự bên trong từng danh sách
+// (không có lượt Minigame thì lịch sử chính hiện đúng như đã lưu).
+function shownHistory() {
+  const main = state.history.filter((h) => rarityInfo(h.rarity)), mini = shownMinigameHistory();
+  const merged = [];
+  let i = 0, j = 0;
+  while (i < main.length || j < mini.length) {
+    if (j >= mini.length || (i < main.length && (main[i].t || 0) >= (mini[j].t || 0))) merged.push(main[i++]);
+    else merged.push(mini[j++]);
+  }
+  return merged;
+}
 
 // Lịch sử lưu mới nhất trước → lượt mới nhất nằm trên cùng.
 function renderRecent() {

@@ -24,6 +24,10 @@
 //   onShow(), onPoolChanged() (custom.pool đã cập nhật), realign() (đổi cỡ cửa sổ) — tuỳ chọn
 //   allGens         true: chế độ luôn dùng mọi Pokémon, không theo bảng chọn gen (bảng bị khóa khi ở chế độ này;
 //                   onPoolChanged chỉ chạy một lần lúc dựng trang, không chạy khi đổi gen)                  — tuỳ chọn
+//   genLock         dòng giải thích khi bảng gen bị khóa (mặc định "<tên> always uses every generation.") — tuỳ chọn
+//   inPlay()        { count, label } cho ô "N Pokémon in play" (mặc định: số Pokémon chế độ dùng)        — tuỳ chọn
+//   showContents()  tự mở popup "View case contents" (thay cho contents(); có khai báo thì khung tự hiện nút) — tuỳ chọn
+// Phần tử trong khung của chế độ có class mode-lock (vd. nút chọn hòm) bị khóa trong lúc quay, như thanh chọn chế độ.
 //   contents(key)   nội dung hòm cho nút "View case contents" (có khai báo thì khung tự hiện nút) — tuỳ chọn
 //                   key: nhóm muốn xem; bỏ trống = nhóm đang chọn (chưa chọn thì nhóm đầu tiên). Trả về
 //                   { key, current, title, list, off, info, options }:
@@ -177,9 +181,10 @@ function renderCustomControls(label) {
   }).filter(Boolean).join(" · ");
 
   const allGens = Boolean(mode && mode.allGens);
-  $("custom-contents").hidden = !(mode && mode.contents);
+  $("custom-contents").hidden = !(mode && (mode.contents || mode.showContents));
   $("custom-contents").disabled = state.spinning || (!allGens && custom.pool.length === 0);
   for (const b of $("mode-bar").querySelectorAll(".mode-btn")) b.disabled = state.spinning;
+  for (const el of $("mode-stage").querySelectorAll(".mode-lock")) el.disabled = state.spinning;
   // Đang quay: khóa bảng chọn gen của trang Custom, quay xong mới đổi được.
   // Chế độ allGens: khóa luôn (mờ đi, kèm dòng giải thích); lựa chọn gen đã lưu giữ nguyên.
   const locked = state.spinning || allGens;
@@ -188,13 +193,15 @@ function renderCustomControls(label) {
   $("custom-none").disabled = locked;
   $("custom-gen-panel").classList.toggle("is-locked", allGens);
   $("custom-gen-lock").hidden = !allGens;
-  $("custom-gen-lock").textContent = allGens ? `${mode.name} always uses every generation.` : "";
+  $("custom-gen-lock").textContent = allGens ? mode.genLock || `${mode.name} always uses every generation.` : "";
 }
 
-// Ô "N Pokémon in play": số Pokémon chế độ đang chọn dùng (chế độ allGens: mọi Pokémon).
+// Ô "N Pokémon in play": số Pokémon chế độ đang chọn dùng (chế độ allGens: mọi Pokémon; chế độ có inPlay() tự đặt).
 function renderInPlayCount() {
   const mode = custom.active;
-  countTo($("custom-pool-count"), mode && mode.allGens ? state.pokemon.length : custom.pool.length, fmtCount);
+  const own = mode && mode.inPlay ? mode.inPlay() : null;
+  countTo($("custom-pool-count"), own ? own.count : mode && mode.allGens ? state.pokemon.length : custom.pool.length, fmtCount);
+  $("custom-pool-count").nextElementSibling.textContent = own ? own.label : "Pokémon in play";
 }
 
 // Bắt đầu / kết thúc một hành động của chế độ Custom (khóa cả nút quay của trang Case).
@@ -233,6 +240,7 @@ function customActionButton(code) {
 // Chỉ để xem: không đổi nhóm đang chọn trên bánh xe. Đang sửa custom pool của nhóm này thì vẽ chế độ sửa.
 function openCustomContents(key) {
   const mode = custom.active;
+  if (mode && mode.showContents) return mode.showContents();
   if (!mode || !mode.contents) return;
   if (!$("contents-modal").open) stopPoolEdit(); // mở popup mới luôn ở chế độ xem (sự kiện close chạy sau)
   const c = mode.contents(key);

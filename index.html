@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="src/css/pages/custom.css">
   <link rel="stylesheet" href="src/css/modes/wheel.css">
   <link rel="stylesheet" href="src/css/modes/biome-letter.css">
+  <link rel="stylesheet" href="src/css/modes/minigame.css">
   <link rel="stylesheet" href="src/css/base/motion.css">
 </head>
 <body>
@@ -177,6 +178,9 @@
       <div class="contents-grid" id="coll-grid"></div>
     </section>
 
+    <!-- Bộ sưu tập riêng của các hòm Minigame (vd. Mega Stones), src/js/modes/minigame.js tự tạo -->
+    <div id="minigame-collections"></div>
+
     <section class="panel" aria-labelledby="history-title">
       <div class="panel-head">
         <h2 id="history-title">Roll history</h2>
@@ -214,7 +218,7 @@
         <div class="panel-head">
           <div class="panel-title">
             <h2 id="custom-gen-title">Select generations</h2>
-            <p class="panel-sub">Only Pokémon from these generations appear in Custom modes (Letter Roulette always uses all of them). Separate from the Case page.</p>
+            <p class="panel-sub">Only Pokémon from these generations appear in Custom modes (Letter Roulette and Minigame Case always use all of them). Separate from the Case page.</p>
           </div>
           <div class="btn-group">
             <button type="button" class="btn btn-ghost" id="custom-all">All</button>
@@ -244,7 +248,7 @@
   <footer class="site-footer">
     <p>PokéRoll is a non-commercial fan project and is not affiliated with Nintendo, Game Freak or The Pokémon Company.</p>
     <p>Pokémon and Pokémon character names are trademarks of © Nintendo / Creatures Inc. / GAME FREAK inc.</p>
-    <p>Data: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokeAPI</a> · <a href="https://thenolan1234.github.io/cobbleverse-wiki/" target="_blank" rel="noopener">Cobbleverse Wiki</a> — Created by Bubi</p>
+    <p>Data: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokeAPI</a> · <a href="https://thenolan1234.github.io/cobbleverse-wiki/" target="_blank" rel="noopener">Cobbleverse Wiki</a> · Mega Stone data: Mega Showdown and ZA Mega (YajatKaul / Navas), Mushiromega — Created by Bubi</p>
     <!-- Chỉ bản desktop (src/js/boot/desktop.js hiện ra khi có window.pokeroll từ electron/preload.js): số phiên bản + kiểm tra cập nhật -->
     <div class="app-version" id="app-version" hidden>
       <span id="app-version-number"></span><span id="app-update" hidden> · <button type="button" class="link-btn" id="btn-update">Check for updates</button></span>
@@ -288,7 +292,7 @@
   <dialog class="modal detail-modal" id="detail-modal" aria-label="Pokémon details">
     <div class="modal-inner">
       <div class="modal-head">
-        <h2>Pokémon details</h2>
+        <h2 id="detail-title">Pokémon details</h2>
         <button type="button" class="modal-close" id="detail-close" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
@@ -301,6 +305,7 @@
   <script src="data/data.js"></script>
   <script src="data/spawns.js"></script>
   <script src="data/special.js"></script>
+  <script src="data/megastones.js"></script>
   <script src="src/js/core/config.js"></script>
   <script src="src/js/core/rolls.js"></script>
   <script src="src/js/core/catalog.js"></script>
@@ -330,6 +335,9 @@
   <script src="src/js/modes/type-roulette.js"></script>
   <script src="src/js/modes/biome-roulette.js"></script>
   <script src="src/js/modes/letter-roulette.js"></script>
+  <script src="src/js/modes/minigame.js"></script>
+  <script src="src/js/modes/minigame-pokemon.js"></script>
+  <script src="src/js/modes/minigame-megastones.js"></script>
   <script src="src/js/boot/desktop.js"></script>
   <script src="src/js/boot/init.js"></script>
 </body>

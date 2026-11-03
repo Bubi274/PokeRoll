@@ -15,6 +15,10 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
   - **Letter Roulette**: spin a wheel for a letter from A to Z, then open cases of Pokémon whose name starts with it. Always uses every generation, Special forms included (under their original name)
   - View case contents for the picked type or biome, or preview any other one, with each Pokémon's real odds and whether you own it
   - Custom pool: in View case contents, pick which Pokémon of your type or biome case can drop (at least 6, with at least one Blue, Purple or Pink). Saved per type / biome and applied whenever the wheel lands on it again
+  - **Minigame Case**: just-for-fun cases with no rarity tiers and no Shiny, where every item has the same chance (1 in N). Pick a case, open it with the same reel, Quick open and Space key:
+    - **Pokémon Case**: every Pokémon (1025 + Special), always all generations. Drops are not added to your collection and don't change any stats
+    - **Mega Stone Case**: 156 Mega Stones from the Cobblemon mods Mega Showdown, ZA Mega and Mushiromega, with a drawn stone icon, the Mega form's type, stats, ability and crafting recipe. Stones go into their own **Mega Stones** collection on the Collection tab (filter by mod, search by stone or Pokémon name, duplicates counted)
+    - Minigame opens show in Recent drops and Roll history with a "Minigame" tag. They are saved in their own history (last 200), so they never push out your Case and Roulette opens
 - Spawn locations for each Pokémon in the Cobbleverse modpack
 - **Special** group: the 8 Kazeran forms from the Cobblemon addon [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions), with their evolution methods. Ranked by the same BST rules, tracked separately in the collection (X/8)
 - Animated odds table, page and popup transitions. Turned off when your system asks for reduced motion, or by opening `index.html?nomotion`
@@ -28,14 +32,15 @@ src/js/ui/       parts used across pages: gen grid, odds table, reel, transition
                  popups, recent drops, sound, images, motion
 src/js/pages/    the Case, Collection and Custom pages, and switching between them
 src/js/modes/    Custom modes: shared wheel code and custom pool editor, then one file per mode
-                 (type-roulette.js, biome-roulette.js, letter-roulette.js)
+                 (type-roulette.js, biome-roulette.js, letter-roulette.js, minigame.js), then one file
+                 per Minigame case (minigame-pokemon.js, minigame-megastones.js)
 src/js/boot/     desktop footer and app start-up
 src/css/         fonts.css, plus base/, layout/, components/, popups/, pages/ and modes/ styles;
                  each file also holds its own phone, tablet and reduced-motion rules
-data/            generated data files (Pokémon, spawns, Special group)
+data/            generated data files (Pokémon, spawns, Special group, Mega Stones)
 assets/          bundled images and fonts
 electron/        desktop app: main process and preload
-scripts/         data generators and the release script
+scripts/         data generators and the release script; scripts/data/ holds the Mega Stone CSV
 tests/           logic tests (Node) and UI tests (Electron)
 build/           icons used when packaging the desktop app
 ```
@@ -104,6 +109,7 @@ node scripts/build-data.js     # data/data.js — Pokémon info from PokeAPI
 node scripts/build-spawns.js   # data/spawns.js — spawn locations from the Cobbleverse Wiki
 node scripts/build-images.js   # assets/images/ — Pokémon images bundled with the app (works offline)
 node scripts/build-special.js  # data/special.js + assets/images/special/ — Special group, read from the mod file in special-src/
+node scripts/build-megastones.js # data/megastones.js — Mega Stones, read from scripts/data/mega-stones.csv
 ```
 
 `build-special.js` needs the mod file (e.g. `Kazeran_Eeveelutions_v1.6.1.zip`, downloaded from Modrinth) in `special-src/`. That folder is not committed.
@@ -113,6 +119,7 @@ node scripts/build-special.js  # data/special.js + assets/images/special/ — Sp
 - [PokeAPI](https://pokeapi.co) — Pokémon info and images
 - [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) — spawn locations in Cobbleverse
 - [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions) — types, base stats, evolution methods and images of the Special group
+- Mega Showdown, ZA Mega and Mushiromega (Cobblemon mods) — names, types, stats, abilities and recipes of the Mega Stones (data only)
 
 ## Credits
 
@@ -120,9 +127,11 @@ Kazeran Eeveelutions by Kazerio (<https://modrinth.com/datapack/kazeran-eeveelut
 
 The Kazeran forms (designs, names and images) belong to their original author, Kazerio. They are included here for non-commercial use only, under the terms of the [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/) license.
 
+Mega Stone data from the Cobblemon mods **Mega Showdown** and **ZA Mega** (YajatKaul / Navas) and **Mushiromega**. Only the data (stone names, stats, abilities, recipes) is used; no images from these mods are included. The stone icons are drawn by the app.
+
 ## Disclaimer
 
 PokéRoll is a non-commercial fan project and is not affiliated with Nintendo, Game Freak or The Pokémon Company.
 Pokémon and Pokémon character names are trademarks of © Nintendo / Creatures Inc. / GAME FREAK inc.
 
-Data: [PokeAPI](https://pokeapi.co) · [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) — Created by Bubi
+Data: [PokeAPI](https://pokeapi.co) · [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) · Mega Stone data: Mega Showdown and ZA Mega (YajatKaul / Navas), Mushiromega — Created by Bubi

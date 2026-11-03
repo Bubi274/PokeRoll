@@ -117,6 +117,8 @@ function showResultModal(result, { isNew, count, groups = state.groups, again = 
   $("result-again").disabled = !canAgain;
   state.resultAgain = again;
   $("result-view").dataset.target = p.id; // nút "View in collection" biết cần tìm Pokémon nào
+  $("result-view").hidden = false;         // popup Minigame có thể đã ẩn nút này
+  delete $("result-view").dataset.minigame;
   modal.showModal();
   playReveal(rarity, shiny);
   $("result-body").scrollTop = 0;
