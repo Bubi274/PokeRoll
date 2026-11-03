@@ -87,6 +87,10 @@ function dexLabel(p) {
   return isSpecial(p) ? "Special" : `#${pad4(p.id)}`;
 }
 
+function regionOf(p) {
+  return GENS.find((g) => g.gen === p.gen).region;
+}
+
 // "Gen 1 · Kanto" hoặc "Special · Kazeran"
 function sourceLabel(p) {
   return isSpecial(p) ? `Special · ${specialGroup(p.group).name}` : `Gen ${p.gen} · ${regionOf(p)}`;

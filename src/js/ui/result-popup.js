@@ -33,10 +33,6 @@ function tierPanel(rarity, shiny, groups) {
     </div>`;
 }
 
-function regionOf(p) {
-  return GENS.find((g) => g.gen === p.gen).region;
-}
-
 // Dòng "Generation" trong popup; Pokémon Special thay bằng nhóm và dạng gốc.
 function originFacts(p) {
   if (!isSpecial(p)) return `<div><dt>Generation</dt><dd>${sourceLabel(p)}</dd></div>`;
