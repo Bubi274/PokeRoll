@@ -1,7 +1,7 @@
 // Chờ chuyển động transform chạy xong, có đồng hồ dự phòng (dùng chung cho dải thẻ và bánh xe).
 "use strict";
 
-// Chuyển động transform của el kết thúc khi trình duyệt báo transitionend. Phòng khi không báo (vd. tab bị ẩn) có
+// Chuyển động transform của el kết thúc khi trình duyệt báo transitionend của transform. Phòng khi không báo (vd. tab bị ẩn) có
 // đồng hồ dự phòng ms() + 500, tính từ lúc el thực sự bắt đầu chạy (transitionstart): máy chậm có thể bắt đầu trễ,
 // tính từ lúc bấm thì kết quả hiện khi el còn đang chạy. Không nhận được cả transitionstart thì vẫn kết thúc,
 // chậm hơn TRANSITION_START_WAIT_MS.
@@ -27,7 +27,8 @@ function watchTransform(el, { ms, onStart = () => {}, onFinish }) {
     clearTimeout(fallback);
     fallback = setTimeout(() => finish(true), ms() + 500);
   };
-  const end = (e) => { if (e.target === el) finish(); };
+  // Chỉ transform của chính el: transition của thuộc tính khác (hoặc của phần tử con) kết thúc không có nghĩa là đã dừng
+  const end = (e) => { if (e.target === el && e.propertyName === "transform") finish(); };
   el.addEventListener("transitionstart", start);
   el.addEventListener("transitionend", end);
   fallback = setTimeout(() => finish(true), ms() + 500 + TRANSITION_START_WAIT_MS);
