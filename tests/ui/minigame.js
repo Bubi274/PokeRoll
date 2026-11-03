@@ -346,6 +346,20 @@ app.whenReady().then(async () => {
     if (w === 390) { await shot("mg-stone-popup-390.png"); await closeResult(); await js(`window.scrollTo(0, 0)`); await shot("mg-custom-390.png"); }
     await closeResult();
   }
+  // Mọi viên đá (không chỉ viên quay trúng): popup kết quả và popup chi tiết vừa khổ 320px
+  win.setContentSize(320, 800); await sleep(300);
+  const wide = await js(`(() => { const c = minigameCase("megastone"), out = [];
+    const fits = (id) => { const b = document.getElementById(id); return b.scrollWidth <= b.clientWidth + 1; };
+    for (const s of MEGA_STONES) {
+      showMinigameResult(c, s, { isNew: true, count: 1 });
+      if (!fits("result-body")) out.push(s.id + " (result)");
+      document.getElementById("result-modal").close();
+      openMinigameDetail("megastone", s.id);
+      if (!fits("detail-body")) out.push(s.id + " (detail)");
+      document.getElementById("detail-modal").close();
+    }
+    return out; })()`);
+  check("320px: every one of the 156 stones fits in the result and detail popups", wide.length === 0, wide.slice(0, 6).join(", "));
   win.setContentSize(1300, 900); await sleep(300);
 
   // ---- 10b. Lưu bộ sưu tập chính bị lỗi: lượt Minigame lưu được không che mất cảnh báo ----

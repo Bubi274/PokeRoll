@@ -126,6 +126,12 @@
 
 /* ===== Popup đá: chỉ số, công thức, nguồn ===== */
 .facts-sub { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500; color: var(--muted); }
+/* Tên dài ("Mega Crabominable", "Odds of pulling Corviknightite") được ngắt ở khổ hẹp: ô facts chia 2 cột ở điện thoại,
+   một từ không ngắt được sẽ đẩy cả popup rộng hơn màn hình */
+.r-minigame .facts dd,
+.r-minigame .odds-label,
+.r-minigame .reveal-name,
+.r-minigame .detail-name { overflow-wrap: anywhere; }
 .facts-code { font-family: var(--font-mono); font-size: 0.9rem; overflow-wrap: anywhere; }
 
 .stone-stats {
