@@ -36,6 +36,20 @@ check("Every Pokémon is found in the app except Mushiro", noMon.join() === "Mus
 check("pokemonId points to the Pokémon of the same name", S.every((s) => !s.pokemonId || ALL.find((p) => p.id === s.pokemonId).name === s.pokemon));
 check("Generated file matches the CSV row count", fs.readFileSync(path.join(ROOT, "scripts/data/mega-stones.csv"), "utf8").trim().split("\n").length - 1 === S.length);
 
+// 1b. Ảnh đá (assets/images/megastones/<stone_id>.png, chép từ file mod bằng scripts/build-megastone-images.js)
+const IMG_DIR = path.join(ROOT, "assets/images/megastones");
+const pngs = fs.existsSync(IMG_DIR) ? fs.readdirSync(IMG_DIR).filter((f) => f.endsWith(".png")) : [];
+const missingImg = ids.filter((id) => !pngs.includes(`${id}.png`));
+check("All 156 stone images exist, one per stone id, nothing extra", missingImg.length === 0 && pngs.length === 156, missingImg.join(", ") || `${pngs.length} files`);
+const SIG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const badImg = pngs.filter((f) => {
+  const b = fs.readFileSync(path.join(IMG_DIR, f));
+  return !(b.subarray(0, 8).equals(SIG) && b.toString("ascii", 12, 16) === "IHDR" && b.readUInt32BE(16) === 16 && b.readUInt32BE(20) === 16);
+});
+check("Every stone image is a PNG of 16×16", badImg.length === 0, badImg.join(", "));
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+check("Stone images are packaged in the desktop build (build.files)", pkg.build.files.some((f) => f === "assets/**" || f === "assets/images/**" || f === "assets/images/megastones/**"));
+
 // 2. Các hòm đã đăng ký
 const cases = A.MINIGAME_CASES;
 check("Two Minigame cases registered: Pokémon Case, Mega Stone Case", cases.map((c) => c.key).join() === "pokemon,megastone" && cases.map((c) => c.name).join() === "Pokémon Case,Mega Stone Case");

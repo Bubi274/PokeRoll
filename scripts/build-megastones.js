@@ -1,8 +1,8 @@
 // Sinh file data/megastones.js (đá Mega cho hòm Minigame "Mega Stone Case") từ scripts/data/mega-stones.csv.
 // Chạy (cần Node.js 18 trở lên):  node scripts/build-megastones.js
 //
-// CSV gồm đá Mega của 3 mod Cobblemon (Mega Showdown, ZA Mega, Mushiromega). Chỉ dùng dữ liệu (tên, chỉ số),
-// không dùng hình ảnh từ mod: app tự vẽ biểu tượng đá. Muốn thêm đá: thêm dòng vào CSV rồi chạy lại script.
+// CSV gồm đá Mega của 3 mod Cobblemon (Mega Showdown, ZA Mega, Mushiromega). Ảnh đá chép riêng bằng
+// scripts/build-megastone-images.js. Muốn thêm đá: thêm dòng vào CSV, chạy lại script này rồi script ảnh.
 // Mod mới: thêm một mục vào MODS bên dưới (cột "mod" của CSV phải khớp name).
 
 const fs = require("fs");
@@ -14,8 +14,8 @@ const INPUT = path.join(__dirname, "data", "mega-stones.csv");
 const OUTPUT = path.join(ROOT, "data", "megastones.js");
 
 const MODS = [
-  { key: "mega-showdown", name: "Mega Showdown", author: "YajatKaul / Navas" },
-  { key: "za-mega", name: "ZA Mega", author: "YajatKaul / Navas" },
+  { key: "mega-showdown", name: "Mega Showdown", author: "YajatKaul, Navas" },
+  { key: "za-mega", name: "ZA Mega", author: "YajatKaul, Navas" },
   { key: "mushiromega", name: "Mushiromega", author: "" },
 ];
 
@@ -116,7 +116,7 @@ function main() {
 
   const content =
     `// File này được sinh tự động bởi scripts/build-megastones.js — đừng sửa tay.\n` +
-    `// Nguồn: scripts/data/mega-stones.csv (dữ liệu đá Mega của các mod Cobblemon, không có hình ảnh). Ngày tạo: ${new Date().toISOString().slice(0, 10)}\n` +
+    `// Nguồn: scripts/data/mega-stones.csv (dữ liệu đá Mega của các mod Cobblemon). Ngày tạo: ${new Date().toISOString().slice(0, 10)}\n` +
     `const MEGA_STONE_MODS = [\n${MODS.map((m) => "  " + JSON.stringify(m)).join(",\n")}\n];\n` +
     `const MEGA_STONE_DATA = [\n${stones.map((s) => "  " + JSON.stringify(s)).join(",\n")}\n];\n`;
   fs.writeFileSync(OUTPUT, content, "utf8");

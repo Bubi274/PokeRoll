@@ -340,7 +340,7 @@ function showMinigameResult(c, item, { isNew, count }) {
   const view = $("result-view");
   view.hidden = !c.collect; // hòm không sưu tập: không có gì để xem trong Collection
   view.dataset.target = c.idOf(item);
-  view.dataset.minigame = c.key;
+  view.dataset.minigameCase = c.key; // không dùng data-minigame: thuộc tính đó là ô bấm mở chi tiết vật phẩm
   modal.showModal();
   playReveal(MINIGAME_MODE, false); // không có độ hiếm → tiếng mặc định
   $("result-body").scrollTop = 0;

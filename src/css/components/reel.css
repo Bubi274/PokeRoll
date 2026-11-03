@@ -211,8 +211,9 @@
 
 /* Thẻ thắng: phóng to nhẹ, viền phát sáng theo độ hiếm */
 .card.is-winner {
+  --winner-scale: 1.04; /* modes/minigame.css thu ảnh đá Mega lại đúng chừng ấy */
   z-index: 1;
-  transform: scale(1.04);
+  transform: scale(var(--winner-scale));
   border-color: var(--c);
   box-shadow: inset 0 -3px 0 var(--c), 0 0 24px -2px color-mix(in srgb, var(--c) 75%, transparent);
   animation: winner-pop 0.6s ease-out;
@@ -221,7 +222,7 @@
 @keyframes winner-pop {
   0%   { transform: scale(1); }
   40%  { transform: scale(1.1); }
-  100% { transform: scale(1.04); }
+  100% { transform: scale(var(--winner-scale)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

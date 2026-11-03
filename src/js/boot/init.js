@@ -106,7 +106,7 @@ function init() {
   $("result-view").addEventListener("click", () => {
     resultModal.close();
     const target = $("result-view").dataset;
-    if (target.minigame) locateMinigameItem(target.minigame, target.target);
+    if (target.minigameCase) locateMinigameItem(target.minigameCase, target.target);
     else locateInCollection(parseId(target.target));
   });
 

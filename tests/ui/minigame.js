@@ -181,7 +181,7 @@ app.whenReady().then(async () => {
     m.picked === "megastone" && (await store(K.picked)) === "megastone" && m.count === "156 stones in case" && m.odds.startsWith("Each item: 1 in 156 (0.64%)") && g.inPlay === "156 stones in play" && g.locked,
     JSON.stringify(m) + " " + g.inPlay);
   check("Open button follows the case", m.label === "Open Mega Stone Case");
-  check("Idle reel shows drawn stone icons (SVG), neutral cards", await js(`cardsNeutral() && [...document.querySelectorAll("#mg-reel .card")].every(c => c.querySelector(".stone-icon svg.gem"))`));
+  check("Idle reel shows the stone images (PNG), neutral cards", await js(`cardsNeutral() && [...document.querySelectorAll("#mg-reel .card")].every(c => c.querySelector(".stone-icon img.stone-img"))`));
   await js(`${btn()}.click()`);
   await expectPopup();
   r = await settledReel();
@@ -191,8 +191,8 @@ app.whenReady().then(async () => {
     const b = document.getElementById("result-body"); const facts = [...b.querySelectorAll(".facts dt")].map(d => d.textContent);
     return { id, name: s.name, facts, types: b.querySelectorAll(".slab-foot .type-chip").length, hasTypes: s.types.length, bst: s.bst, ability: s.ability,
       recipe: b.querySelectorAll(".recipe-item").length, recipeLen: s.recipe.length, mod: b.textContent.includes(MEGA_STONE_MODS.find(m => m.key === s.mod).name),
-      mon: !!b.querySelector(".reveal .stone-mon"), hasMon: !!s.pokemonId, gem: !!b.querySelector(".reveal svg.gem") }; })()`);
-  check("Stone popup: name, Pokémon + form, mod, recipe, drawn stone (+ Pokémon image when the app has it)",
+      mon: !!b.querySelector(".reveal .stone-mon"), hasMon: !!s.pokemonId, gem: (b.querySelector(".reveal img.stone-img") || {}).getAttribute?.("src") === "assets/images/megastones/" + id + ".png" }; })()`);
+  check("Stone popup: name, Pokémon + form, mod, recipe, stone image (+ Pokémon image when the app has it)",
     stoneInfo.name === r.modal && stoneInfo.facts.includes("Pokémon") && stoneInfo.facts.includes("Form") && stoneInfo.facts.includes("Mod")
     && stoneInfo.mod && stoneInfo.recipe === stoneInfo.recipeLen && stoneInfo.gem && stoneInfo.mon === stoneInfo.hasMon, JSON.stringify(stoneInfo));
   check("Stone popup: type / BST / ability rows only when the mod lists them",
@@ -246,8 +246,8 @@ app.whenReady().then(async () => {
   check("No match: hint shown", (await search("zzzz")) === "" && await js(`/No stones match/.test(document.getElementById("mgc-megastone-grid").textContent)`));
   await search("");
   await js(`document.querySelector('#mgc-megastone-grid [data-item="mushironitex"]').click()`); await sleep(200);
-  check("Stone tile → stone detail popup (Mushiro: stone icon only, no Pokémon image)", await js(`document.getElementById("detail-modal").open && document.getElementById("detail-title").textContent === "Mega Stone details"
-    && document.querySelector("#detail-body .detail-name").textContent === "Mushironite X" && !!document.querySelector("#detail-body svg.gem") && !document.querySelector("#detail-body .stone-mon")`));
+  check("Stone tile → stone detail popup (Mushiro: stone image only, no Pokémon image)", await js(`document.getElementById("detail-modal").open && document.getElementById("detail-title").textContent === "Mega Stone details"
+    && document.querySelector("#detail-body .detail-name").textContent === "Mushironite X" && !!document.querySelector("#detail-body img.stone-img") && !document.querySelector("#detail-body .stone-mon")`));
   await shot("mg-stone-detail.png");
   await js(`document.getElementById("detail-modal").close()`);
   await js(`document.getElementById("mgc-megastone").scrollIntoView(); 0`); await shot("mg-stone-collection.png");

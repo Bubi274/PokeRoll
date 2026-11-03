@@ -1,11 +1,14 @@
 // Hòm Minigame "Mega Stone Case": 156 viên đá Mega của 3 mod Cobblemon, mỗi viên 1/N, có bộ sưu tập riêng.
-// Dữ liệu ở data/megastones.js (tạo bằng scripts/build-megastones.js). Chỉ dùng dữ liệu, không dùng ảnh từ mod:
-// biểu tượng đá vẽ bằng SVG (stoneIcon), kèm ảnh nhỏ của Pokémon dùng đá lấy từ ảnh sẵn có trong app.
+// Dữ liệu ở data/megastones.js (tạo bằng scripts/build-megastones.js). Ảnh đá là ảnh item 16×16 gốc của mod
+// (assets/images/megastones/, chép bằng scripts/build-megastone-images.js), phóng to theo bội số nguyên, giữ nét pixel;
+// kèm ảnh nhỏ của Pokémon dùng đá lấy từ ảnh sẵn có trong app. Ảnh đá không tải được thì thay bằng biểu tượng SVG.
 "use strict";
 
 const MEGA_STONES = typeof MEGA_STONE_DATA !== "undefined" ? MEGA_STONE_DATA : [];
 const MEGA_STONE_MOD_LIST = typeof MEGA_STONE_MODS !== "undefined" ? MEGA_STONE_MODS : [];
 const megaStoneById = new Map(MEGA_STONES.map((s) => [s.id, s]));
+const LOCAL_MEGASTONE = "assets/images/megastones"; // <stone_id>.png
+const stoneImageUrl = (s) => `${LOCAL_MEGASTONE}/${s.id}.png`;
 
 const stoneMod = (s) => MEGA_STONE_MOD_LIST.find((m) => m.key === s.mod) || { key: s.mod, name: s.mod, author: "" };
 // Pokémon dùng đá (có trong app), hoặc null (vd. Mushiro)
@@ -18,7 +21,7 @@ function stoneColor(s) {
   return TYPE_COLORS[type] || MINIGAME_COLOR;
 }
 
-// Biểu tượng đá: viên ngọc tròn có mặt cắt, một kiểu chung, đổi màu bằng --gem (CSS ở modes/minigame.css).
+// Biểu tượng dự phòng (ảnh đá không tải được): viên ngọc tròn có mặt cắt, đổi màu bằng --gem (CSS ở modes/minigame.css).
 const GEM_SVG = `
   <svg class="gem" viewBox="0 0 64 64" aria-hidden="true">
     <circle class="gem-rim" cx="32" cy="32" r="29"/>
@@ -29,14 +32,26 @@ const GEM_SVG = `
     <ellipse class="gem-shine" cx="23" cy="19" rx="7" ry="3.6" transform="rotate(-35 23 19)"/>
   </svg>`;
 
-// Đá + ảnh nhỏ của Pokémon ở góc (nếu có trong app). cls: class của khung (mini-img, card-img, reveal-img…).
+// Ảnh đá + ảnh nhỏ của Pokémon ở góc (nếu có trong app). cls: class của khung (mini-img, card-img, reveal-img…);
+// cỡ ảnh đá theo khung (bội số của 16, CSS ở modes/minigame.css). Ảnh đá nhẹ (vài trăm byte) nên không tải lười.
 function stoneIcon(s, cls) {
   const mon = stoneMon(s);
   return `
     <span class="${cls} stone-icon" style="--gem:${stoneColor(s)}">
-      ${GEM_SVG}
+      <img class="stone-img" src="${stoneImageUrl(s)}" alt="" draggable="false">
       ${mon ? `<img class="stone-mon" src="${thumbUrl(mon)}" alt="" loading="lazy">` : ""}
     </span>`;
+}
+
+// Ảnh đá lỗi: thay bằng biểu tượng SVG, giữ màu theo hệ của khung. Sự kiện error không nổi bọt nên bắt ở pha capture.
+function stoneImageFailed(img) {
+  img.insertAdjacentHTML("afterend", GEM_SVG);
+  img.remove();
+}
+if (typeof document !== "undefined") {
+  document.addEventListener("error", (e) => {
+    if (e.target.classList && e.target.classList.contains("stone-img")) stoneImageFailed(e.target);
+  }, true);
 }
 
 // "iron_ingot" → "Iron Ingot"
@@ -64,7 +79,7 @@ function stoneFacts(s, { count }) {
     <ul class="recipe">
       ${s.recipe.map((r) => `<li class="recipe-item${r.item === "mega_stone" ? " is-key" : ""}">${escHtml(itemName(r.item))}${r.count > 1 ? ` <b>×${r.count}</b>` : ""}</li>`).join("")}
     </ul>
-    <p class="stone-credit">Stone data from the Cobblemon mod <b>${escHtml(mod.name)}</b>${mod.author ? ` by ${escHtml(mod.author)}` : ""}. Names and stats only, no images from the mod.</p>`;
+    <p class="stone-credit">Stone data and image from the Cobblemon mod <b>${escHtml(mod.name)}</b>${mod.author ? ` by ${escHtml(mod.author)}` : ""}, used for non-commercial purposes only.</p>`;
 }
 
 registerMinigameCase({
@@ -97,10 +112,10 @@ registerMinigameCase({
   art: (s, cls) => stoneIcon(s, cls),
   chips: (s) => (s.types.length ? `<div class="type-chips">${typeChips(s.types)}</div>` : ""),
   facts: stoneFacts,
-  images: (s) => (stoneMon(s) ? [thumbUrl(stoneMon(s))] : []),
+  images: (s) => [stoneImageUrl(s), ...(stoneMon(s) ? [thumbUrl(stoneMon(s))] : [])],
   credit: (s) => {
     const mod = stoneMod(s);
-    return `Stone data: ${escHtml(mod.name)}${mod.author ? ` by ${escHtml(mod.author)}` : ""} (Cobblemon mod)`;
+    return `Stone data and image: ${escHtml(mod.name)}${mod.author ? ` by ${escHtml(mod.author)}` : ""} (Cobblemon mod, non-commercial use only)`;
   },
   collect: {
     title: "Mega Stones",

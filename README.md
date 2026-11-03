@@ -17,7 +17,7 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
   - Custom pool: in View case contents, pick which Pokémon of your type or biome case can drop (at least 6, with at least one Blue, Purple or Pink). Saved per type / biome and applied whenever the wheel lands on it again
   - **Minigame Case**: just-for-fun cases with no rarity tiers and no Shiny, where every item has the same chance (1 in N). Pick a case, open it with the same reel, Quick open and Space key:
     - **Pokémon Case**: every Pokémon (1025 + Special), always all generations. Drops are not added to your collection and don't change any stats
-    - **Mega Stone Case**: 156 Mega Stones from the Cobblemon mods Mega Showdown, ZA Mega and Mushiromega, with a drawn stone icon, the Mega form's type, stats, ability and crafting recipe. Stones go into their own **Mega Stones** collection on the Collection tab (filter by mod, search by stone or Pokémon name, duplicates counted)
+    - **Mega Stone Case**: 156 Mega Stones from the Cobblemon mods Mega Showdown, ZA Mega and Mushiromega, with each stone's item image from its mod (shown pixel-sharp), the Mega form's type, stats, ability and crafting recipe. Stones go into their own **Mega Stones** collection on the Collection tab (filter by mod, search by stone or Pokémon name, duplicates counted)
     - Minigame opens show in Recent drops and Roll history with a "Minigame" tag. They are saved in their own history (last 200), so they never push out your Case and Roulette opens
 - Spawn locations for each Pokémon in the Cobbleverse modpack
 - **Special** group: the 8 Kazeran forms from the Cobblemon addon [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions), with their evolution methods. Ranked by the same BST rules, tracked separately in the collection (X/8)
@@ -110,7 +110,10 @@ node scripts/build-spawns.js   # data/spawns.js — spawn locations from the Cob
 node scripts/build-images.js   # assets/images/ — Pokémon images bundled with the app (works offline)
 node scripts/build-special.js  # data/special.js + assets/images/special/ — Special group, read from the mod file in special-src/
 node scripts/build-megastones.js # data/megastones.js — Mega Stones, read from scripts/data/mega-stones.csv
+node scripts/build-megastone-images.js # assets/images/megastones/ — Mega Stone item images, read from the mod files in megastone-src/
 ```
+
+`build-megastone-images.js` needs the three mod files (`mega_showdown-*.jar`, `zamega-*.jar`, `mushiromega-*.jar`) in `megastone-src/`. That folder is not committed. The script finds each stone's image from the mod's own data, not by guessing the image name: the Mega definition whose `showdown_id` is the stone id (its file name is the item id), then that item's model, then the texture the model points to, copies the original 16×16 PNG unchanged, and stops without writing anything if any stone has no image.
 
 `build-special.js` needs the mod file (e.g. `Kazeran_Eeveelutions_v1.6.1.zip`, downloaded from Modrinth) in `special-src/`. That folder is not committed.
 
@@ -119,7 +122,7 @@ node scripts/build-megastones.js # data/megastones.js — Mega Stones, read from
 - [PokeAPI](https://pokeapi.co) — Pokémon info and images
 - [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) — spawn locations in Cobbleverse
 - [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions) — types, base stats, evolution methods and images of the Special group
-- Mega Showdown, ZA Mega and Mushiromega (Cobblemon mods) — names, types, stats, abilities and recipes of the Mega Stones (data only)
+- Mega Showdown, ZA Mega and Mushiromega (Cobblemon mods) — names, types, stats, abilities, recipes and item images of the Mega Stones
 
 ## Credits
 
@@ -127,11 +130,11 @@ Kazeran Eeveelutions by Kazerio (<https://modrinth.com/datapack/kazeran-eeveelut
 
 The Kazeran forms (designs, names and images) belong to their original author, Kazerio. They are included here for non-commercial use only, under the terms of the [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/) license.
 
-Mega Stone data from the Cobblemon mods **Mega Showdown** and **ZA Mega** (YajatKaul / Navas) and **Mushiromega**. Only the data (stone names, stats, abilities, recipes) is used; no images from these mods are included. The stone icons are drawn by the app.
+Mega Stone data and images from the Cobblemon mods **Mega Showdown** and **ZA Mega** (YajatKaul, Navas) and **Mushiromega**. The stone images (`assets/images/megastones/`) are the mods' original item textures, copied unchanged. They belong to the mods' authors and are included here for non-commercial use only.
 
 ## Disclaimer
 
 PokéRoll is a non-commercial fan project and is not affiliated with Nintendo, Game Freak or The Pokémon Company.
 Pokémon and Pokémon character names are trademarks of © Nintendo / Creatures Inc. / GAME FREAK inc.
 
-Data: [PokeAPI](https://pokeapi.co) · [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) · Mega Stone data: Mega Showdown and ZA Mega (YajatKaul / Navas), Mushiromega — Created by Bubi
+Data: [PokeAPI](https://pokeapi.co) · [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) · Mega Stone data and images: Mega Showdown and ZA Mega (YajatKaul, Navas), Mushiromega, non-commercial use only — Created by Bubi

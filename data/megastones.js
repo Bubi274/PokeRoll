@@ -1,8 +1,8 @@
 // File này được sinh tự động bởi scripts/build-megastones.js — đừng sửa tay.
-// Nguồn: scripts/data/mega-stones.csv (dữ liệu đá Mega của các mod Cobblemon, không có hình ảnh). Ngày tạo: 2026-11-03
+// Nguồn: scripts/data/mega-stones.csv (dữ liệu đá Mega của các mod Cobblemon). Ngày tạo: 2026-11-03
 const MEGA_STONE_MODS = [
-  {"key":"mega-showdown","name":"Mega Showdown","author":"YajatKaul / Navas"},
-  {"key":"za-mega","name":"ZA Mega","author":"YajatKaul / Navas"},
+  {"key":"mega-showdown","name":"Mega Showdown","author":"YajatKaul, Navas"},
+  {"key":"za-mega","name":"ZA Mega","author":"YajatKaul, Navas"},
   {"key":"mushiromega","name":"Mushiromega","author":""}
 ];
 const MEGA_STONE_DATA = [
