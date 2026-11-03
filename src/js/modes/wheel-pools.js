@@ -1,32 +1,5 @@
-// Hằng số bánh xe, nhóm Pokémon theo hệ, logic custom pool.
+// Nhóm nào được lên bánh xe, và logic custom pool (luật hợp lệ, đọc / lưu) của các chế độ bánh xe.
 "use strict";
-
-// =====================================================================
-// CHẾ ĐỘ CUSTOM: Type Roulette
-// =====================================================================
-
-const ICON_WHEEL = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V5M12 13l6.9 4M12 13l-6.9 4M12 2v3"/></svg>`;
-
-// 18 hệ theo thứ tự trong game — cũng là thứ tự các ô trên bánh xe (theo chiều kim đồng hồ, bắt đầu từ kim chỉ).
-const TYPE_ORDER = ["normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
-  "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"];
-
-const WHEEL_SPIN_MS = 3600;   // thời gian quay bánh xe
-const WHEEL_TURNS = 5;        // số vòng quay trọn trước khi dừng
-const ROULETTE_REEL_MS = 4000; // dải thẻ ở Type Roulette ngắn hơn trang Case
-
-const typeName = (t) => t.charAt(0).toUpperCase() + t.slice(1);
-
-// Pokémon của từng hệ: { fire: [...], water: [...] } — chỉ gồm hệ có Pokémon, theo thứ tự TYPE_ORDER.
-// Pokémon hai hệ nằm trong cả hai nhóm (Gyarados thuộc cả Water lẫn Flying).
-function typePools(pool) {
-  const pools = {};
-  for (const t of TYPE_ORDER) {
-    const list = pool.filter((p) => p.types.includes(t));
-    if (list.length > 0) pools[t] = list;
-  }
-  return pools;
-}
 
 // Bậc "thường": nhóm (hệ / biome) phải có ít nhất 1 Pokémon ở một trong các bậc này mới được lên bánh xe.
 const COMMON_TIERS = ["blue", "purple", "pink"];

@@ -1,6 +1,12 @@
 // Khung chung cho các chế độ bánh xe: dựng giao diện, quay bánh xe, mở hòm.
 "use strict";
 
+// Biểu tượng bánh xe (cũng là biểu tượng của Type Roulette trên thanh chọn chế độ) và biểu tượng hai nút
+// của mọi chế độ bánh xe: quay bánh xe, mở hòm.
+const ICON_WHEEL = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V5M12 13l6.9 4M12 13l-6.9 4M12 2v3"/></svg>`;
+const ICON_CASE = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>`;
+const ICON_WHEEL_BTN = ICON_WHEEL.replace('width="20" height="20"', 'width="18" height="18" aria-hidden="true"');
+
 // ----- Khung chung cho các chế độ bánh xe (Type Roulette, Biome Roulette…) -----
 // Mỗi chế độ bánh xe là một mô tả w; mọi hàm bên dưới chỉ đọc mô tả đó, nên thêm chế độ mới không phải viết lại.
 //   mode            mã chế độ (như registerCustomMode, dùng cho custom pool và lịch sử)
