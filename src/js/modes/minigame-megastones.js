@@ -48,10 +48,24 @@ function stoneImageFailed(img) {
   img.insertAdjacentHTML("afterend", GEM_SVG);
   img.remove();
 }
+// --dpr cho CSS chọn cỡ ảnh đá theo pixel màn hình (modes/minigame.css). Đổi mức phóng hoặc kéo cửa sổ sang màn hình
+// khác thì devicePixelRatio đổi: media query (resolution: <dpr hiện tại>dppx) hết khớp, hoặc cửa sổ báo resize
+// (không phải lúc nào trình duyệt cũng báo cả hai) → đặt lại --dpr và theo dõi giá trị mới.
+let pixelRatioQuery = null;
+function updatePixelRatio() {
+  const dpr = window.devicePixelRatio || 1;
+  document.documentElement.style.setProperty("--dpr", String(dpr));
+  if (pixelRatioQuery) pixelRatioQuery.removeEventListener("change", updatePixelRatio);
+  pixelRatioQuery = window.matchMedia(`(resolution: ${dpr}dppx)`);
+  pixelRatioQuery.addEventListener("change", updatePixelRatio);
+}
+
 if (typeof document !== "undefined") {
   document.addEventListener("error", (e) => {
     if (e.target.classList && e.target.classList.contains("stone-img")) stoneImageFailed(e.target);
   }, true);
+  updatePixelRatio();
+  window.addEventListener("resize", updatePixelRatio);
 }
 
 // "iron_ingot" → "Iron Ingot"
