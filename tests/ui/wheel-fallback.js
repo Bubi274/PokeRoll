@@ -47,7 +47,7 @@ app.whenReady().then(async () => {
       res.moved = Math.round(Math.abs(angle() - a)); res.animsLater = disc.getAnimations().length;
       style.remove();
       return res; })()`);
-    const spinMs = await js(`WHEEL_SPIN_MS`), late = await js(`WHEEL_SPIN_MS + 500 + REEL_START_WAIT_MS + 1000`);
+    const spinMs = await js(`WHEEL_SPIN_MS`), late = await js(`WHEEL_SPIN_MS + 500 + TRANSITION_START_WAIT_MS + 1000`);
 
     // Bắt đầu trễ 1,5 s: bánh xe tự dừng, không bị đồng hồ dự phòng cắt ngang
     const slow = await spinWithDelay(1500, 300);

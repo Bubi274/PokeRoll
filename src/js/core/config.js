@@ -67,12 +67,14 @@ const WIN_INDEX = 49;           // vị trí thẻ thắng (thẻ thứ 50)
 const IDLE_REEL_SIZE = 12;      // số thẻ hiển thị lúc chưa quay
 const SPIN_MS = 6000;           // thời gian quay
 const PRELOAD_TIMEOUT_MS = 5000; // chờ tải ảnh tối đa bấy nhiêu rồi quay luôn
-const REEL_START_WAIT_MS = 2000; // dải chưa báo bắt đầu chạy thì đồng hồ dự phòng chờ thêm bấy nhiêu
 
 // Bánh xe (Type / Biome / Letter Roulette)
 const WHEEL_SPIN_MS = 3600;   // thời gian quay bánh xe
 const WHEEL_TURNS = 5;        // số vòng quay trọn trước khi dừng
 const ROULETTE_REEL_MS = 4000; // dải thẻ ở các chế độ bánh xe ngắn hơn trang Case
+
+// Dải thẻ hoặc bánh xe chưa báo bắt đầu chạy (transitionstart) thì đồng hồ dự phòng chờ thêm bấy nhiêu (watchTransform)
+const TRANSITION_START_WAIT_MS = 2000;
 
 // Nơi xuất hiện trong modpack Cobbleverse (dữ liệu ở spawns.js)
 const WIKI_URL = "https://thenolan1234.github.io/cobbleverse-wiki";

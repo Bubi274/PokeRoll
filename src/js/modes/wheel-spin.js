@@ -48,33 +48,18 @@ function animateWheel(target, w = TYPE_WHEEL) {
   };
   requestAnimationFrame(loop);
 
-  // Bánh xe dừng khi trình duyệt báo transitionend. Phòng khi không báo (vd. sang tab khác) có đồng hồ dự phòng, giống
-  // dải thẻ (animateReel): WHEEL_SPIN_MS + 500 tính từ lúc bánh xe thực sự bắt đầu quay (transitionstart), để máy chậm
-  // bắt đầu trễ không bị cắt ngang; không nhận được cả transitionstart thì chờ thêm REEL_START_WAIT_MS.
+  // Bánh xe dừng khi trình duyệt báo transitionend, hoặc nhờ đồng hồ dự phòng như dải thẻ (watchTransform).
   // Kết thúc nhờ đồng hồ dự phòng (snap) thì bánh xe nhảy ngay tới góc dừng của ô trúng, bỏ phần chuyển động còn lại.
   // Trường hợp bình thường (transitionend) không đổi gì.
   return new Promise((resolve) => {
-    let finished = false;
-    let fallback = null;
-    const finish = (snap = false) => {
-      if (finished) return;
-      finished = true;
-      running = false;
-      clearTimeout(fallback);
-      if (snap) setWheelRotation(target, w);
-      $(w.wheel).classList.remove("is-spinning");
-      disc.removeEventListener("transitionstart", onStart);
-      disc.removeEventListener("transitionend", onEnd);
-      resolve();
-    };
-    const onStart = (e) => {
-      if (e.target !== disc || e.propertyName !== "transform") return;
-      clearTimeout(fallback);
-      fallback = setTimeout(() => finish(true), WHEEL_SPIN_MS + 500);
-    };
-    const onEnd = (e) => { if (e.target === disc) finish(); };
-    disc.addEventListener("transitionstart", onStart);
-    disc.addEventListener("transitionend", onEnd);
-    fallback = setTimeout(() => finish(true), WHEEL_SPIN_MS + 500 + REEL_START_WAIT_MS);
+    watchTransform(disc, {
+      ms: () => WHEEL_SPIN_MS,
+      onFinish: (snap) => {
+        running = false;
+        if (snap) setWheelRotation(target, w);
+        $(w.wheel).classList.remove("is-spinning");
+        resolve();
+      },
+    });
   });
 }

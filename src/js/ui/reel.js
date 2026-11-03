@@ -116,41 +116,28 @@ function animateReel(winIndex, reel = $("reel"), ms = SPIN_MS) {
   reel.classList.add("is-spinning");
   const stopTicks = trackTicks(reel);
 
-  // Dải dừng khi trình duyệt báo transitionend. Phòng khi không báo (vd. tab bị ẩn) có đồng hồ dự phòng ms + 500,
-  // tính từ lúc dải thực sự bắt đầu chạy (transitionstart): máy chậm có thể bắt đầu trễ, tính từ lúc bấm thì popup
-  // hiện khi dải còn đang trượt. Không nhận được cả transitionstart thì vẫn kết thúc, chậm hơn REEL_START_WAIT_MS.
-  // Kết thúc nhờ đồng hồ dự phòng (snap) thì dải nhảy ngay tới vị trí dừng ở thẻ thắng (bỏ phần chuyển động còn lại),
-  // để popup không bao giờ hiện khi dải chưa chạy / chưa dừng. Trường hợp bình thường (transitionend) không đổi gì.
+  // Dải dừng khi trình duyệt báo transitionend, hoặc nhờ đồng hồ dự phòng (watchTransform). Kết thúc nhờ đồng hồ
+  // dự phòng (snap) thì dải nhảy ngay tới vị trí dừng ở thẻ thắng (bỏ phần chuyển động còn lại), để popup không bao giờ
+  // hiện khi dải chưa chạy / chưa dừng. Trường hợp bình thường (transitionend) không đổi gì.
   return new Promise((resolve) => {
-    let finished = false;
-    let fallback = null;
-    const finish = (snap = false) => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(fallback);
-      reelSpins.delete(reel);
-      if (snap || shift) {
-        strip.style.transition = "none"; // huỷ chuyển động đang chờ / đang chạy, giá trị nhảy tới đích
-        strip.style.transform = `translateX(${target}px)`; // gộp phần dời vào transform: vị trí trên màn hình không đổi
-        strip.style.translate = "";
-      }
-      stopTicks();
-      reel.classList.remove("is-spinning");
-      strip.removeEventListener("transitionstart", onStart);
-      strip.removeEventListener("transitionend", onEnd);
-      resolve();
-    };
-    const onStart = (e) => {
-      if (e.target !== strip || e.propertyName !== "transform") return;
-      started = true;
-      endsAt = performance.now() + duration;
-      clearTimeout(fallback);
-      fallback = setTimeout(() => finish(true), duration + 500);
-    };
-    const onEnd = (e) => { if (e.target === strip) finish(); };
-    strip.addEventListener("transitionstart", onStart);
-    strip.addEventListener("transitionend", onEnd);
-    fallback = setTimeout(() => finish(true), ms + 500 + REEL_START_WAIT_MS);
+    const finish = watchTransform(strip, {
+      ms: () => duration,
+      onStart: () => {
+        started = true;
+        endsAt = performance.now() + duration;
+      },
+      onFinish: (snap) => {
+        reelSpins.delete(reel);
+        if (snap || shift) {
+          strip.style.transition = "none"; // huỷ chuyển động đang chờ / đang chạy, giá trị nhảy tới đích
+          strip.style.transform = `translateX(${target}px)`; // gộp phần dời vào transform: vị trí trên màn hình không đổi
+          strip.style.translate = "";
+        }
+        stopTicks();
+        reel.classList.remove("is-spinning");
+        resolve();
+      },
+    });
     // Cỡ dải đổi giữa lượt quay: tính lại điểm dừng (cùng độ lệch).
     reelSpins.set(reel, () => {
       const next = reelTarget(winIndex, offsetFrac, reel);
