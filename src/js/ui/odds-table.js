@@ -1,5 +1,27 @@
-// Bảng tỉ lệ độ hiếm, số Pokémon trong hòm, trạng thái nút mở hòm.
+// Bảng tỉ lệ độ hiếm dùng chung và các phép tính tỉ lệ cho bảng / popup.
 "use strict";
+
+// Tổng số Pokémon trong một hòm đã chia theo độ hiếm.
+function groupsSize(groups) {
+  return RARITIES.reduce((sum, r) => sum + groups[r.key].length, 0);
+}
+
+// Tỉ lệ % kiểu bảng tỉ lệ: "3.84%", bậc không ra được thì "0%".
+const pct2 = (x) => (x === 0 ? "0%" : `${x.toFixed(2)}%`);
+
+// Tỉ lệ thật của một bậc trong hòm groups (đã tính hạ bậc) và các bậc trống dồn tỉ lệ về bậc này.
+function tierOdds(key, groups) {
+  return {
+    chance: effectiveChances(groups)[key],
+    base: rarityInfo(key).chance,
+    from: RARITIES.filter((r) => r.key !== key && resolveRarity(r.key, groups) === key),
+  };
+}
+
+// "base 3.20% + 0.64% from Red" — bậc nhận thêm tỉ lệ của các bậc trống.
+function foldedOddsText({ base, from }) {
+  return `base ${pct2(base)} + ${from.map((r) => `${pct2(r.chance)} from ${r.name}`).join(" + ")}`;
+}
 
 // Ô "N Pokémon" của panel tỉ lệ bên Custom, số đếm dần.
 function renderCaseCount(el, n) {
@@ -53,33 +75,3 @@ function renderOddsTable(list, groups, { rules = false } = {}) {
   });
   list.querySelector(".odds-hint").hidden = !empty;
 }
-
-function renderPoolStats() {
-  const pool = filterByGens(state.pokemon, state.selectedGens);
-  state.groups = groupByRarity(pool);
-  countTo($("pool-count"), pool.length, fmtCount);
-
-  renderOddsTable($("rarity-list"), state.groups, { rules: true });
-
-  updateSpinButton();
-}
-
-function updateSpinButton(label) {
-  const empty = poolSize() === 0;
-  const btn = $("btn-spin");
-  btn.disabled = empty || state.spinning;
-  $("btn-quick").disabled = empty || state.spinning;
-  $("btn-contents").disabled = empty;
-  if (label || !state.spinning) btn.textContent = label || "Open case";
-  $("spin-hint").textContent = empty && !state.spinning ? "Select at least one generation to open the case." : "";
-  if (custom.ready) renderCustomControls(); // đang quay ở trang này thì nút quay trang Custom cũng khóa
-}
-
-function onSelectionChanged() {
-  saveSelectedGens(state.selectedGens);
-  renderPoolStats();
-  // Đổi gen thì vẽ lại dải thẻ theo hòm mới (không đụng vào khi dải này đang quay;
-  // trang Custom đang quay thì dải trang Case vẫn vẽ lại).
-  if (!state.caseSpinning) renderIdleReel();
-}
-

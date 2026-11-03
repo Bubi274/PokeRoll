@@ -3,6 +3,24 @@
 
 // ----- Trang bộ sưu tập -----
 
+// Thẻ nhỏ của một Pokémon trong lưới bộ sưu tập.
+function miniTile(p, { shiny = false, count = 0, shinyCount = 0, missing = false } = {}) {
+  return `
+    <button type="button" class="mini r-${p.rarity}${missing ? " is-missing" : ""}" data-pokemon="${p.id}"${shiny ? ` data-shiny="1"` : ""}>
+      <span class="mini-top">
+        <span class="mini-id">${dexLabel(p)}</span>
+        ${shiny || shinyCount
+          ? `<span class="mini-shiny">★${shinyCount > 1 ? shinyCount : ""}</span>`
+          : `<span class="mini-tier">${missing ? "Missing" : rarityInfo(p.rarity).name}</span>`}
+      </span>
+      <img class="mini-img" src="${thumbUrl(p, shiny)}" alt="" loading="lazy">
+      <span class="mini-foot">
+        <span class="mini-name">${p.name}</span>
+        ${count > 1 ? `<span class="mini-count">×${count}</span>` : ""}
+      </span>
+    </button>`;
+}
+
 // Tab và thẻ "Pokédex" chỉ đếm Pokédex chính (X/1025); Special có tiến độ riêng.
 function dexOwned() {
   return state.dex.filter((p) => state.collection[p.id]).length;

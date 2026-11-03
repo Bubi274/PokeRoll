@@ -1,32 +1,7 @@
-// Lưu tiến độ, thẻ nhỏ và danh sách Recent drops.
+// Danh sách Recent drops và nhãn nguồn của một lượt quay (dùng cả ở Roll history).
 "use strict";
 
-// ----- Lưu tiến độ -----
-
-function saveProgress() {
-  const ok = saveJson(STORAGE_KEY_COLLECTION, state.collection) &&
-             saveJson(STORAGE_KEY_HISTORY, state.history);
-  state.saveFailed = !ok;
-}
-
 // ----- Recent drops (trang Case) -----
-
-function miniTile(p, { shiny = false, count = 0, shinyCount = 0, missing = false } = {}) {
-  return `
-    <button type="button" class="mini r-${p.rarity}${missing ? " is-missing" : ""}" data-pokemon="${p.id}"${shiny ? ` data-shiny="1"` : ""}>
-      <span class="mini-top">
-        <span class="mini-id">${dexLabel(p)}</span>
-        ${shiny || shinyCount
-          ? `<span class="mini-shiny">★${shinyCount > 1 ? shinyCount : ""}</span>`
-          : `<span class="mini-tier">${missing ? "Missing" : rarityInfo(p.rarity).name}</span>`}
-      </span>
-      <img class="mini-img" src="${thumbUrl(p, shiny)}" alt="" loading="lazy">
-      <span class="mini-foot">
-        <span class="mini-name">${p.name}</span>
-        ${count > 1 ? `<span class="mini-count">×${count}</span>` : ""}
-      </span>
-    </button>`;
-}
 
 // Một dòng trong Recent drops: ảnh nhỏ, tên, số # (hoặc "Special"), vạch màu độ hiếm, ★ nếu shiny.
 function recentItem(h) {

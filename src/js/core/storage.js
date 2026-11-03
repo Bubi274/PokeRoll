@@ -63,3 +63,9 @@ function loadHistory(validIds) {
     .slice(0, HISTORY_LIMIT);
 }
 
+// Lưu bộ sưu tập và lịch sử quay; state.saveFailed = true nếu không lưu được.
+function saveProgress() {
+  const ok = saveJson(STORAGE_KEY_COLLECTION, state.collection) &&
+             saveJson(STORAGE_KEY_HISTORY, state.history);
+  state.saveFailed = !ok;
+}

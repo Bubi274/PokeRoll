@@ -1,5 +1,40 @@
-// Trang Case: một lượt quay từ lúc bấm nút tới popup kết quả.
+// Trang Case: panel Current case, nút mở hòm, đổi gen, và một lượt quay từ lúc bấm nút tới popup kết quả.
 "use strict";
+
+// ----- Hòm hiện tại -----
+
+function poolSize() {
+  return groupsSize(state.groups);
+}
+
+function renderPoolStats() {
+  const pool = filterByGens(state.pokemon, state.selectedGens);
+  state.groups = groupByRarity(pool);
+  countTo($("pool-count"), pool.length, fmtCount);
+
+  renderOddsTable($("rarity-list"), state.groups, { rules: true });
+
+  updateSpinButton();
+}
+
+function updateSpinButton(label) {
+  const empty = poolSize() === 0;
+  const btn = $("btn-spin");
+  btn.disabled = empty || state.spinning;
+  $("btn-quick").disabled = empty || state.spinning;
+  $("btn-contents").disabled = empty;
+  if (label || !state.spinning) btn.textContent = label || "Open case";
+  $("spin-hint").textContent = empty && !state.spinning ? "Select at least one generation to open the case." : "";
+  if (custom.ready) renderCustomControls(); // đang quay ở trang này thì nút quay trang Custom cũng khóa
+}
+
+function onSelectionChanged() {
+  saveSelectedGens(state.selectedGens);
+  renderPoolStats();
+  // Đổi gen thì vẽ lại dải thẻ theo hòm mới (không đụng vào khi dải này đang quay;
+  // trang Custom đang quay thì dải trang Case vẫn vẽ lại).
+  if (!state.caseSpinning) renderIdleReel();
+}
 
 // ----- Quay -----
 

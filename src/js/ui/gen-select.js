@@ -1,7 +1,7 @@
-// Lưới chọn gen và các phép tính cho panel Current case.
+// Lưới chọn gen (trang Case và trang Custom).
 "use strict";
 
-// ----- Chọn gen & thống kê -----
+// ----- Chọn gen -----
 
 // Vẽ các ô chọn gen vào grid. selected là Set gen đang chọn (sửa trực tiếp trên Set này),
 // onChange chạy mỗi khi bấm chọn/bỏ một ô. Mặc định: bảng chọn gen của trang Case.
@@ -40,30 +40,3 @@ function syncCheckboxes(grid = $("gen-grid"), selected = state.selectedGens) {
     input.checked = selected.has(parseId(input.value));
   }
 }
-
-// Tổng số Pokémon trong một hòm đã chia theo độ hiếm.
-function groupsSize(groups) {
-  return RARITIES.reduce((sum, r) => sum + groups[r.key].length, 0);
-}
-
-function poolSize() {
-  return groupsSize(state.groups);
-}
-
-// Tỉ lệ % kiểu bảng tỉ lệ: "3.84%", bậc không ra được thì "0%".
-const pct2 = (x) => (x === 0 ? "0%" : `${x.toFixed(2)}%`);
-
-// Tỉ lệ thật của một bậc trong hòm groups (đã tính hạ bậc) và các bậc trống dồn tỉ lệ về bậc này.
-function tierOdds(key, groups) {
-  return {
-    chance: effectiveChances(groups)[key],
-    base: rarityInfo(key).chance,
-    from: RARITIES.filter((r) => r.key !== key && resolveRarity(r.key, groups) === key),
-  };
-}
-
-// "base 3.20% + 0.64% from Red" — bậc nhận thêm tỉ lệ của các bậc trống.
-function foldedOddsText({ base, from }) {
-  return `base ${pct2(base)} + ${from.map((r) => `${pct2(r.chance)} from ${r.name}`).join(" + ")}`;
-}
-

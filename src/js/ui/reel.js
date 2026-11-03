@@ -3,6 +3,11 @@
 
 // ----- Dải thẻ quay -----
 
+// Độ lệch điểm dừng của lần quay gần nhất, nhớ riêng cho từng dải thẻ.
+const reelOffsets = new WeakMap();
+// Dải thẻ đang quay → hàm tính lại điểm dừng theo cỡ mới (realignReel gọi khi đổi cỡ cửa sổ giữa lượt quay).
+const reelSpins = new WeakMap();
+
 function createCard(item) {
   const card = document.createElement("div");
   const p = item.pokemon;
