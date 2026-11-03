@@ -1,12 +1,6 @@
 // Kiểm tra logic Type Roulette bằng Node: góc dừng bánh xe, tỉ lệ hệ, tỉ lệ độ hiếm trong từng hệ.
-const fs = require("fs"), vm = require("vm"), path = require("path");
-const dir = path.join(__dirname, "..", "..");
-const { appFiles } = require("../sources");
-const ctx = { console, Math, module: {} };
-vm.createContext(ctx);
-vm.runInContext(["data/data.js", "data/special.js", ...appFiles].map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n")
-  + "\n;globalThis.__all=[...POKEMON_DATA,...SPECIAL_DATA].map(p=>({...p,rarity:getRarity(p)}));", ctx);
-const A = ctx.module.exports, ALL = ctx.__all;
+const { loadApp } = require("../sources");
+const { A, ALL } = loadApp();
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
 

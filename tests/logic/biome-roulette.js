@@ -1,12 +1,7 @@
 // Kiểm tra logic Biome Roulette bằng Node: nhóm biome, tỉ lệ nhóm, tỉ lệ độ hiếm trong từng nhóm, góc dừng bánh xe.
-const fs = require("fs"), vm = require("vm"), path = require("path");
-const dir = path.join(__dirname, "..", "..");
-const { appFiles } = require("../sources");
-const ctx = { console, Math, module: {} };
-vm.createContext(ctx);
-vm.runInContext(["data/data.js", "data/special.js", "data/spawns.js", ...appFiles].map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n")
-  + "\n;globalThis.__all=[...POKEMON_DATA,...SPECIAL_DATA].map(p=>({...p,rarity:getRarity(p)})); globalThis.__spawns=SPAWN_DATA;", ctx);
-const A = ctx.module.exports, ALL = ctx.__all, SPAWNS = ctx.__spawns;
+const { loadApp } = require("../sources");
+const { A, ALL, ctx } = loadApp({ data: ["data/data.js", "data/special.js", "data/spawns.js"], extra: " globalThis.__spawns=SPAWN_DATA;" });
+const SPAWNS = ctx.__spawns;
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
 
