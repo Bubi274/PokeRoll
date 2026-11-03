@@ -1,7 +1,7 @@
 /* Phần riêng của Biome Roulette và Letter Roulette. */
 
 /* ===== Biome Roulette ===== */
-/* Nhãn tên nhóm biome (màu nền theo nhóm, màu chữ do app.js chọn cho đủ tương phản) */
+/* Nhãn tên nhóm biome (màu nền theo nhóm, màu chữ do biomeChip ở modes/biome-roulette.js chọn cho đủ tương phản) */
 .biome-chip {
   padding: 3px 9px;
   font-family: var(--font-mono);
@@ -17,7 +17,7 @@
 /* Chữ trên ô: một ký tự, to, đứng thẳng gần vành (wheelSvg upright) */
 .wheel.is-letters .wheel-slice text { font-family: var(--font-display); font-size: 14px; letter-spacing: 0; }
 .wheel.is-letters .wheel-hub-type { font-size: clamp(1.6rem, 7vw, 2.4rem); }
-/* Nhãn chữ đang chọn trong tiêu đề panel tỉ lệ (màu nền theo chữ, màu chữ do app.js chọn) */
+/* Nhãn chữ đang chọn trong tiêu đề panel tỉ lệ (màu nền theo chữ, màu chữ do letterChip ở modes/letter-roulette.js chọn) */
 .letter-chip {
   display: inline-block;
   min-width: 1.6em;

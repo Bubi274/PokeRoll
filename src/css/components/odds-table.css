@@ -24,7 +24,7 @@
 }
 
 /* Nền mỗi hàng là thanh dài theo tỉ lệ % thật của bậc đó.
-   --p khai báo là số để thanh chạy mượt từ độ dài cũ tới mới (xem phần Hiệu ứng ở cuối file). */
+   --p khai báo là số để thanh chạy mượt từ độ dài cũ tới mới (hiệu ứng ở base/motion.css). */
 @property --p {
   syntax: "<number>";
   inherits: false;

@@ -62,7 +62,7 @@
   cursor: not-allowed;
 }
 
-/* Biểu tượng ổ khóa cạnh chữ "Open case" (chữ do app.js đặt nên vẽ icon bằng CSS) */
+/* Biểu tượng ổ khóa cạnh chữ "Open case" (chữ do updateSpinButton ở pages/case.js đặt nên vẽ icon bằng CSS) */
 .spin-area .btn-spin::before {
   content: "";
   width: 16px;

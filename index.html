@@ -186,15 +186,15 @@
     </section>
   </main>
 
-  <!-- ===== Trang Custom: các chế độ quay vui (mỗi chế độ đăng ký trong app.js, xem registerCustomMode) ===== -->
+  <!-- ===== Trang Custom: các chế độ quay vui (mỗi chế độ đăng ký trong src/js/modes/, xem registerCustomMode ở src/js/pages/custom.js) ===== -->
   <main class="container view" id="view-custom" hidden>
-    <!-- Thanh chọn chế độ: app.js tạo một nút cho mỗi chế độ đã đăng ký -->
+    <!-- Thanh chọn chế độ: src/js/pages/custom.js tạo một nút cho mỗi chế độ đã đăng ký -->
     <nav class="mode-bar" id="mode-bar" role="tablist" aria-label="Custom modes"></nav>
 
     <!-- Khu vực của chế độ đang chọn (mỗi chế độ tự vẽ vào khung riêng của nó) -->
     <div class="mode-stage" id="mode-stage"></div>
 
-    <!-- Nút hành động của chế độ đang chọn (app.js tạo từ danh sách actions của chế độ) -->
+    <!-- Nút hành động của chế độ đang chọn (src/js/pages/custom.js tạo từ danh sách actions của chế độ) -->
     <div class="spin-area">
       <div class="action-row" id="custom-actions"></div>
       <div class="spin-actions">
@@ -245,7 +245,7 @@
     <p>PokéRoll is a non-commercial fan project and is not affiliated with Nintendo, Game Freak or The Pokémon Company.</p>
     <p>Pokémon and Pokémon character names are trademarks of © Nintendo / Creatures Inc. / GAME FREAK inc.</p>
     <p>Data: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokeAPI</a> · <a href="https://thenolan1234.github.io/cobbleverse-wiki/" target="_blank" rel="noopener">Cobbleverse Wiki</a> — Created by Bubi</p>
-    <!-- Chỉ bản desktop (app.js hiện ra khi có window.pokeroll từ preload.js): số phiên bản + kiểm tra cập nhật -->
+    <!-- Chỉ bản desktop (src/js/boot/desktop.js hiện ra khi có window.pokeroll từ electron/preload.js): số phiên bản + kiểm tra cập nhật -->
     <div class="app-version" id="app-version" hidden>
       <span id="app-version-number"></span><span id="app-update" hidden> · <button type="button" class="link-btn" id="btn-update">Check for updates</button></span>
     </div>
