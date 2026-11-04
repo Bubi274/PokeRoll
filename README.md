@@ -112,17 +112,19 @@ node scripts/build-data.js     # data/data.js — Pokémon info from PokeAPI
 node scripts/build-spawns.js   # data/spawns.js — spawn locations from the Cobbleverse Wiki
 node scripts/build-images.js   # assets/images/ — Pokémon images bundled with the app (works offline)
 node scripts/build-special.js  # data/special.js + assets/images/special/ — Special group, read from the mod file in special-src/
-node scripts/build-megastones.js # data/megastones.js — Mega Stones, read from scripts/data/mega-stones.csv
+node scripts/build-megastones.js # data/megastones.js — Mega Stones, read from scripts/data/mega-stones.csv (gaps filled from PokeAPI)
 node scripts/build-megastone-images.js # assets/images/megastones/ — Mega Stone item images, read from the mod files in megastone-src/
 ```
 
 `build-megastone-images.js` needs the three mod files (`mega_showdown-*.jar`, `zamega-*.jar`, `mushiromega-*.jar`) in `megastone-src/`. That folder is not committed. The script finds each stone's image from the mod's own data, not by guessing the image name: the Mega definition whose `showdown_id` is the stone id (its file name is the item id), then that item's model, then the texture the model points to, copies the original 16×16 PNG unchanged, and stops without writing anything if any stone has no image.
 
+`build-megastones.js` keeps every value the CSV lists. Only empty type, stats and ability cells (mostly the classic Megas, whose data is in Cobblemon itself rather than in these mods) are filled from the official Mega form on PokeAPI, and each stone records where each field came from (`typesSource`, `statsSource`, `abilitySource`: `"mod"` or `"pokeapi"`). Fan-made Megas (Mushiromega) and forms PokeAPI doesn't have stay empty. PokeAPI answers are cached in `scripts/data/pokeapi-cache.json` (committed), so the script runs offline and always gives the same result; it only downloads what the cache lacks.
+
 `build-special.js` needs the mod file (e.g. `Kazeran_Eeveelutions_v1.6.1.zip`, downloaded from Modrinth) in `special-src/`. That folder is not committed.
 
 ## Data sources
 
-- [PokeAPI](https://pokeapi.co) — Pokémon info and images
+- [PokeAPI](https://pokeapi.co) — Pokémon info and images; type, stats and ability of official Mega forms that the mods leave empty
 - [Cobbleverse Wiki](https://thenolan1234.github.io/cobbleverse-wiki/) — spawn locations in Cobbleverse
 - [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions) — types, base stats, evolution methods and images of the Special group
 - Mega Showdown, ZA Mega and Mushiromega (Cobblemon mods) — names, types, stats, abilities, recipes and item images of the Mega Stones

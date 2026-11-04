@@ -195,7 +195,7 @@ app.whenReady().then(async () => {
   check("Stone popup: name, Pokémon + form, mod, recipe, stone image (+ Pokémon image when the app has it)",
     stoneInfo.name === r.modal && stoneInfo.facts.includes("Pokémon") && stoneInfo.facts.includes("Form") && stoneInfo.facts.includes("Mod")
     && stoneInfo.mod && stoneInfo.recipe === stoneInfo.recipeLen && stoneInfo.gem && stoneInfo.mon === stoneInfo.hasMon, JSON.stringify(stoneInfo));
-  check("Stone popup: type / BST / ability rows only when the mod lists them",
+  check("Stone popup: type / BST / ability rows only when the stone has that data (from the mod or PokeAPI)",
     stoneInfo.types === stoneInfo.hasTypes && stoneInfo.facts.includes("Base stat total") === (stoneInfo.bst !== null) && stoneInfo.facts.includes("Ability") === Boolean(stoneInfo.ability)
     && !/not listed/i.test(p.text));
   check("Stone popup: neutral, no tiers / Shiny, \"New!\", \"1 in 156\", View in collection shown",
@@ -250,6 +250,23 @@ app.whenReady().then(async () => {
     && document.querySelector("#detail-body .detail-name").textContent === "Mushironite X" && !!document.querySelector("#detail-body img.stone-img") && !document.querySelector("#detail-body .stone-mon")`));
   await shot("mg-stone-detail.png");
   await js(`document.getElementById("detail-modal").close()`);
+  // Mega cổ điển: mod không có hệ / chỉ số / ability (trước đây ẩn) → giờ lấp từ PokeAPI và hiện ra, có ghi nguồn
+  const detailOf = (id) => js(`(() => { openMinigameDetail("megastone", ${JSON.stringify(id)}); const b = document.getElementById("detail-body");
+    const facts = Object.fromEntries([...b.querySelectorAll(".facts > div")].map(d => [d.querySelector("dt").textContent, d.querySelector("dd").textContent]));
+    const r = { facts, chips: [...b.querySelectorAll(".slab-foot .type-chip")].map(c => c.textContent.trim().toLowerCase()), stats: [...b.querySelectorAll(".stone-stats li b")].map(x => Number(x.textContent)),
+      credit: b.querySelector(".stone-credit").textContent, footer: document.getElementById("detail-credit").textContent };
+    document.getElementById("detail-modal").close(); return r; })()`);
+  let d = await detailOf("abomasite");
+  check("Classic Mega with no mod data (Abomasite): type, base stats, BST and ability now shown, from PokeAPI",
+    d.chips.join() === "grass,ice" && d.stats.join() === "90,132,105,132,105,30" && d.facts["Base stat total"] === "594" && "Ability" in d.facts
+    && /Type, base stats and ability of the Mega form from PokeAPI/.test(d.credit) && /PokeAPI/.test(d.footer), JSON.stringify(d));
+  d = await detailOf("raichunitex");
+  check("Mod has stats but no type (Raichunite X): type from PokeAPI, credit names only the type", d.chips.join() === "electric"
+    && d.facts["Base stat total"] === "585" && /\bType of the Mega form from PokeAPI/.test(d.credit), JSON.stringify(d));
+  d = await detailOf("gengarite");
+  check("Stone fully listed by its mod (Gengarite): no PokeAPI credit", d.chips.join() === "ghost,poison" && !/PokeAPI/.test(d.credit + d.footer), JSON.stringify(d));
+  d = await detailOf("cyclizarite");
+  check("Still no data (Cyclizarite type, fan-made): row stays hidden", d.chips.length === 0 && d.stats.length === 6, JSON.stringify(d));
   await js(`document.getElementById("mgc-megastone").scrollIntoView(); 0`); await shot("mg-stone-collection.png");
   await js(`document.querySelector('#coll-grid [data-pokemon="25"]').click()`); await sleep(150);
   check("Pokémon detail popup still titled \"Pokémon details\"", await js(`document.getElementById("detail-title").textContent === "Pokémon details" && document.querySelector("#detail-body .detail-name").textContent === "Pikachu"`));

@@ -30,11 +30,58 @@ check("Every stone has a name, mod, Pokémon, form and recipe", S.every((s) => s
 const modKeys = ctx.__mods.map((m) => m.key);
 const perMod = Object.fromEntries(modKeys.map((k) => [k, S.filter((s) => s.mod === k).length]));
 check("Mods: Mega Showdown 81, ZA Mega 11, Mushiromega 64", perMod["mega-showdown"] === 81 && perMod["za-mega"] === 11 && perMod.mushiromega === 64, JSON.stringify(perMod));
-check("Stats and BST agree when listed", S.every((s) => !s.stats || s.bst === Object.values(s.stats).reduce((a, b) => a + b, 0)));
 const noMon = [...new Set(S.filter((s) => !s.pokemonId).map((s) => s.pokemon))];
 check("Every Pokémon is found in the app except Mushiro", noMon.join() === "Mushiro", noMon.join());
 check("pokemonId points to the Pokémon of the same name", S.every((s) => !s.pokemonId || ALL.find((p) => p.id === s.pokemonId).name === s.pokemon));
 check("Generated file matches the CSV row count", fs.readFileSync(path.join(ROOT, "scripts/data/mega-stones.csv"), "utf8").trim().split("\n").length - 1 === S.length);
+
+// 1a. Ô mod để trống được lấp từ PokeAPI (scripts/build-megastones.js); dữ liệu của mod luôn thắng
+const build = require("../../scripts/build-megastones.js");
+const csv = build.readCsvRows().map((r) => r.row);
+const byStoneId = new Map(S.map((s) => [s.id, s]));
+const overwritten = csv.flatMap((row) => {
+  const s = byStoneId.get(row.stone_id), bad = [];
+  if (row.types ? s.types.join("/") !== row.types || s.typesSource !== "mod" : s.typesSource === "mod") bad.push("types");
+  if (row.hp ? Object.entries(build.STAT_COLUMNS).some(([k, c]) => s.stats[k] !== Number(row[c])) || s.bst !== Number(row.bst) || s.statsSource !== "mod"
+    : s.statsSource === "mod") bad.push("stats");
+  if (row.ability ? s.ability !== row.ability || s.abilitySource !== "mod" : s.abilitySource === "mod") bad.push("ability");
+  return bad.map((f) => `${row.stone_id}.${f}`);
+});
+check("Every value the mod CSV lists is kept as is (source \"mod\"); only empty cells are filled", overwritten.length === 0, overwritten.join(", "));
+const sourceOk = (s, field, src) => (src === null) === (field === null || (Array.isArray(field) && !field.length)) && [null, "mod", "pokeapi"].includes(src);
+check("Each field records its source: mod / pokeapi, null only when the field is empty",
+  S.every((s) => sourceOk(s, s.types, s.typesSource) && sourceOk(s, s.stats, s.statsSource) && sourceOk(s, s.ability, s.abilitySource)));
+check("BST is the sum of the 6 stats for every stone with stats (mod or PokeAPI); no BST without stats",
+  S.every((s) => (s.stats === null) === (s.bst === null) && (!s.stats || (Object.keys(s.stats).join() === "hp,atk,def,spa,spd,spe"
+    && Object.values(s.stats).every((v) => Number.isInteger(v) && v > 0) && s.bst === Object.values(s.stats).reduce((a, b) => a + b, 0)))));
+const fromApi = (f) => S.filter((s) => s[f] === "pokeapi").length;
+check("Filled from PokeAPI: types 69, stats 35, ability 35",
+  fromApi("typesSource") === 69 && fromApi("statsSource") === 35 && fromApi("abilitySource") === 35,
+  `types ${fromApi("typesSource")}, stats ${fromApi("statsSource")}, ability ${fromApi("abilitySource")}`);
+const gaps = S.filter((s) => !s.types.length || !s.stats || !s.ability).map((s) => `${s.id}:${[!s.types.length && "types", !s.stats && "stats", !s.ability && "ability"].filter(Boolean)}`);
+check("Still empty: only Cyclizarite types (fan-made) and Zeraorite ability (PokeAPI lists none)", gaps.join() === "cyclizarite:types,zeraorite:ability", gaps.join());
+check("Fan-made Megas (Mushiromega) are never filled from PokeAPI", S.filter((s) => s.mod === "mushiromega").every((s) => ![s.typesSource, s.statsSource, s.abilitySource].includes("pokeapi")));
+const mega = { types: ["fire", "dragon"], stats: { hp: 1, atk: 2, def: 3, spa: 4, spd: 5, spe: 6 }, ability: "toughclaws" };
+const modStone = { name: "T", types: ["fire"], typesSource: "mod", stats: { hp: 9, atk: 9, def: 9, spa: 9, spd: 9, spe: 9 }, bst: 54, statsSource: "mod", ability: "blaze", abilitySource: "mod" };
+const emptyStone = { name: "E", types: [], typesSource: null, stats: null, bst: null, statsSource: null, ability: null, abilitySource: null };
+const conflicts = [];
+build.fillFromApi(modStone, mega, conflicts);
+build.fillFromApi(emptyStone, mega, []);
+check("fillFromApi: mod values win over PokeAPI (differences only reported)",
+  modStone.types.join() === "fire" && modStone.stats.hp === 9 && modStone.bst === 54 && modStone.ability === "blaze"
+  && [modStone.typesSource, modStone.statsSource, modStone.abilitySource].every((x) => x === "mod") && conflicts.length === 3);
+check("fillFromApi: empty fields take PokeAPI values, BST = sum, source \"pokeapi\"",
+  emptyStone.types.join() === "fire,dragon" && emptyStone.bst === 21 && emptyStone.ability === "toughclaws"
+  && [emptyStone.typesSource, emptyStone.statsSource, emptyStone.abilitySource].every((x) => x === "pokeapi"));
+let oddType = "";
+try { build.fillFromApi({ ...emptyStone, types: [] }, { ...mega, types: ["stellar"] }, []); } catch (e) { oddType = e.message; }
+check("fillFromApi: a type outside the 18 types stops the build (like a bad CSV type)", /stellar/.test(oddType), oddType);
+const rebuilt = path.join(require("os").tmpdir(), "pokeroll-tests", "megastones.rebuilt.js");
+fs.mkdirSync(path.dirname(rebuilt), { recursive: true });
+const rb = require("child_process").spawnSync(process.execPath, [path.join(ROOT, "scripts/build-megastones.js"), "--offline", "--out", rebuilt], { encoding: "utf8" });
+const noDate = (t) => t.replace(/Ngày tạo: \d{4}-\d{2}-\d{2}/, "");
+check("Rebuilding offline from the committed PokeAPI cache gives the same data/megastones.js",
+  rb.status === 0 && noDate(fs.readFileSync(rebuilt, "utf8")) === noDate(fs.readFileSync(path.join(ROOT, "data/megastones.js"), "utf8")), (rb.stderr || "").trim());
 
 // 1b. Ảnh đá (assets/images/megastones/<stone_id>.png, chép từ file mod bằng scripts/build-megastone-images.js)
 const IMG_DIR = path.join(ROOT, "assets/images/megastones");

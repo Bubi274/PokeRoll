@@ -1,0 +1,1964 @@
+{
+ "pokemon-species/115": {
+  "name": "kangaskhan",
+  "varieties": [
+   "kangaskhan",
+   "kangaskhan-mega"
+  ]
+ },
+ "pokemon-species/121": {
+  "name": "starmie",
+  "varieties": [
+   "starmie",
+   "starmie-mega"
+  ]
+ },
+ "pokemon-species/130": {
+  "name": "gyarados",
+  "varieties": [
+   "gyarados",
+   "gyarados-mega"
+  ]
+ },
+ "pokemon-species/142": {
+  "name": "aerodactyl",
+  "varieties": [
+   "aerodactyl",
+   "aerodactyl-mega"
+  ]
+ },
+ "pokemon-species/149": {
+  "name": "dragonite",
+  "varieties": [
+   "dragonite",
+   "dragonite-mega"
+  ]
+ },
+ "pokemon-species/15": {
+  "name": "beedrill",
+  "varieties": [
+   "beedrill",
+   "beedrill-mega"
+  ]
+ },
+ "pokemon-species/150": {
+  "name": "mewtwo",
+  "varieties": [
+   "mewtwo",
+   "mewtwo-mega-x",
+   "mewtwo-mega-y"
+  ]
+ },
+ "pokemon-species/18": {
+  "name": "pidgeot",
+  "varieties": [
+   "pidgeot",
+   "pidgeot-mega"
+  ]
+ },
+ "pokemon-species/181": {
+  "name": "ampharos",
+  "varieties": [
+   "ampharos",
+   "ampharos-mega"
+  ]
+ },
+ "pokemon-species/208": {
+  "name": "steelix",
+  "varieties": [
+   "steelix",
+   "steelix-mega"
+  ]
+ },
+ "pokemon-species/212": {
+  "name": "scizor",
+  "varieties": [
+   "scizor",
+   "scizor-mega"
+  ]
+ },
+ "pokemon-species/214": {
+  "name": "heracross",
+  "varieties": [
+   "heracross",
+   "heracross-mega"
+  ]
+ },
+ "pokemon-species/227": {
+  "name": "skarmory",
+  "varieties": [
+   "skarmory",
+   "skarmory-mega"
+  ]
+ },
+ "pokemon-species/229": {
+  "name": "houndoom",
+  "varieties": [
+   "houndoom",
+   "houndoom-mega"
+  ]
+ },
+ "pokemon-species/248": {
+  "name": "tyranitar",
+  "varieties": [
+   "tyranitar",
+   "tyranitar-mega"
+  ]
+ },
+ "pokemon-species/254": {
+  "name": "sceptile",
+  "varieties": [
+   "sceptile",
+   "sceptile-mega"
+  ]
+ },
+ "pokemon-species/257": {
+  "name": "blaziken",
+  "varieties": [
+   "blaziken",
+   "blaziken-mega"
+  ]
+ },
+ "pokemon-species/26": {
+  "name": "raichu",
+  "varieties": [
+   "raichu",
+   "raichu-alola",
+   "raichu-mega-x",
+   "raichu-mega-y"
+  ]
+ },
+ "pokemon-species/282": {
+  "name": "gardevoir",
+  "varieties": [
+   "gardevoir",
+   "gardevoir-mega"
+  ]
+ },
+ "pokemon-species/302": {
+  "name": "sableye",
+  "varieties": [
+   "sableye",
+   "sableye-mega"
+  ]
+ },
+ "pokemon-species/306": {
+  "name": "aggron",
+  "varieties": [
+   "aggron",
+   "aggron-mega"
+  ]
+ },
+ "pokemon-species/308": {
+  "name": "medicham",
+  "varieties": [
+   "medicham",
+   "medicham-mega"
+  ]
+ },
+ "pokemon-species/310": {
+  "name": "manectric",
+  "varieties": [
+   "manectric",
+   "manectric-mega"
+  ]
+ },
+ "pokemon-species/319": {
+  "name": "sharpedo",
+  "varieties": [
+   "sharpedo",
+   "sharpedo-mega"
+  ]
+ },
+ "pokemon-species/323": {
+  "name": "camerupt",
+  "varieties": [
+   "camerupt",
+   "camerupt-mega"
+  ]
+ },
+ "pokemon-species/334": {
+  "name": "altaria",
+  "varieties": [
+   "altaria",
+   "altaria-mega"
+  ]
+ },
+ "pokemon-species/359": {
+  "name": "absol",
+  "varieties": [
+   "absol",
+   "absol-mega",
+   "absol-mega-z"
+  ]
+ },
+ "pokemon-species/362": {
+  "name": "glalie",
+  "varieties": [
+   "glalie",
+   "glalie-mega"
+  ]
+ },
+ "pokemon-species/373": {
+  "name": "salamence",
+  "varieties": [
+   "salamence",
+   "salamence-mega"
+  ]
+ },
+ "pokemon-species/380": {
+  "name": "latias",
+  "varieties": [
+   "latias",
+   "latias-mega"
+  ]
+ },
+ "pokemon-species/381": {
+  "name": "latios",
+  "varieties": [
+   "latios",
+   "latios-mega"
+  ]
+ },
+ "pokemon-species/428": {
+  "name": "lopunny",
+  "varieties": [
+   "lopunny",
+   "lopunny-mega"
+  ]
+ },
+ "pokemon-species/445": {
+  "name": "garchomp",
+  "varieties": [
+   "garchomp",
+   "garchomp-mega",
+   "garchomp-mega-z"
+  ]
+ },
+ "pokemon-species/448": {
+  "name": "lucario",
+  "varieties": [
+   "lucario",
+   "lucario-mega",
+   "lucario-mega-z"
+  ]
+ },
+ "pokemon-species/460": {
+  "name": "abomasnow",
+  "varieties": [
+   "abomasnow",
+   "abomasnow-mega"
+  ]
+ },
+ "pokemon-species/475": {
+  "name": "gallade",
+  "varieties": [
+   "gallade",
+   "gallade-mega"
+  ]
+ },
+ "pokemon-species/478": {
+  "name": "froslass",
+  "varieties": [
+   "froslass",
+   "froslass-mega"
+  ]
+ },
+ "pokemon-species/485": {
+  "name": "heatran",
+  "varieties": [
+   "heatran",
+   "heatran-mega"
+  ]
+ },
+ "pokemon-species/491": {
+  "name": "darkrai",
+  "varieties": [
+   "darkrai",
+   "darkrai-mega"
+  ]
+ },
+ "pokemon-species/500": {
+  "name": "emboar",
+  "varieties": [
+   "emboar",
+   "emboar-mega"
+  ]
+ },
+ "pokemon-species/530": {
+  "name": "excadrill",
+  "varieties": [
+   "excadrill",
+   "excadrill-mega"
+  ]
+ },
+ "pokemon-species/545": {
+  "name": "scolipede",
+  "varieties": [
+   "scolipede",
+   "scolipede-mega"
+  ]
+ },
+ "pokemon-species/560": {
+  "name": "scrafty",
+  "varieties": [
+   "scrafty",
+   "scrafty-mega"
+  ]
+ },
+ "pokemon-species/604": {
+  "name": "eelektross",
+  "varieties": [
+   "eelektross",
+   "eelektross-mega"
+  ]
+ },
+ "pokemon-species/609": {
+  "name": "chandelure",
+  "varieties": [
+   "chandelure",
+   "chandelure-mega"
+  ]
+ },
+ "pokemon-species/623": {
+  "name": "golurk",
+  "varieties": [
+   "golurk",
+   "golurk-mega"
+  ]
+ },
+ "pokemon-species/65": {
+  "name": "alakazam",
+  "varieties": [
+   "alakazam",
+   "alakazam-mega"
+  ]
+ },
+ "pokemon-species/652": {
+  "name": "chesnaught",
+  "varieties": [
+   "chesnaught",
+   "chesnaught-mega"
+  ]
+ },
+ "pokemon-species/655": {
+  "name": "delphox",
+  "varieties": [
+   "delphox",
+   "delphox-mega"
+  ]
+ },
+ "pokemon-species/658": {
+  "name": "greninja",
+  "varieties": [
+   "greninja",
+   "greninja-battle-bond",
+   "greninja-ash",
+   "greninja-mega"
+  ]
+ },
+ "pokemon-species/668": {
+  "name": "pyroar",
+  "varieties": [
+   "pyroar-male",
+   "pyroar-mega"
+  ]
+ },
+ "pokemon-species/670": {
+  "name": "floette",
+  "varieties": [
+   "floette",
+   "floette-eternal",
+   "floette-mega"
+  ]
+ },
+ "pokemon-species/678": {
+  "name": "meowstic",
+  "varieties": [
+   "meowstic-male",
+   "meowstic-female",
+   "meowstic-male-mega",
+   "meowstic-female-mega"
+  ]
+ },
+ "pokemon-species/687": {
+  "name": "malamar",
+  "varieties": [
+   "malamar",
+   "malamar-mega"
+  ]
+ },
+ "pokemon-species/691": {
+  "name": "dragalge",
+  "varieties": [
+   "dragalge",
+   "dragalge-mega"
+  ]
+ },
+ "pokemon-species/71": {
+  "name": "victreebel",
+  "varieties": [
+   "victreebel",
+   "victreebel-mega"
+  ]
+ },
+ "pokemon-species/718": {
+  "name": "zygarde",
+  "varieties": [
+   "zygarde-50",
+   "zygarde-10-power-construct",
+   "zygarde-50-power-construct",
+   "zygarde-complete",
+   "zygarde-10",
+   "zygarde-mega"
+  ]
+ },
+ "pokemon-species/719": {
+  "name": "diancie",
+  "varieties": [
+   "diancie",
+   "diancie-mega"
+  ]
+ },
+ "pokemon-species/740": {
+  "name": "crabominable",
+  "varieties": [
+   "crabominable",
+   "crabominable-mega"
+  ]
+ },
+ "pokemon-species/780": {
+  "name": "drampa",
+  "varieties": [
+   "drampa",
+   "drampa-mega"
+  ]
+ },
+ "pokemon-species/801": {
+  "name": "magearna",
+  "varieties": [
+   "magearna",
+   "magearna-original",
+   "magearna-mega",
+   "magearna-original-mega"
+  ]
+ },
+ "pokemon-species/807": {
+  "name": "zeraora",
+  "varieties": [
+   "zeraora",
+   "zeraora-mega"
+  ]
+ },
+ "pokemon-species/870": {
+  "name": "falinks",
+  "varieties": [
+   "falinks",
+   "falinks-mega"
+  ]
+ },
+ "pokemon-species/952": {
+  "name": "scovillain",
+  "varieties": [
+   "scovillain",
+   "scovillain-mega"
+  ]
+ },
+ "pokemon-species/970": {
+  "name": "glimmora",
+  "varieties": [
+   "glimmora",
+   "glimmora-mega"
+  ]
+ },
+ "pokemon-species/978": {
+  "name": "tatsugiri",
+  "varieties": [
+   "tatsugiri-curly",
+   "tatsugiri-droopy",
+   "tatsugiri-stretchy",
+   "tatsugiri-curly-mega",
+   "tatsugiri-droopy-mega",
+   "tatsugiri-stretchy-mega"
+  ]
+ },
+ "pokemon-species/998": {
+  "name": "baxcalibur",
+  "varieties": [
+   "baxcalibur",
+   "baxcalibur-mega"
+  ]
+ },
+ "pokemon/abomasnow-mega": {
+  "name": "abomasnow-mega",
+  "types": [
+   "grass",
+   "ice"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 132,
+   "def": 105,
+   "spa": 132,
+   "spd": 105,
+   "spe": 30
+  },
+  "abilities": [
+   {
+    "name": "snow-warning",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/absol-mega": {
+  "name": "absol-mega",
+  "types": [
+   "dark"
+  ],
+  "stats": {
+   "hp": 65,
+   "atk": 150,
+   "def": 60,
+   "spa": 115,
+   "spd": 60,
+   "spe": 115
+  },
+  "abilities": [
+   {
+    "name": "magic-bounce",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/aerodactyl-mega": {
+  "name": "aerodactyl-mega",
+  "types": [
+   "rock",
+   "flying"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 135,
+   "def": 85,
+   "spa": 70,
+   "spd": 95,
+   "spe": 150
+  },
+  "abilities": [
+   {
+    "name": "tough-claws",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/aggron-mega": {
+  "name": "aggron-mega",
+  "types": [
+   "steel"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 140,
+   "def": 230,
+   "spa": 60,
+   "spd": 80,
+   "spe": 50
+  },
+  "abilities": [
+   {
+    "name": "filter",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/alakazam-mega": {
+  "name": "alakazam-mega",
+  "types": [
+   "psychic"
+  ],
+  "stats": {
+   "hp": 55,
+   "atk": 50,
+   "def": 65,
+   "spa": 175,
+   "spd": 105,
+   "spe": 150
+  },
+  "abilities": [
+   {
+    "name": "trace",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/altaria-mega": {
+  "name": "altaria-mega",
+  "types": [
+   "dragon",
+   "fairy"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 110,
+   "def": 110,
+   "spa": 110,
+   "spd": 105,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "pixilate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/ampharos-mega": {
+  "name": "ampharos-mega",
+  "types": [
+   "electric",
+   "dragon"
+  ],
+  "stats": {
+   "hp": 90,
+   "atk": 95,
+   "def": 105,
+   "spa": 165,
+   "spd": 110,
+   "spe": 45
+  },
+  "abilities": [
+   {
+    "name": "mold-breaker",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/baxcalibur-mega": {
+  "name": "baxcalibur-mega",
+  "types": [
+   "dragon",
+   "ice"
+  ],
+  "stats": {
+   "hp": 115,
+   "atk": 175,
+   "def": 117,
+   "spa": 105,
+   "spd": 101,
+   "spe": 87
+  },
+  "abilities": [
+   {
+    "name": "thermal-exchange",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/beedrill-mega": {
+  "name": "beedrill-mega",
+  "types": [
+   "bug",
+   "poison"
+  ],
+  "stats": {
+   "hp": 65,
+   "atk": 150,
+   "def": 40,
+   "spa": 15,
+   "spd": 80,
+   "spe": 145
+  },
+  "abilities": [
+   {
+    "name": "adaptability",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/blaziken-mega": {
+  "name": "blaziken-mega",
+  "types": [
+   "fire",
+   "fighting"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 160,
+   "def": 80,
+   "spa": 130,
+   "spd": 80,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "speed-boost",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/camerupt-mega": {
+  "name": "camerupt-mega",
+  "types": [
+   "fire",
+   "ground"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 120,
+   "def": 100,
+   "spa": 145,
+   "spd": 105,
+   "spe": 20
+  },
+  "abilities": [
+   {
+    "name": "sheer-force",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/chandelure-mega": {
+  "name": "chandelure-mega",
+  "types": [
+   "ghost",
+   "fire"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 75,
+   "def": 110,
+   "spa": 175,
+   "spd": 110,
+   "spe": 90
+  },
+  "abilities": [
+   {
+    "name": "infiltrator",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/chesnaught-mega": {
+  "name": "chesnaught-mega",
+  "types": [
+   "grass",
+   "fighting"
+  ],
+  "stats": {
+   "hp": 88,
+   "atk": 137,
+   "def": 172,
+   "spa": 74,
+   "spd": 115,
+   "spe": 44
+  },
+  "abilities": [
+   {
+    "name": "bulletproof",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/crabominable-mega": {
+  "name": "crabominable-mega",
+  "types": [
+   "fighting",
+   "ice"
+  ],
+  "stats": {
+   "hp": 97,
+   "atk": 157,
+   "def": 122,
+   "spa": 62,
+   "spd": 107,
+   "spe": 33
+  },
+  "abilities": [
+   {
+    "name": "iron-fist",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/darkrai-mega": {
+  "name": "darkrai-mega",
+  "types": [
+   "dark"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 120,
+   "def": 130,
+   "spa": 165,
+   "spd": 130,
+   "spe": 85
+  },
+  "abilities": []
+ },
+ "pokemon/delphox-mega": {
+  "name": "delphox-mega",
+  "types": [
+   "fire",
+   "psychic"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 69,
+   "def": 72,
+   "spa": 159,
+   "spd": 125,
+   "spe": 134
+  },
+  "abilities": [
+   {
+    "name": "levitate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/diancie-mega": {
+  "name": "diancie-mega",
+  "types": [
+   "rock",
+   "fairy"
+  ],
+  "stats": {
+   "hp": 50,
+   "atk": 160,
+   "def": 110,
+   "spa": 160,
+   "spd": 110,
+   "spe": 110
+  },
+  "abilities": [
+   {
+    "name": "magic-bounce",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/dragalge-mega": {
+  "name": "dragalge-mega",
+  "types": [
+   "poison",
+   "dragon"
+  ],
+  "stats": {
+   "hp": 65,
+   "atk": 85,
+   "def": 105,
+   "spa": 132,
+   "spd": 163,
+   "spe": 44
+  },
+  "abilities": [
+   {
+    "name": "regenerator",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/dragonite-mega": {
+  "name": "dragonite-mega",
+  "types": [
+   "dragon",
+   "flying"
+  ],
+  "stats": {
+   "hp": 91,
+   "atk": 124,
+   "def": 115,
+   "spa": 145,
+   "spd": 125,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "multiscale",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/drampa-mega": {
+  "name": "drampa-mega",
+  "types": [
+   "normal",
+   "dragon"
+  ],
+  "stats": {
+   "hp": 78,
+   "atk": 85,
+   "def": 110,
+   "spa": 160,
+   "spd": 116,
+   "spe": 36
+  },
+  "abilities": [
+   {
+    "name": "berserk",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/eelektross-mega": {
+  "name": "eelektross-mega",
+  "types": [
+   "electric"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 145,
+   "def": 80,
+   "spa": 135,
+   "spd": 90,
+   "spe": 80
+  },
+  "abilities": [
+   {
+    "name": "eelevate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/emboar-mega": {
+  "name": "emboar-mega",
+  "types": [
+   "fire",
+   "fighting"
+  ],
+  "stats": {
+   "hp": 110,
+   "atk": 148,
+   "def": 75,
+   "spa": 110,
+   "spd": 110,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "mold-breaker",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/excadrill-mega": {
+  "name": "excadrill-mega",
+  "types": [
+   "ground",
+   "steel"
+  ],
+  "stats": {
+   "hp": 110,
+   "atk": 165,
+   "def": 100,
+   "spa": 65,
+   "spd": 65,
+   "spe": 103
+  },
+  "abilities": [
+   {
+    "name": "piercing-drill",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/falinks-mega": {
+  "name": "falinks-mega",
+  "types": [
+   "fighting"
+  ],
+  "stats": {
+   "hp": 65,
+   "atk": 135,
+   "def": 135,
+   "spa": 70,
+   "spd": 65,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "defiant",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/floette-mega": {
+  "name": "floette-mega",
+  "types": [
+   "fairy"
+  ],
+  "stats": {
+   "hp": 74,
+   "atk": 85,
+   "def": 87,
+   "spa": 155,
+   "spd": 148,
+   "spe": 102
+  },
+  "abilities": [
+   {
+    "name": "fairy-aura",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/froslass-mega": {
+  "name": "froslass-mega",
+  "types": [
+   "ice",
+   "ghost"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 80,
+   "def": 70,
+   "spa": 140,
+   "spd": 100,
+   "spe": 120
+  },
+  "abilities": [
+   {
+    "name": "snow-warning",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/gallade-mega": {
+  "name": "gallade-mega",
+  "types": [
+   "psychic",
+   "fighting"
+  ],
+  "stats": {
+   "hp": 68,
+   "atk": 165,
+   "def": 95,
+   "spa": 65,
+   "spd": 115,
+   "spe": 110
+  },
+  "abilities": [
+   {
+    "name": "inner-focus",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/garchomp-mega": {
+  "name": "garchomp-mega",
+  "types": [
+   "dragon",
+   "ground"
+  ],
+  "stats": {
+   "hp": 108,
+   "atk": 170,
+   "def": 115,
+   "spa": 120,
+   "spd": 95,
+   "spe": 92
+  },
+  "abilities": [
+   {
+    "name": "sand-force",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/gardevoir-mega": {
+  "name": "gardevoir-mega",
+  "types": [
+   "psychic",
+   "fairy"
+  ],
+  "stats": {
+   "hp": 68,
+   "atk": 85,
+   "def": 65,
+   "spa": 165,
+   "spd": 135,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "pixilate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/glalie-mega": {
+  "name": "glalie-mega",
+  "types": [
+   "ice"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 120,
+   "def": 80,
+   "spa": 120,
+   "spd": 80,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "refrigerate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/glimmora-mega": {
+  "name": "glimmora-mega",
+  "types": [
+   "rock",
+   "poison"
+  ],
+  "stats": {
+   "hp": 83,
+   "atk": 90,
+   "def": 105,
+   "spa": 150,
+   "spd": 96,
+   "spe": 101
+  },
+  "abilities": [
+   {
+    "name": "adaptability",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/golurk-mega": {
+  "name": "golurk-mega",
+  "types": [
+   "ground",
+   "ghost"
+  ],
+  "stats": {
+   "hp": 89,
+   "atk": 159,
+   "def": 105,
+   "spa": 70,
+   "spd": 105,
+   "spe": 55
+  },
+  "abilities": [
+   {
+    "name": "unseen-fist",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/greninja-mega": {
+  "name": "greninja-mega",
+  "types": [
+   "water",
+   "dark"
+  ],
+  "stats": {
+   "hp": 72,
+   "atk": 125,
+   "def": 77,
+   "spa": 133,
+   "spd": 81,
+   "spe": 142
+  },
+  "abilities": [
+   {
+    "name": "protean",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/gyarados-mega": {
+  "name": "gyarados-mega",
+  "types": [
+   "water",
+   "dark"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 155,
+   "def": 109,
+   "spa": 70,
+   "spd": 130,
+   "spe": 81
+  },
+  "abilities": [
+   {
+    "name": "mold-breaker",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/heatran-mega": {
+  "name": "heatran-mega",
+  "types": [
+   "fire",
+   "steel"
+  ],
+  "stats": {
+   "hp": 91,
+   "atk": 120,
+   "def": 106,
+   "spa": 175,
+   "spd": 141,
+   "spe": 67
+  },
+  "abilities": []
+ },
+ "pokemon/heracross-mega": {
+  "name": "heracross-mega",
+  "types": [
+   "bug",
+   "fighting"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 185,
+   "def": 115,
+   "spa": 40,
+   "spd": 105,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "skill-link",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/houndoom-mega": {
+  "name": "houndoom-mega",
+  "types": [
+   "dark",
+   "fire"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 90,
+   "def": 90,
+   "spa": 140,
+   "spd": 90,
+   "spe": 115
+  },
+  "abilities": [
+   {
+    "name": "solar-power",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/kangaskhan-mega": {
+  "name": "kangaskhan-mega",
+  "types": [
+   "normal"
+  ],
+  "stats": {
+   "hp": 105,
+   "atk": 125,
+   "def": 100,
+   "spa": 60,
+   "spd": 100,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "parental-bond",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/latias-mega": {
+  "name": "latias-mega",
+  "types": [
+   "dragon",
+   "psychic"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 100,
+   "def": 120,
+   "spa": 140,
+   "spd": 150,
+   "spe": 110
+  },
+  "abilities": [
+   {
+    "name": "levitate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/latios-mega": {
+  "name": "latios-mega",
+  "types": [
+   "dragon",
+   "psychic"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 130,
+   "def": 100,
+   "spa": 160,
+   "spd": 120,
+   "spe": 110
+  },
+  "abilities": [
+   {
+    "name": "levitate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/lopunny-mega": {
+  "name": "lopunny-mega",
+  "types": [
+   "normal",
+   "fighting"
+  ],
+  "stats": {
+   "hp": 65,
+   "atk": 136,
+   "def": 94,
+   "spa": 54,
+   "spd": 96,
+   "spe": 135
+  },
+  "abilities": [
+   {
+    "name": "scrappy",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/lucario-mega": {
+  "name": "lucario-mega",
+  "types": [
+   "fighting",
+   "steel"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 145,
+   "def": 88,
+   "spa": 140,
+   "spd": 70,
+   "spe": 112
+  },
+  "abilities": [
+   {
+    "name": "adaptability",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/magearna-mega": {
+  "name": "magearna-mega",
+  "types": [
+   "steel",
+   "fairy"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 125,
+   "def": 115,
+   "spa": 170,
+   "spd": 115,
+   "spe": 95
+  },
+  "abilities": []
+ },
+ "pokemon/magearna-original-mega": {
+  "name": "magearna-original-mega",
+  "types": [
+   "steel",
+   "fairy"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 125,
+   "def": 115,
+   "spa": 170,
+   "spd": 115,
+   "spe": 95
+  },
+  "abilities": []
+ },
+ "pokemon/malamar-mega": {
+  "name": "malamar-mega",
+  "types": [
+   "dark",
+   "psychic"
+  ],
+  "stats": {
+   "hp": 86,
+   "atk": 102,
+   "def": 88,
+   "spa": 98,
+   "spd": 120,
+   "spe": 88
+  },
+  "abilities": [
+   {
+    "name": "contrary",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/manectric-mega": {
+  "name": "manectric-mega",
+  "types": [
+   "electric"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 75,
+   "def": 80,
+   "spa": 135,
+   "spd": 80,
+   "spe": 135
+  },
+  "abilities": [
+   {
+    "name": "intimidate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/medicham-mega": {
+  "name": "medicham-mega",
+  "types": [
+   "fighting",
+   "psychic"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 100,
+   "def": 85,
+   "spa": 80,
+   "spd": 85,
+   "spe": 100
+  },
+  "abilities": [
+   {
+    "name": "pure-power",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/meowstic-female-mega": {
+  "name": "meowstic-female-mega",
+  "types": [
+   "psychic"
+  ],
+  "stats": {
+   "hp": 74,
+   "atk": 48,
+   "def": 76,
+   "spa": 143,
+   "spd": 101,
+   "spe": 124
+  },
+  "abilities": [
+   {
+    "name": "trace",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/meowstic-male-mega": {
+  "name": "meowstic-male-mega",
+  "types": [
+   "psychic"
+  ],
+  "stats": {
+   "hp": 74,
+   "atk": 48,
+   "def": 76,
+   "spa": 143,
+   "spd": 101,
+   "spe": 124
+  },
+  "abilities": [
+   {
+    "name": "trace",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/mewtwo-mega-x": {
+  "name": "mewtwo-mega-x",
+  "types": [
+   "psychic",
+   "fighting"
+  ],
+  "stats": {
+   "hp": 106,
+   "atk": 190,
+   "def": 100,
+   "spa": 154,
+   "spd": 100,
+   "spe": 130
+  },
+  "abilities": [
+   {
+    "name": "steadfast",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/mewtwo-mega-y": {
+  "name": "mewtwo-mega-y",
+  "types": [
+   "psychic"
+  ],
+  "stats": {
+   "hp": 106,
+   "atk": 150,
+   "def": 70,
+   "spa": 194,
+   "spd": 120,
+   "spe": 140
+  },
+  "abilities": [
+   {
+    "name": "insomnia",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/pidgeot-mega": {
+  "name": "pidgeot-mega",
+  "types": [
+   "normal",
+   "flying"
+  ],
+  "stats": {
+   "hp": 83,
+   "atk": 80,
+   "def": 80,
+   "spa": 135,
+   "spd": 80,
+   "spe": 121
+  },
+  "abilities": [
+   {
+    "name": "no-guard",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/pyroar-mega": {
+  "name": "pyroar-mega",
+  "types": [
+   "fire",
+   "normal"
+  ],
+  "stats": {
+   "hp": 86,
+   "atk": 88,
+   "def": 92,
+   "spa": 129,
+   "spd": 86,
+   "spe": 126
+  },
+  "abilities": [
+   {
+    "name": "fire-mane",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/raichu-mega-x": {
+  "name": "raichu-mega-x",
+  "types": [
+   "electric"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 135,
+   "def": 95,
+   "spa": 90,
+   "spd": 95,
+   "spe": 110
+  },
+  "abilities": [
+   {
+    "name": "electric-surge",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/raichu-mega-y": {
+  "name": "raichu-mega-y",
+  "types": [
+   "electric"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 100,
+   "def": 55,
+   "spa": 160,
+   "spd": 80,
+   "spe": 130
+  },
+  "abilities": [
+   {
+    "name": "no-guard",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/sableye-mega": {
+  "name": "sableye-mega",
+  "types": [
+   "dark",
+   "ghost"
+  ],
+  "stats": {
+   "hp": 50,
+   "atk": 85,
+   "def": 125,
+   "spa": 85,
+   "spd": 115,
+   "spe": 20
+  },
+  "abilities": [
+   {
+    "name": "magic-bounce",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/salamence-mega": {
+  "name": "salamence-mega",
+  "types": [
+   "dragon",
+   "flying"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 145,
+   "def": 130,
+   "spa": 120,
+   "spd": 90,
+   "spe": 120
+  },
+  "abilities": [
+   {
+    "name": "aerilate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/sceptile-mega": {
+  "name": "sceptile-mega",
+  "types": [
+   "grass",
+   "dragon"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 110,
+   "def": 75,
+   "spa": 145,
+   "spd": 85,
+   "spe": 145
+  },
+  "abilities": [
+   {
+    "name": "lightning-rod",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/scizor-mega": {
+  "name": "scizor-mega",
+  "types": [
+   "bug",
+   "steel"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 150,
+   "def": 140,
+   "spa": 65,
+   "spd": 100,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "technician",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/scolipede-mega": {
+  "name": "scolipede-mega",
+  "types": [
+   "bug",
+   "poison"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 140,
+   "def": 149,
+   "spa": 75,
+   "spd": 99,
+   "spe": 62
+  },
+  "abilities": [
+   {
+    "name": "shell-armor",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/scovillain-mega": {
+  "name": "scovillain-mega",
+  "types": [
+   "grass",
+   "fire"
+  ],
+  "stats": {
+   "hp": 65,
+   "atk": 138,
+   "def": 85,
+   "spa": 138,
+   "spd": 85,
+   "spe": 75
+  },
+  "abilities": [
+   {
+    "name": "spicy-spray",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/scrafty-mega": {
+  "name": "scrafty-mega",
+  "types": [
+   "dark",
+   "fighting"
+  ],
+  "stats": {
+   "hp": 65,
+   "atk": 130,
+   "def": 135,
+   "spa": 55,
+   "spd": 135,
+   "spe": 68
+  },
+  "abilities": [
+   {
+    "name": "intimidate",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/sharpedo-mega": {
+  "name": "sharpedo-mega",
+  "types": [
+   "water",
+   "dark"
+  ],
+  "stats": {
+   "hp": 70,
+   "atk": 140,
+   "def": 70,
+   "spa": 110,
+   "spd": 65,
+   "spe": 105
+  },
+  "abilities": [
+   {
+    "name": "strong-jaw",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/skarmory-mega": {
+  "name": "skarmory-mega",
+  "types": [
+   "steel",
+   "flying"
+  ],
+  "stats": {
+   "hp": 65,
+   "atk": 140,
+   "def": 110,
+   "spa": 40,
+   "spd": 100,
+   "spe": 110
+  },
+  "abilities": [
+   {
+    "name": "stalwart",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/starmie-mega": {
+  "name": "starmie-mega",
+  "types": [
+   "water",
+   "psychic"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 100,
+   "def": 105,
+   "spa": 130,
+   "spd": 105,
+   "spe": 120
+  },
+  "abilities": [
+   {
+    "name": "huge-power",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/steelix-mega": {
+  "name": "steelix-mega",
+  "types": [
+   "steel",
+   "ground"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 125,
+   "def": 230,
+   "spa": 55,
+   "spd": 95,
+   "spe": 30
+  },
+  "abilities": [
+   {
+    "name": "sand-force",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/tatsugiri-curly-mega": {
+  "name": "tatsugiri-curly-mega",
+  "types": [
+   "dragon",
+   "water"
+  ],
+  "stats": {
+   "hp": 68,
+   "atk": 65,
+   "def": 90,
+   "spa": 135,
+   "spd": 125,
+   "spe": 92
+  },
+  "abilities": []
+ },
+ "pokemon/tatsugiri-droopy-mega": {
+  "name": "tatsugiri-droopy-mega",
+  "types": [
+   "dragon",
+   "water"
+  ],
+  "stats": {
+   "hp": 68,
+   "atk": 65,
+   "def": 90,
+   "spa": 135,
+   "spd": 125,
+   "spe": 92
+  },
+  "abilities": []
+ },
+ "pokemon/tatsugiri-stretchy-mega": {
+  "name": "tatsugiri-stretchy-mega",
+  "types": [
+   "dragon",
+   "water"
+  ],
+  "stats": {
+   "hp": 68,
+   "atk": 65,
+   "def": 90,
+   "spa": 135,
+   "spd": 125,
+   "spe": 92
+  },
+  "abilities": []
+ },
+ "pokemon/tyranitar-mega": {
+  "name": "tyranitar-mega",
+  "types": [
+   "rock",
+   "dark"
+  ],
+  "stats": {
+   "hp": 100,
+   "atk": 164,
+   "def": 150,
+   "spa": 95,
+   "spd": 120,
+   "spe": 71
+  },
+  "abilities": [
+   {
+    "name": "sand-stream",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/victreebel-mega": {
+  "name": "victreebel-mega",
+  "types": [
+   "grass",
+   "poison"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 125,
+   "def": 85,
+   "spa": 135,
+   "spd": 95,
+   "spe": 70
+  },
+  "abilities": [
+   {
+    "name": "innards-out",
+    "hidden": false
+   }
+  ]
+ },
+ "pokemon/zeraora-mega": {
+  "name": "zeraora-mega",
+  "types": [
+   "electric"
+  ],
+  "stats": {
+   "hp": 88,
+   "atk": 157,
+   "def": 75,
+   "spa": 147,
+   "spd": 80,
+   "spe": 153
+  },
+  "abilities": []
+ },
+ "pokemon/zygarde-mega": {
+  "name": "zygarde-mega",
+  "types": [
+   "dragon",
+   "ground"
+  ],
+  "stats": {
+   "hp": 216,
+   "atk": 70,
+   "def": 91,
+   "spa": 216,
+   "spd": 85,
+   "spe": 100
+  },
+  "abilities": []
+ }
+}

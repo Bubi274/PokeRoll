@@ -14,7 +14,7 @@ const stoneMod = (s) => MEGA_STONE_MOD_LIST.find((m) => m.key === s.mod) || { ke
 // Pokémon dùng đá (có trong app), hoặc null (vd. Mushiro)
 const stoneMon = (s) => (s.pokemonId ? state.byId.get(s.pokemonId) || null : null);
 
-// Màu đá: hệ chính của dạng Mega; mod không ghi hệ thì hệ chính của Pokémon dùng đá; không có thì màu trung tính.
+// Màu đá: hệ chính của dạng Mega; không có dữ liệu hệ thì hệ chính của Pokémon dùng đá; không có thì màu trung tính.
 function stoneColor(s) {
   const mon = stoneMon(s);
   const type = s.types[0] || (mon && mon.types[0]);
@@ -73,9 +73,17 @@ const itemName = (id) => id.split("_").map((w) => w.charAt(0).toUpperCase() + w.
 
 const STAT_LABELS = { hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
 
-// Thông tin đá trong popup. Ô mod không ghi (hệ, chỉ số, ability) thì ẩn hẳn.
+// Các trường mod để trống nên được lấp từ PokeAPI (scripts/build-megastones.js), vd. "Type, base stats and ability";
+// không có trường nào thì "".
+function apiFields(s) {
+  const fields = [s.typesSource === "pokeapi" && "type", s.statsSource === "pokeapi" && "base stats", s.abilitySource === "pokeapi" && "ability"].filter(Boolean);
+  const text = fields.length > 1 ? `${fields.slice(0, -1).join(", ")} and ${fields.at(-1)}` : fields.join("");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+// Thông tin đá trong popup. Trường không có dữ liệu (hệ, chỉ số, ability) thì ẩn hẳn.
 function stoneFacts(s, { count }) {
-  const mon = stoneMon(s), mod = stoneMod(s);
+  const mon = stoneMon(s), mod = stoneMod(s), api = apiFields(s);
   return `
     <dl class="facts">
       <div><dt>Pokémon</dt><dd>${escHtml(s.pokemon)}${mon && !isSpecial(mon) ? ` <small class="facts-sub">#${pad4(mon.id)}</small>` : ""}</dd></div>
@@ -93,7 +101,7 @@ function stoneFacts(s, { count }) {
     <ul class="recipe">
       ${s.recipe.map((r) => `<li class="recipe-item${r.item === "mega_stone" ? " is-key" : ""}">${escHtml(itemName(r.item))}${r.count > 1 ? ` <b>×${r.count}</b>` : ""}</li>`).join("")}
     </ul>
-    <p class="stone-credit">Stone data and image from the Cobblemon mod <b>${escHtml(mod.name)}</b>${mod.author ? ` by ${escHtml(mod.author)}` : ""}, used for non-commercial purposes only.</p>`;
+    <p class="stone-credit">Stone data and image from the Cobblemon mod <b>${escHtml(mod.name)}</b>${mod.author ? ` by ${escHtml(mod.author)}` : ""}, used for non-commercial purposes only.${api ? ` ${api} of the Mega form from PokeAPI.` : ""}</p>`;
 }
 
 registerMinigameCase({
@@ -128,8 +136,9 @@ registerMinigameCase({
   facts: stoneFacts,
   images: (s) => [stoneImageUrl(s), ...(stoneMon(s) ? [thumbUrl(stoneMon(s))] : [])],
   credit: (s) => {
-    const mod = stoneMod(s);
-    return `Stone data and image: ${escHtml(mod.name)}${mod.author ? ` by ${escHtml(mod.author)}` : ""} (Cobblemon mod, non-commercial use only)`;
+    const mod = stoneMod(s), api = apiFields(s);
+    return `Stone data and image: ${escHtml(mod.name)}${mod.author ? ` by ${escHtml(mod.author)}` : ""} (Cobblemon mod, non-commercial use only)`
+      + (api ? ` · ${api}: PokeAPI` : "");
   },
   collect: {
     title: "Mega Stones",
