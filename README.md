@@ -103,6 +103,8 @@ npm test -- --shard 2/4   # only shard 2 of 4 (what each CI job runs); add --lis
 
 `tests/logic/` checks the rolling logic and odds in Node; `tests/ui/` drives the app in Electron. Test data and screenshots go to a temporary folder (`pokeroll-tests` in the system temp directory), never to your own save data.
 
+New suites go in the list in `tests/suites.js`. CI splits that list into 4 shards of about the same run time, using the times recorded there; a suite with no recorded time still runs (it is counted at the average time). The Release workflow doesn't run the tests again: it waits for CI on the release commit (see [Releasing](#releasing)).
+
 ## Updating data
 
 ```bash

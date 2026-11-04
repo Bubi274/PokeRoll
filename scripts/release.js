@@ -104,7 +104,7 @@ async function main() {
   const win = process.platform === "win32";
   execFileSync(win ? "npm.cmd" : "npm", ["version", kind, "-m", "Release v%s"], { cwd: root, stdio: "inherit", shell: win });
   git("push", "--atomic", "origin", "main", `v${next}`);
-  console.log(`Pushed v${next}. GitHub Actions is now testing, building and publishing the release:`);
+  console.log(`Pushed v${next}. GitHub Actions now waits for CI on this commit, then builds and publishes the release:`);
   console.log("  https://github.com/Bubi274/PokeRoll/actions");
 }
 
