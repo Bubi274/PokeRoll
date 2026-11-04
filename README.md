@@ -73,7 +73,7 @@ npm run dist:linux     # build the Linux AppImage → dist/
 
 ## Releasing
 
-Every push to `main` and every pull request runs the tests on GitHub Actions (**CI** workflow). Nothing is built or published.
+Every push to `main` and every pull request runs the tests on GitHub Actions (**CI** workflow), split into 4 shards that run in parallel. CI is green only when every shard passes. Nothing is built or published.
 
 To publish a new version:
 
@@ -88,7 +88,7 @@ npm run release -- major    # 1.1.0 → 2.0.0
 
 The script only goes ahead when everything is committed, `main` matches GitHub, **CI has passed on that exact commit**, and the new version is higher than every existing tag (a version is never reused). If CI is still running or has failed, it stops without creating a tag, so a red build never costs a version number. Checking CI uses GitHub's public API and needs no login.
 
-It then bumps the version in `package.json`, commits, tags `vX.Y.Z` and pushes. The tag starts the **Release** workflow: it runs the same tests again, builds the Windows installer and the Linux AppImage, and publishes them as a GitHub Release together with `latest.yml` and `latest-linux.yml`, which the installed apps read to find updates. If anything fails, nothing is published. Progress: [Actions tab](https://github.com/Bubi274/PokeRoll/actions).
+It then bumps the version in `package.json`, commits, tags `vX.Y.Z` and pushes. The tag starts the **Release** workflow: it waits for CI on that exact commit to pass (it doesn't run the tests again, and stops without building if CI fails or never ran), builds the Windows installer and the Linux AppImage, and publishes them as a GitHub Release together with `latest.yml` and `latest-linux.yml`, which the installed apps read to find updates. If anything fails, nothing is published. Progress: [Actions tab](https://github.com/Bubi274/PokeRoll/actions).
 
 ## Testing
 
@@ -98,6 +98,7 @@ Requires `npm install` (the UI tests run the app in a hidden Electron window).
 npm test                  # run every test suite
 npm test -- roulette      # only suites whose name contains "roulette"
 npm test -- -v            # print every check, not just failures
+npm test -- --shard 2/4   # only shard 2 of 4 (what each CI job runs); add --list to just print its suites
 ```
 
 `tests/logic/` checks the rolling logic and odds in Node; `tests/ui/` drives the app in Electron. Test data and screenshots go to a temporary folder (`pokeroll-tests` in the system temp directory), never to your own save data.

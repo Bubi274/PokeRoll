@@ -1,6 +1,10 @@
-# Chạy npm test (test logic bằng Node, test giao diện bằng Electron trên màn hình ảo xvfb).
-# Workflow dùng chung: ci.yml (push lên main, pull request) và release.yml (trước khi build) cùng gọi,
-# để cấu hình test chỉ nằm ở một chỗ. Không build, không phát hành.
+# Chạy npm test (test logic bằng Node, test giao diện bằng Electron trên màn hình ảo xvfb), chia 4 nhóm chạy song song.
+# Workflow dùng chung, ci.yml (push lên main, pull request) gọi. Không build, không phát hành.
+#
+# Chia nhóm: npm test -- --shard i/4 chạy nhóm i (tests/suites.js chia theo thời gian đo được để các nhóm dài gần bằng
+# nhau; bộ test mới chưa đo vẫn được chạy). Đổi số nhóm: sửa cả danh sách shard lẫn "/4" trong lệnh chạy
+# (tests/logic/shards.js kiểm tra hai chỗ khớp nhau). Mỗi nhóm in thời gian từng bộ (annotation + bảng tóm tắt của job).
+# Job "All test shards passed" chỉ xanh khi mọi nhóm xanh.
 name: Test
 
 on:
@@ -11,8 +15,15 @@ permissions:
 
 jobs:
   test:
+    name: test (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Mỗi nhóm đo được khoảng 2,5–3 phút test + khoảng 1 phút cài đặt. 15 phút: đủ dư cho máy chậm,
+    # mà một test treo cũng không giữ máy quá lâu.
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false # một nhóm lỗi vẫn chạy hết các nhóm khác để thấy mọi lỗi
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
@@ -21,9 +32,30 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+          cache-dependency-path: package-lock.json
+      # File Electron tải về khi npm ci (cài electron) — giữ lại giữa các lần chạy, đổi khi package-lock.json đổi
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm ci
       # Ubuntu 24.04 chặn user namespace mà sandbox của Electron cần
       - name: Allow the Electron sandbox
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
-      # Test giao diện chạy Electron nên cần màn hình ảo
-      - run: xvfb-run -a npm test
+      # Test giao diện chạy Electron nên cần màn hình ảo. Dòng đầu log ghi các bộ test của nhóm này.
+      - name: npm test (shard ${{ matrix.shard }}/4)
+        run: xvfb-run -a npm test -- --shard ${{ matrix.shard }}/4
+
+  result:
+    name: All test shards passed
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every shard passed
+        env:
+          RESULT: ${{ needs.test.result }}
+        run: |
+          echo "Test shards: $RESULT"
+          test "$RESULT" = "success"

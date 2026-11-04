@@ -1,13 +1,14 @@
 # Phát hành bản desktop khi push tag vX.Y.Z (tạo bằng: npm run release -- patch|minor|major).
-#   1. version + test: tag phải trùng version trong package.json, và npm test (test.yml, giống CI) phải qua.
-#      Lỗi thì dừng, không phát hành. (npm run release đã chờ CI trên main qua trước khi tạo tag.)
+#   1. version + ci: tag phải trùng version trong package.json, và lượt CI (ci.yml) trên đúng commit của tag phải đã
+#      thành công (scripts/wait-for-ci.js chờ lượt CI đó chạy xong). Không chạy lại test ở đây. Lỗi thì dừng, không phát hành.
 #   2. build:   Windows (installer NSIS) và Linux (AppImage) chạy song song, chưa đăng gì.
 #   3. release: gom file của cả hai rồi tạo một GitHub Release, kèm latest.yml / latest-linux.yml cho electron-updater.
 # App không ký số: electron-builder bỏ qua bước ký khi không có chứng chỉ.
 #
 # Bảo mật:
 #   - Chỉ chạy khi push tag v*.*.*; không có secret nào ngoài GITHUB_TOKEN do Actions cấp cho mỗi lượt chạy.
-#   - Quyền mặc định chỉ đọc; riêng job release được ghi (contents: write) để tạo Release.
+#   - Quyền mặc định chỉ đọc; job ci đọc thêm Actions (actions: read) để xem kết quả CI; riêng job release được ghi
+#     (contents: write) để tạo Release.
 #   - Action ghim theo commit SHA (comment ghi phiên bản); checkout không lưu token lại trong .git.
 #   - Giá trị từ ${{ }} đi qua biến môi trường, không chèn thẳng vào lệnh shell.
 name: Release
@@ -40,12 +41,29 @@ jobs:
             exit 1
           fi
 
-  # Cùng bộ test với CI (test.yml)
-  test:
-    uses: ./.github/workflows/test.yml
+  # Không chạy lại test: chờ và kiểm tra lượt CI trên đúng commit của tag (npm run release push commit đó cùng lúc với tag,
+  # nên CI thường vừa bắt đầu — chờ nó chạy xong). CI lỗi, bị huỷ, hoặc không có lượt CI nào thì dừng, không build.
+  ci:
+    name: CI passed on the tagged commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Wait for CI on this commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/wait-for-ci.js "$GITHUB_SHA"
 
   build:
-    needs: [version, test]
+    needs: [version, ci]
     strategy:
       fail-fast: true
       matrix:

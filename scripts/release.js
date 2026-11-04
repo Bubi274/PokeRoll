@@ -1,6 +1,6 @@
 // Phát hành bản mới:  npm run release -- patch | minor | major
 // Tăng version trong package.json (và package-lock.json), commit, tạo tag vX.Y.Z rồi push lên GitHub.
-// Push tag sẽ chạy workflow .github/workflows/release.yml: chạy test, build Windows + Linux, đăng GitHub Release.
+// Push tag sẽ chạy workflow .github/workflows/release.yml: chờ CI trên commit của tag qua, build Windows + Linux, đăng GitHub Release.
 //
 // Trước khi làm, kiểm tra: thư mục làm việc sạch, đang ở main và đã khớp origin/main,
 // CI (.github/workflows/ci.yml) trên đúng commit main hiện tại đã chạy xong và thành công,

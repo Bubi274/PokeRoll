@@ -1,10 +1,12 @@
-# CI: chạy npm test mỗi khi push lên main và khi mở / cập nhật pull request. Không build, không phát hành.
-# npm run release chỉ tạo tag khi lần chạy CI này trên đúng commit main hiện tại đã thành công.
+# CI: chạy npm test mỗi khi push lên main, lên nhánh ci/** (thử thay đổi CI trước khi merge) và khi mở / cập nhật
+# pull request. Không build, không phát hành.
+# npm run release chỉ tạo tag khi lần chạy CI này trên đúng commit main hiện tại đã thành công; workflow Release cũng
+# chờ lượt CI trên commit của tag (chỉ tính lượt chạy trên main).
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "ci/**"]
   pull_request:
 
 permissions:
