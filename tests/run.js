@@ -54,7 +54,16 @@ const NOISE = /ozone|Vulkan|deprecated|^\s*$/;
 let failed = 0;
 const times = [];
 const started = Date.now();
+let warmedUp = false;
 for (const [kind, name] of picked) {
+  // Trước bộ test giao diện đầu tiên: mở Electron một lần cho sẵn sàng (tests/warmup.js) — máy CI mới tinh có thể chưa chụp được
+  // màn hình ở lần mở đầu tiên. Không tính là bộ test, không bao giờ làm lượt chạy lỗi.
+  if (kind === "ui" && !warmedUp) {
+    warmedUp = true;
+    const w = spawnSync(electron, [path.join(__dirname, "warmup.js")], { env, encoding: "utf8", timeout: 60 * 1000 });
+    const msg = `${w.stdout || ""}`.split("\n").filter((l) => l.startsWith("Electron warm-up")).join(" | ");
+    console.log(msg || "Electron warm-up: no output");
+  }
   const file = path.join(__dirname, kind, `${name}.js`);
   const t0 = Date.now();
   const res = kind === "ui"
