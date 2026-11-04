@@ -67,6 +67,10 @@ for (const [kind, name] of picked) {
   const ok = res.status === 0 && fails.length === 0 && out.includes("ALL PASSED");
   if (!ok) failed++;
   times.push({ suite: `${kind}/${name}`, ok, seconds: (Date.now() - t0) / 1000 });
+  // Trên GitHub Actions: các dòng FAIL thành annotation lỗi (thấy ngay ở trang tóm tắt, không phải mở log)
+  if (!ok && process.env.GITHUB_ACTIONS === "true") {
+    for (const l of (fails.length ? fails : lines.slice(-5)).slice(0, 10)) console.log(`::error title=${kind}/${name}::${l.replace(/%/g, "%25").replace(/\r?\n/g, " ")}`);
+  }
   console.log(`${ok ? "PASS" : "FAIL"}  ${kind}/${name}  ${pass} passed${fails.length ? `, ${fails.length} failed` : ""}  (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
   if (verbose) console.log(lines.map((l) => "      " + l).join("\n"));
   else if (!ok) console.log((fails.length ? fails : lines.slice(-20)).map((l) => "      " + l).join("\n"));
