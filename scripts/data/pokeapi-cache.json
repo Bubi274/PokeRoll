@@ -1,4 +1,670 @@
 {
+ "ability/adaptability": {
+  "name": "adaptability",
+  "en": "Adaptability"
+ },
+ "ability/aerilate": {
+  "name": "aerilate",
+  "en": "Aerilate"
+ },
+ "ability/aura-break": {
+  "name": "aura-break",
+  "en": "Aura Break"
+ },
+ "ability/berserk": {
+  "name": "berserk",
+  "en": "Berserk"
+ },
+ "ability/bulletproof": {
+  "name": "bulletproof",
+  "en": "Bulletproof"
+ },
+ "ability/chlorophyll": {
+  "name": "chlorophyll",
+  "en": "Chlorophyll"
+ },
+ "ability/clear-body": {
+  "name": "clear-body",
+  "en": "Clear Body"
+ },
+ "ability/contrary": {
+  "name": "contrary",
+  "en": "Contrary"
+ },
+ "ability/dark-aura": {
+  "name": "dark-aura",
+  "en": "Dark Aura"
+ },
+ "ability/defiant": {
+  "name": "defiant",
+  "en": "Defiant"
+ },
+ "ability/drizzle": {
+  "name": "drizzle",
+  "en": "Drizzle"
+ },
+ "ability/drought": {
+  "name": "drought",
+  "en": "Drought"
+ },
+ "ability/electric-surge": {
+  "name": "electric-surge",
+  "en": "Electric Surge"
+ },
+ "ability/fairy-aura": {
+  "name": "fairy-aura",
+  "en": "Fairy Aura"
+ },
+ "ability/filter": {
+  "name": "filter",
+  "en": "Filter"
+ },
+ "ability/flower-gift": {
+  "name": "flower-gift",
+  "en": "Flower Gift"
+ },
+ "ability/galvanize": {
+  "name": "galvanize",
+  "en": "Galvanize"
+ },
+ "ability/grassy-surge": {
+  "name": "grassy-surge",
+  "en": "Grassy Surge"
+ },
+ "ability/healer": {
+  "name": "healer",
+  "en": "Healer"
+ },
+ "ability/heatproof": {
+  "name": "heatproof",
+  "en": "Heatproof"
+ },
+ "ability/huge-power": {
+  "name": "huge-power",
+  "en": "Huge Power"
+ },
+ "ability/infiltrator": {
+  "name": "infiltrator",
+  "en": "Infiltrator"
+ },
+ "ability/innards-out": {
+  "name": "innards-out",
+  "en": "Innards Out"
+ },
+ "ability/inner-focus": {
+  "name": "inner-focus",
+  "en": "Inner Focus"
+ },
+ "ability/insomnia": {
+  "name": "insomnia",
+  "en": "Insomnia"
+ },
+ "ability/intimidate": {
+  "name": "intimidate",
+  "en": "Intimidate"
+ },
+ "ability/iron-fist": {
+  "name": "iron-fist",
+  "en": "Iron Fist"
+ },
+ "ability/levitate": {
+  "name": "levitate",
+  "en": "Levitate"
+ },
+ "ability/lightning-rod": {
+  "name": "lightning-rod",
+  "en": "Lightning Rod"
+ },
+ "ability/magic-bounce": {
+  "name": "magic-bounce",
+  "en": "Magic Bounce"
+ },
+ "ability/mega-launcher": {
+  "name": "mega-launcher",
+  "en": "Mega Launcher"
+ },
+ "ability/minds-eye": {
+  "name": "minds-eye",
+  "en": "Mind’s Eye"
+ },
+ "ability/mold-breaker": {
+  "name": "mold-breaker",
+  "en": "Mold Breaker"
+ },
+ "ability/multiscale": {
+  "name": "multiscale",
+  "en": "Multiscale"
+ },
+ "ability/no-guard": {
+  "name": "no-guard",
+  "en": "No Guard"
+ },
+ "ability/parental-bond": {
+  "name": "parental-bond",
+  "en": "Parental Bond"
+ },
+ "ability/pixilate": {
+  "name": "pixilate",
+  "en": "Pixilate"
+ },
+ "ability/prankster": {
+  "name": "prankster",
+  "en": "Prankster"
+ },
+ "ability/protean": {
+  "name": "protean",
+  "en": "Protean"
+ },
+ "ability/punk-rock": {
+  "name": "punk-rock",
+  "en": "Punk Rock"
+ },
+ "ability/pure-power": {
+  "name": "pure-power",
+  "en": "Pure Power"
+ },
+ "ability/queenly-majesty": {
+  "name": "queenly-majesty",
+  "en": "Queenly Majesty"
+ },
+ "ability/refrigerate": {
+  "name": "refrigerate",
+  "en": "Refrigerate"
+ },
+ "ability/regenerator": {
+  "name": "regenerator",
+  "en": "Regenerator"
+ },
+ "ability/rough-skin": {
+  "name": "rough-skin",
+  "en": "Rough Skin"
+ },
+ "ability/sand-force": {
+  "name": "sand-force",
+  "en": "Sand Force"
+ },
+ "ability/sand-rush": {
+  "name": "sand-rush",
+  "en": "Sand Rush"
+ },
+ "ability/sand-stream": {
+  "name": "sand-stream",
+  "en": "Sand Stream"
+ },
+ "ability/sap-sipper": {
+  "name": "sap-sipper",
+  "en": "Sap Sipper"
+ },
+ "ability/scrappy": {
+  "name": "scrappy",
+  "en": "Scrappy"
+ },
+ "ability/shadow-tag": {
+  "name": "shadow-tag",
+  "en": "Shadow Tag"
+ },
+ "ability/sharpness": {
+  "name": "sharpness",
+  "en": "Sharpness"
+ },
+ "ability/sheer-force": {
+  "name": "sheer-force",
+  "en": "Sheer Force"
+ },
+ "ability/shell-armor": {
+  "name": "shell-armor",
+  "en": "Shell Armor"
+ },
+ "ability/skill-link": {
+  "name": "skill-link",
+  "en": "Skill Link"
+ },
+ "ability/snow-warning": {
+  "name": "snow-warning",
+  "en": "Snow Warning"
+ },
+ "ability/solar-power": {
+  "name": "solar-power",
+  "en": "Solar Power"
+ },
+ "ability/soul-heart": {
+  "name": "soul-heart",
+  "en": "Soul-Heart"
+ },
+ "ability/speed-boost": {
+  "name": "speed-boost",
+  "en": "Speed Boost"
+ },
+ "ability/stalwart": {
+  "name": "stalwart",
+  "en": "Stalwart"
+ },
+ "ability/stamina": {
+  "name": "stamina",
+  "en": "Stamina"
+ },
+ "ability/steadfast": {
+  "name": "steadfast",
+  "en": "Steadfast"
+ },
+ "ability/strong-jaw": {
+  "name": "strong-jaw",
+  "en": "Strong Jaw"
+ },
+ "ability/swift-swim": {
+  "name": "swift-swim",
+  "en": "Swift Swim"
+ },
+ "ability/technician": {
+  "name": "technician",
+  "en": "Technician"
+ },
+ "ability/thermal-exchange": {
+  "name": "thermal-exchange",
+  "en": "Thermal Exchange"
+ },
+ "ability/thick-fat": {
+  "name": "thick-fat",
+  "en": "Thick Fat"
+ },
+ "ability/tinted-lens": {
+  "name": "tinted-lens",
+  "en": "Tinted Lens"
+ },
+ "ability/tough-claws": {
+  "name": "tough-claws",
+  "en": "Tough Claws"
+ },
+ "ability/trace": {
+  "name": "trace",
+  "en": "Trace"
+ },
+ "ability/unaware": {
+  "name": "unaware",
+  "en": "Unaware"
+ },
+ "ability/unseen-fist": {
+  "name": "unseen-fist",
+  "en": "Unseen Fist"
+ },
+ "ability?limit=2000": {
+  "names": [
+   "stench",
+   "drizzle",
+   "speed-boost",
+   "battle-armor",
+   "sturdy",
+   "damp",
+   "limber",
+   "sand-veil",
+   "static",
+   "volt-absorb",
+   "water-absorb",
+   "oblivious",
+   "cloud-nine",
+   "compound-eyes",
+   "insomnia",
+   "color-change",
+   "immunity",
+   "flash-fire",
+   "shield-dust",
+   "own-tempo",
+   "suction-cups",
+   "intimidate",
+   "shadow-tag",
+   "rough-skin",
+   "wonder-guard",
+   "levitate",
+   "effect-spore",
+   "synchronize",
+   "clear-body",
+   "natural-cure",
+   "lightning-rod",
+   "serene-grace",
+   "swift-swim",
+   "chlorophyll",
+   "illuminate",
+   "trace",
+   "huge-power",
+   "poison-point",
+   "inner-focus",
+   "magma-armor",
+   "water-veil",
+   "magnet-pull",
+   "soundproof",
+   "rain-dish",
+   "sand-stream",
+   "pressure",
+   "thick-fat",
+   "early-bird",
+   "flame-body",
+   "run-away",
+   "keen-eye",
+   "hyper-cutter",
+   "pickup",
+   "truant",
+   "hustle",
+   "cute-charm",
+   "plus",
+   "minus",
+   "forecast",
+   "sticky-hold",
+   "shed-skin",
+   "guts",
+   "marvel-scale",
+   "liquid-ooze",
+   "overgrow",
+   "blaze",
+   "torrent",
+   "swarm",
+   "rock-head",
+   "drought",
+   "arena-trap",
+   "vital-spirit",
+   "white-smoke",
+   "pure-power",
+   "shell-armor",
+   "air-lock",
+   "tangled-feet",
+   "motor-drive",
+   "rivalry",
+   "steadfast",
+   "snow-cloak",
+   "gluttony",
+   "anger-point",
+   "unburden",
+   "heatproof",
+   "simple",
+   "dry-skin",
+   "download",
+   "iron-fist",
+   "poison-heal",
+   "adaptability",
+   "skill-link",
+   "hydration",
+   "solar-power",
+   "quick-feet",
+   "normalize",
+   "sniper",
+   "magic-guard",
+   "no-guard",
+   "stall",
+   "technician",
+   "leaf-guard",
+   "klutz",
+   "mold-breaker",
+   "super-luck",
+   "aftermath",
+   "anticipation",
+   "forewarn",
+   "unaware",
+   "tinted-lens",
+   "filter",
+   "slow-start",
+   "scrappy",
+   "storm-drain",
+   "ice-body",
+   "solid-rock",
+   "snow-warning",
+   "honey-gather",
+   "frisk",
+   "reckless",
+   "multitype",
+   "flower-gift",
+   "bad-dreams",
+   "pickpocket",
+   "sheer-force",
+   "contrary",
+   "unnerve",
+   "defiant",
+   "defeatist",
+   "cursed-body",
+   "healer",
+   "friend-guard",
+   "weak-armor",
+   "heavy-metal",
+   "light-metal",
+   "multiscale",
+   "toxic-boost",
+   "flare-boost",
+   "harvest",
+   "telepathy",
+   "moody",
+   "overcoat",
+   "poison-touch",
+   "regenerator",
+   "big-pecks",
+   "sand-rush",
+   "wonder-skin",
+   "analytic",
+   "illusion",
+   "imposter",
+   "infiltrator",
+   "mummy",
+   "moxie",
+   "justified",
+   "rattled",
+   "magic-bounce",
+   "sap-sipper",
+   "prankster",
+   "sand-force",
+   "iron-barbs",
+   "zen-mode",
+   "victory-star",
+   "turboblaze",
+   "teravolt",
+   "aroma-veil",
+   "flower-veil",
+   "cheek-pouch",
+   "protean",
+   "fur-coat",
+   "magician",
+   "bulletproof",
+   "competitive",
+   "strong-jaw",
+   "refrigerate",
+   "sweet-veil",
+   "stance-change",
+   "gale-wings",
+   "mega-launcher",
+   "grass-pelt",
+   "symbiosis",
+   "tough-claws",
+   "pixilate",
+   "gooey",
+   "aerilate",
+   "parental-bond",
+   "dark-aura",
+   "fairy-aura",
+   "aura-break",
+   "primordial-sea",
+   "desolate-land",
+   "delta-stream",
+   "stamina",
+   "wimp-out",
+   "emergency-exit",
+   "water-compaction",
+   "merciless",
+   "shields-down",
+   "stakeout",
+   "water-bubble",
+   "steelworker",
+   "berserk",
+   "slush-rush",
+   "long-reach",
+   "liquid-voice",
+   "triage",
+   "galvanize",
+   "surge-surfer",
+   "schooling",
+   "disguise",
+   "battle-bond",
+   "power-construct",
+   "corrosion",
+   "comatose",
+   "queenly-majesty",
+   "innards-out",
+   "dancer",
+   "battery",
+   "fluffy",
+   "dazzling",
+   "soul-heart",
+   "tangling-hair",
+   "receiver",
+   "power-of-alchemy",
+   "beast-boost",
+   "rks-system",
+   "electric-surge",
+   "psychic-surge",
+   "misty-surge",
+   "grassy-surge",
+   "full-metal-body",
+   "shadow-shield",
+   "prism-armor",
+   "neuroforce",
+   "intrepid-sword",
+   "dauntless-shield",
+   "libero",
+   "ball-fetch",
+   "cotton-down",
+   "propeller-tail",
+   "mirror-armor",
+   "gulp-missile",
+   "stalwart",
+   "steam-engine",
+   "punk-rock",
+   "sand-spit",
+   "ice-scales",
+   "ripen",
+   "ice-face",
+   "power-spot",
+   "mimicry",
+   "screen-cleaner",
+   "steely-spirit",
+   "perish-body",
+   "wandering-spirit",
+   "gorilla-tactics",
+   "neutralizing-gas",
+   "pastel-veil",
+   "hunger-switch",
+   "quick-draw",
+   "unseen-fist",
+   "curious-medicine",
+   "transistor",
+   "dragons-maw",
+   "chilling-neigh",
+   "grim-neigh",
+   "as-one-glastrier",
+   "as-one-spectrier",
+   "lingering-aroma",
+   "seed-sower",
+   "thermal-exchange",
+   "anger-shell",
+   "purifying-salt",
+   "well-baked-body",
+   "wind-rider",
+   "guard-dog",
+   "rocky-payload",
+   "wind-power",
+   "zero-to-hero",
+   "commander",
+   "electromorphosis",
+   "protosynthesis",
+   "quark-drive",
+   "good-as-gold",
+   "vessel-of-ruin",
+   "sword-of-ruin",
+   "tablets-of-ruin",
+   "beads-of-ruin",
+   "orichalcum-pulse",
+   "hadron-engine",
+   "opportunist",
+   "cud-chew",
+   "sharpness",
+   "supreme-overlord",
+   "costar",
+   "toxic-debris",
+   "armor-tail",
+   "earth-eater",
+   "mycelium-might",
+   "minds-eye",
+   "supersweet-syrup",
+   "hospitality",
+   "toxic-chain",
+   "embody-aspect",
+   "tera-shift",
+   "tera-shell",
+   "teraform-zero",
+   "poison-puppeteer",
+   "piercing-drill",
+   "dragonize",
+   "mega-sol",
+   "spicy-spray",
+   "eelevate",
+   "fire-mane",
+   "aura-guard",
+   "mountaineer",
+   "wave-rider",
+   "skater",
+   "thrust",
+   "perception",
+   "parry",
+   "instinct",
+   "dodge",
+   "jagged-edge",
+   "frostbite",
+   "tenacity",
+   "pride",
+   "deep-sleep",
+   "power-nap",
+   "spirit",
+   "warm-blanket",
+   "gulp",
+   "herbivore",
+   "sandpit",
+   "hot-blooded",
+   "medic",
+   "life-force",
+   "lunchbox",
+   "nurse",
+   "melee",
+   "sponge",
+   "bodyguard",
+   "hero",
+   "last-bastion",
+   "stealth",
+   "vanguard",
+   "nomad",
+   "sequence",
+   "grass-cloak",
+   "celebrate",
+   "lullaby",
+   "calming",
+   "daze",
+   "frighten",
+   "interference",
+   "mood-maker",
+   "confidence",
+   "fortune",
+   "bonanza",
+   "explode",
+   "omnipotent",
+   "share",
+   "black-hole",
+   "shadow-dash",
+   "sprint",
+   "disgust",
+   "high-rise",
+   "climber",
+   "flame-boost",
+   "aqua-boost",
+   "run-up",
+   "conqueror",
+   "shackle",
+   "decoy",
+   "shield"
+  ]
+ },
  "pokemon-species/115": {
   "name": "kangaskhan",
   "varieties": [

@@ -133,9 +133,12 @@ function main() {
   }
 }
 
-try {
-  main();
-} catch (err) {
-  console.error("\nThất bại:", err.message);
-  process.exit(1);
+if (require.main === module) {
+  try {
+    main();
+  } catch (err) {
+    console.error("\nThất bại:", err.message);
+    process.exit(1);
+  }
 }
+module.exports = { SRC_DIR, MOD_JARS, readJson };

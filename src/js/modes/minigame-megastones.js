@@ -73,13 +73,18 @@ const itemName = (id) => id.split("_").map((w) => w.charAt(0).toUpperCase() + w.
 
 const STAT_LABELS = { hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
 
-// Các trường mod để trống nên được lấp từ PokeAPI (scripts/build-megastones.js), vd. "Type, base stats and ability";
-// không có trường nào thì "".
+// Những gì lấy từ PokeAPI (scripts/build-megastones.js), vd. "Type, base stats and ability": trường mod để trống, và tên
+// ability khi file ngôn ngữ của mod không có tên đó ("ability name"). Không có gì thì "".
 function apiFields(s) {
-  const fields = [s.typesSource === "pokeapi" && "type", s.statsSource === "pokeapi" && "base stats", s.abilitySource === "pokeapi" && "ability"].filter(Boolean);
+  const fields = [s.typesSource === "pokeapi" && "type", s.statsSource === "pokeapi" && "base stats",
+    s.abilitySource === "pokeapi" ? "ability" : s.abilityNameSource === "pokeapi" && "ability name"].filter(Boolean);
   const text = fields.length > 1 ? `${fields.slice(0, -1).join(", ")} and ${fields.at(-1)}` : fields.join("");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+// Ability: tên dễ đọc (từ file ngôn ngữ của mod hoặc PokeAPI); chưa có tên thì hiện id gốc kiểu mã.
+const abilityHtml = (s) => (s.abilityNameSource === "id" || !s.abilityName
+  ? `<dd class="facts-code">${escHtml(s.ability)}</dd>` : `<dd>${escHtml(s.abilityName)}</dd>`);
 
 // Thông tin đá trong popup. Trường không có dữ liệu (hệ, chỉ số, ability) thì ẩn hẳn.
 function stoneFacts(s, { count }) {
@@ -89,7 +94,7 @@ function stoneFacts(s, { count }) {
       <div><dt>Pokémon</dt><dd>${escHtml(s.pokemon)}${mon && !isSpecial(mon) ? ` <small class="facts-sub">#${pad4(mon.id)}</small>` : ""}</dd></div>
       <div><dt>Form</dt><dd>${escHtml(`${s.form} ${s.pokemon}`)}</dd></div>
       ${s.bst !== null ? `<div><dt>Base stat total</dt><dd>${s.bst}</dd></div>` : ""}
-      ${s.ability ? `<div><dt>Ability</dt><dd class="facts-code">${escHtml(s.ability)}</dd></div>` : ""}
+      ${s.ability ? `<div><dt>Ability</dt>${abilityHtml(s)}</div>` : ""}
       <div><dt>Mod</dt><dd>${escHtml(mod.name)}</dd></div>
       ${count !== null && count > 0 ? `<div><dt>In collection</dt><dd>×${count}</dd></div>` : ""}
     </dl>

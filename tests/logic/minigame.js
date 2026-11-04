@@ -76,6 +76,25 @@ check("fillFromApi: empty fields take PokeAPI values, BST = sum, source \"pokeap
 let oddType = "";
 try { build.fillFromApi({ ...emptyStone, types: [] }, { ...mega, types: ["stellar"] }, []); } catch (e) { oddType = e.message; }
 check("fillFromApi: a type outside the 18 types stops the build (like a bad CSV type)", /stellar/.test(oddType), oddType);
+// 1a'. Tên ability dễ đọc: file ngôn ngữ của chính mod → PokeAPI → id gốc
+const modNames = JSON.parse(fs.readFileSync(path.join(ROOT, "scripts/data/megastone-ability-names.json"), "utf8"));
+const withAbility = S.filter((s) => s.ability);
+check("Every stone with an ability has a readable name and its source; stones without one have neither",
+  withAbility.every((s) => s.abilityName && ["mod", "pokeapi", "id"].includes(s.abilityNameSource))
+  && S.filter((s) => !s.ability).every((s) => s.abilityName === null && s.abilityNameSource === null));
+check("Names from the stone's own mod match that mod's en_us file (cobblemon.ability.<id>), which comes first",
+  withAbility.every((s) => (s.ability.toLowerCase() in (modNames[s.mod] || {})) === (s.abilityNameSource === "mod")
+    && (s.abilityNameSource !== "mod" || s.abilityName === modNames[s.mod][s.ability.toLowerCase()])));
+const nameOf = (id) => byStoneId.get(id).abilityName;
+check("Examples: Tough Claws (PokeAPI), While the Lights Are Out (Mushiromega), Mega Sol (Mega Showdown)",
+  nameOf("charizarditex") === "Tough Claws" && withAbility.find((s) => s.ability === "whilethelightsareout").abilityName === "While the Lights Are Out"
+  && withAbility.some((s) => s.ability === "megasol" && s.mod === "mega-showdown" && s.abilityName === "Mega Sol"));
+const pelt = withAbility.find((s) => s.ability === "grasspelt");
+check("The stone's own mod wins over PokeAPI: Mushiromega names grasspelt \"Turf Barrier\" (PokeAPI: Grass Pelt)",
+  pelt && pelt.mod === "mushiromega" && pelt.abilityName === "Turf Barrier" && pelt.abilityNameSource === "mod");
+const nameCount = (src) => withAbility.filter((s) => s.abilityNameSource === src).length;
+check("Ability names: 33 stones from the mods, 122 from PokeAPI, none left as an id",
+  nameCount("mod") === 33 && nameCount("pokeapi") === 122 && nameCount("id") === 0, `${nameCount("mod")}/${nameCount("pokeapi")}/${nameCount("id")}`);
 const rebuilt = path.join(require("os").tmpdir(), "pokeroll-tests", "megastones.rebuilt.js");
 fs.mkdirSync(path.dirname(rebuilt), { recursive: true });
 const rb = require("child_process").spawnSync(process.execPath, [path.join(ROOT, "scripts/build-megastones.js"), "--offline", "--out", rebuilt], { encoding: "utf8" });

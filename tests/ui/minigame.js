@@ -258,13 +258,28 @@ app.whenReady().then(async () => {
     document.getElementById("detail-modal").close(); return r; })()`);
   let d = await detailOf("abomasite");
   check("Classic Mega with no mod data (Abomasite): type, base stats, BST and ability now shown, from PokeAPI",
-    d.chips.join() === "grass,ice" && d.stats.join() === "90,132,105,132,105,30" && d.facts["Base stat total"] === "594" && "Ability" in d.facts
+    d.chips.join() === "grass,ice" && d.stats.join() === "90,132,105,132,105,30" && d.facts["Base stat total"] === "594" && d.facts.Ability === "Snow Warning"
     && /Type, base stats and ability of the Mega form from PokeAPI/.test(d.credit) && /PokeAPI/.test(d.footer), JSON.stringify(d));
   d = await detailOf("raichunitex");
-  check("Mod has stats but no type (Raichunite X): type from PokeAPI, credit names only the type", d.chips.join() === "electric"
-    && d.facts["Base stat total"] === "585" && /\bType of the Mega form from PokeAPI/.test(d.credit), JSON.stringify(d));
+  check("Mod has stats but no type (Raichunite X): type from PokeAPI; credit names the type and the ability name", d.chips.join() === "electric"
+    && d.facts["Base stat total"] === "585" && /\bType and ability name of the Mega form from PokeAPI/.test(d.credit), JSON.stringify(d));
   d = await detailOf("gengarite");
-  check("Stone fully listed by its mod (Gengarite): no PokeAPI credit", d.chips.join() === "ghost,poison" && !/PokeAPI/.test(d.credit + d.footer), JSON.stringify(d));
+  check("Stone data from its mod, ability name from PokeAPI (Gengarite): only the ability name is credited to PokeAPI", d.chips.join() === "ghost,poison"
+    && /\bAbility name of the Mega form from PokeAPI/.test(d.credit) && /Ability name: PokeAPI/.test(d.footer), JSON.stringify(d));
+  d = await detailOf("meganiumite");
+  check("Everything from the mod, ability name too (Meganiumite, Mega Sol): no PokeAPI credit", d.facts.Ability === "Mega Sol" && !/PokeAPI/.test(d.credit + d.footer), JSON.stringify(d));
+  const abilityRow = (id) => js(`(() => { openMinigameDetail("megastone", ${JSON.stringify(id)});
+    const dd = [...document.querySelectorAll("#detail-body .facts > div")].find(d => d.querySelector("dt").textContent === "Ability").querySelector("dd");
+    const r = { text: dd.textContent, code: dd.classList.contains("facts-code") }; document.getElementById("detail-modal").close(); return r; })()`);
+  const abilities = {};
+  for (const id of ["charizarditex", "gengarite", ...(await js(`MEGA_STONES.filter(s => ["whilethelightsareout", "grasspelt", "megasol"].includes(s.ability)).map(s => s.id)`))]) abilities[id] = await abilityRow(id);
+  check("Popup shows readable ability names, not ids: Tough Claws, Shadow Tag, While the Lights Are Out, Turf Barrier, Mega Sol",
+    Object.values(abilities).every((a) => !a.code) && abilities.charizarditex.text === "Tough Claws" && abilities.gengarite.text === "Shadow Tag"
+    && ["While the Lights Are Out", "Turf Barrier", "Mega Sol"].every((n) => Object.values(abilities).some((a) => a.text === n)), JSON.stringify(abilities));
+  check("Every stone with an ability shows its readable name in the popup",
+    await js(`MEGA_STONES.filter(s => s.ability).every(s => { showMinigameResult(minigameCase("megastone"), s, { isNew: true, count: 1 });
+      const ok = [...document.querySelectorAll("#result-body .facts > div")].some(d => d.querySelector("dt").textContent === "Ability" && d.querySelector("dd").textContent === s.abilityName);
+      document.getElementById("result-modal").close(); return ok; })`));
   d = await detailOf("cyclizarite");
   check("Still no data (Cyclizarite type, fan-made): row stays hidden", d.chips.length === 0 && d.stats.length === 6, JSON.stringify(d));
   await js(`document.getElementById("mgc-megastone").scrollIntoView(); 0`); await shot("mg-stone-collection.png");

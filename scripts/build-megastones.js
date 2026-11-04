@@ -11,12 +11,21 @@
 // = "mod" | "pokeapi" | null (trống).
 // Phản hồi PokeAPI (chỉ giữ phần cần dùng) lưu trong scripts/data/pokeapi-cache.json và được commit: chạy lại không cần
 // mạng và luôn ra cùng kết quả. Chỉ tải những gì cache chưa có (kể cả "không có": lưu null). Xoá một mục để tải lại.
-//   --offline     không tải gì, cache thiếu thì dừng (test dùng để kiểm tra chạy lại ra đúng data/megastones.js)
+//
+// Tên ability dễ đọc (abilityName, ability vẫn giữ id gốc), lấy theo thứ tự (abilityNameSource):
+//   "mod"      file ngôn ngữ en_us của chính mod của viên đá (khoá cobblemon.ability.<id>), đọc từ file mod trong
+//              megastone-src/ một lần rồi lưu ở scripts/data/megastone-ability-names.json (commit, chạy lại không cần jar;
+//              xoá mục của một mod trong file đó để đọc lại từ jar)
+//   "pokeapi"  tên tiếng Anh của ability trên PokeAPI (qua cache như trên)
+//   "id"       không có ở đâu: giữ nguyên id
+//   --offline     không tải gì và không đọc file mod, cache thiếu thì dừng (test dùng để kiểm tra chạy lại ra đúng data/megastones.js)
 //   --out <file>  ghi ra file khác thay cho data/megastones.js
 
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { readZip } = require("./zip");
+const { SRC_DIR, MOD_JARS, readJson } = require("./build-megastone-images");
 
 const ROOT = path.join(__dirname, "..");
 const INPUT = path.join(__dirname, "data", "mega-stones.csv");
@@ -25,6 +34,7 @@ const OFFLINE = argv.includes("--offline");
 const outAt = argv.indexOf("--out"), outFile = outAt >= 0 ? argv[outAt + 1] : null;
 const OUTPUT = outAt < 0 ? path.join(ROOT, "data", "megastones.js") : outFile && !outFile.startsWith("--") ? path.resolve(outFile) : null;
 const CACHE = path.join(__dirname, "data", "pokeapi-cache.json");
+const MOD_NAMES = path.join(__dirname, "data", "megastone-ability-names.json");
 const API = "https://pokeapi.co/api/v2";
 
 const MODS = [
@@ -117,6 +127,8 @@ function buildStone(row, line, dex) {
     statsSource: stats ? "mod" : null,
     ability: row.ability || null,
     abilitySource: row.ability ? "mod" : null,
+    abilityName: null, // tên dễ đọc, gắn sau (nameAbilities)
+    abilityNameSource: null,
     recipe: parseRecipe(row.recipe),
   };
 }
@@ -128,6 +140,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // Chỉ giữ phần dùng tới của từng loại phản hồi, để file cache nhỏ và dễ đọc khi xem diff.
 const TRIM = {
   "pokemon-species": (j) => ({ name: j.name, varieties: j.varieties.map((v) => v.pokemon.name) }),
+  // ability?limit=… (danh sách tên) hoặc ability/<tên> (tên tiếng Anh)
+  "ability": (j) => (j.results ? { names: j.results.map((r) => r.name) }
+    : { name: j.name, en: (j.names.find((n) => n.language.name === "en") || {}).name || null }),
   "pokemon": (j) => ({
     name: j.name,
     types: j.types.sort((a, b) => a.slot - b.slot).map((t) => t.type.name),
@@ -149,7 +164,7 @@ function saveCache(cache) {
 async function api(cache, key, stats) {
   if (key in cache) return cache[key];
   if (OFFLINE) throw new Error(`--offline: cache chưa có ${key}`);
-  const endpoint = key.split("/")[0];
+  const endpoint = key.split(/[/?]/)[0];
   for (let attempt = 1; ; attempt++) {
     try {
       const res = await fetch(`${API}/${key}`, { signal: AbortSignal.timeout(20000) });
@@ -228,6 +243,47 @@ function readCsvRows(file = INPUT) {
   return rows;
 }
 
+// Tên ability trong file ngôn ngữ en_us của từng mod: { modKey: { id: tên } }. Mod nào file lưu chưa có thì đọc từ jar.
+function loadModAbilityNames() {
+  const saved = fs.existsSync(MOD_NAMES) ? JSON.parse(fs.readFileSync(MOD_NAMES, "utf8")) : {};
+  const missing = MODS.filter((m) => !saved[m.key]);
+  for (const mod of missing) {
+    const where = `chưa có tên ability của ${mod.name} trong ${path.relative(ROOT, MOD_NAMES)}`;
+    if (OFFLINE) throw new Error(`--offline: ${where}`);
+    const jars = fs.existsSync(SRC_DIR) ? fs.readdirSync(SRC_DIR).filter((f) => MOD_JARS[mod.key].test(f)) : [];
+    if (jars.length !== 1) throw new Error(`${where}; cần đúng 1 file mod khớp ${MOD_JARS[mod.key]} trong megastone-src/, thấy ${jars.length}`);
+    const jar = jars[0], zip = readZip(path.join(SRC_DIR, jar));
+    const names = {};
+    for (const file of zip.names().filter((n) => /^assets\/[^/]+\/lang\/en_us\.json$/.test(n)).sort()) {
+      for (const [k, v] of Object.entries(readJson(zip, file))) {
+        const m = k.match(/^cobblemon\.ability\.([^.]+)$/);
+        if (!m) continue;
+        const id = m[1].toLowerCase();
+        if (id in names && names[id] !== v) throw new Error(`${jar}: ability "${id}" có hai tên: "${names[id]}" và "${v}" (${file})`);
+        names[id] = v;
+      }
+    }
+    saved[mod.key] = Object.fromEntries(Object.keys(names).sort().map((k) => [k, names[k]]));
+  }
+  if (missing.length) fs.writeFileSync(MOD_NAMES, JSON.stringify(saved, null, 1) + "\n", "utf8");
+  return saved;
+}
+
+// Gắn abilityName / abilityNameSource cho mọi viên có ability (mod → PokeAPI → id); viên không có ability giữ null.
+async function nameAbilities(stones, cache, stats) {
+  const modNames = loadModAbilityNames();
+  let apiIds = null; // id viết liền (toughclaws) → tên trên PokeAPI (tough-claws)
+  for (const s of stones) {
+    if (!s.ability) continue;
+    const id = s.ability.toLowerCase();
+    const fromMod = (modNames[s.mod] || {})[id];
+    if (fromMod) { Object.assign(s, { abilityName: fromMod, abilityNameSource: "mod" }); continue; }
+    if (!apiIds) apiIds = new Map((await api(cache, "ability?limit=2000", stats)).names.map((n) => [n.replace(/-/g, ""), n]));
+    const ab = apiIds.has(id) ? await api(cache, `ability/${apiIds.get(id)}`, stats) : null;
+    Object.assign(s, ab && ab.en ? { abilityName: ab.en, abilityNameSource: "pokeapi" } : { abilityName: s.ability, abilityNameSource: "id" });
+  }
+}
+
 async function main() {
   if (!OUTPUT) throw new Error("--out cần tên file");
   const dex = loadBaseDex();
@@ -239,18 +295,18 @@ async function main() {
   const cache = loadCache(), apiStats = { fetched: 0 };
   const conflicts = [], stillMissing = [];
   const isIncomplete = (s) => !s.types.length || !s.stats || !s.ability;
-  for (const s of stones.filter(isIncomplete)) {
-    let mega;
-    try {
-      mega = await officialMega(s, cache, apiStats);
-    } finally {
-      if (apiStats.fetched) saveCache(cache); // giữ phần đã tải được kể cả khi dừng giữa chừng
+  try {
+    for (const s of stones.filter(isIncomplete)) {
+      const mega = await officialMega(s, cache, apiStats);
+      fillFromApi(s, mega, conflicts);
+      if (isIncomplete(s)) {
+        const gaps = [!s.types.length && "types", !s.stats && "stats", !s.ability && "ability"].filter(Boolean);
+        stillMissing.push(`${s.name} (${s.form} ${s.pokemon}): ${gaps.map((f) => `${f} — ${mega.why[f]}`).join("; ")}`);
+      }
     }
-    fillFromApi(s, mega, conflicts);
-    if (isIncomplete(s)) {
-      const gaps = [!s.types.length && "types", !s.stats && "stats", !s.ability && "ability"].filter(Boolean);
-      stillMissing.push(`${s.name} (${s.form} ${s.pokemon}): ${gaps.map((f) => `${f} — ${mega.why[f]}`).join("; ")}`);
-    }
+    await nameAbilities(stones, cache, apiStats);
+  } finally {
+    if (apiStats.fetched) saveCache(cache); // giữ phần đã tải được kể cả khi dừng giữa chừng
   }
 
   const content =
@@ -268,6 +324,11 @@ async function main() {
   const filled = (f) => stones.filter((s) => s[f] === "pokeapi").length;
   console.log(`  Lấp từ PokeAPI: hệ ${filled("typesSource")}, chỉ số ${filled("statsSource")}, ability ${filled("abilitySource")}`
     + ` (tải mới ${apiStats.fetched} mục, còn lại từ cache)`);
+  const named = (src) => stones.filter((s) => s.abilityNameSource === src);
+  const distinct = (list) => new Set(list.map((s) => `${s.mod}:${s.ability.toLowerCase()}`)).size;
+  console.log(`  Tên ability: từ mod ${named("mod").length} viên (${distinct(named("mod"))} ability), từ PokeAPI ${named("pokeapi").length}`
+    + ` (${distinct(named("pokeapi"))}), giữ id ${named("id").length} (${distinct(named("id"))})`
+    + (named("id").length ? `: ${[...new Set(named("id").map((s) => s.ability))].join(", ")}` : ""));
   if (stillMissing.length) console.log(`  Vẫn thiếu (${stillMissing.length}):\n    ${stillMissing.join("\n    ")}`);
   if (conflicts.length) console.log(`  Mod khác PokeAPI (giữ dữ liệu mod, ${conflicts.length}):\n    ${conflicts.join("\n    ")}`);
 }
