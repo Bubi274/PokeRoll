@@ -145,24 +145,9 @@ async function openWheelCase(w, { quick = false }) {
   Object.assign(state.history[0], { mode: w.mode, detail: key, ...customPoolTag(c) });
   saveProgress();
 
-  const reel = $(`${w.prefix}-reel`);
-  const items = buildReelItems(result, groups);
-  if (quick) {
-    setCustomSpinning(true);
-    renderReel(items, reel);
-    jumpReel(WIN_INDEX, undefined, reel);
-  } else {
-    setCustomSpinning(true, "Loading…");
-    audio();
-    const visible = items.filter((_, i) => i < IDLE_REEL_SIZE || Math.abs(i - WIN_INDEX) <= 6);
-    await preloadImages([...new Set(visible.map((it) => imageUrl(it.pokemon, it.shiny)))], PRELOAD_TIMEOUT_MS);
-    renderReel(items, reel);
-    setCustomSpinning(true, "Opening…");
-    await animateReel(WIN_INDEX, reel, ROULETTE_REEL_MS);
-  }
-
-  stripOf(reel).children[WIN_INDEX].classList.add("is-winner");
-  setCustomSpinning(false);
+  await runCustomReel($(`${w.prefix}-reel`), buildReelItems(result, groups), {
+    quick, urlsOf: (it) => [imageUrl(it.pokemon, it.shiny)],
+  });
   renderRecent();
   updateCollectionTab();
   if (state.view === "collection") renderCollection();

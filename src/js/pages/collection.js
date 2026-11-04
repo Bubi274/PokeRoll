@@ -99,20 +99,33 @@ function renderCollection() {
     ? history.map((h) => {
       if (isMinigameEntry(h)) return minigameHistoryRow(h, fmtTime(h.t));
       const p = state.byId.get(h.id);
-      return `
-        <li>
-          <button type="button" class="hist r-${h.rarity}" data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""}>
-            <span class="hist-thumb"><img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy"></span>
-            <span class="hist-main">
-              <span class="hist-name">${p.name}${h.shiny ? ` <span class="mini-shiny">★ Shiny</span>` : ""}</span>
-              <span class="hist-meta">${isSpecial(p) ? sourceLabel(p) : `#${pad4(p.id)} · Gen ${p.gen}`} · BST ${p.bst} ${sourceTag(dropSource(h))}</span>
-            </span>
-            <span class="hist-rarity">${rarityInfo(h.rarity).name}</span>
-            <time class="hist-time">${fmtTime(h.t)}</time>
-          </button>
-        </li>`;
+      return historyRow({
+        cls: `r-${h.rarity}`, attrs: `data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""}`,
+        thumb: `<img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy">`,
+        name: `${p.name}${h.shiny ? ` <span class="mini-shiny">★ Shiny</span>` : ""}`,
+        meta: `${isSpecial(p) ? sourceLabel(p) : `#${pad4(p.id)} · Gen ${p.gen}`} · BST ${p.bst} ${sourceTag(dropSource(h))}`,
+        tier: rarityInfo(h.rarity).name, time: fmtTime(h.t),
+      });
     }).join("")
     : `<li class="hint">No cases opened yet. Open your first case on the Case tab.</li>`;
+}
+
+// Khung một dòng Roll history (HTML đã escape sẵn): cls màu vạch, attrs thuộc tính của nút bấm, thumb ảnh nhỏ, name tên,
+// meta dòng phụ, tier tên bậc (null: ô bậc để trống, vd. lượt Minigame), time giờ mở.
+// Dùng chung cho lượt của hòm chính / chế độ Custom và lượt Minigame (minigameHistoryRow).
+function historyRow({ cls, attrs, thumb, name, meta, tier, time }) {
+  return `
+        <li>
+          <button type="button" class="hist ${cls}" ${attrs}>
+            <span class="hist-thumb">${thumb}</span>
+            <span class="hist-main">
+              <span class="hist-name">${name}</span>
+              <span class="hist-meta">${meta}</span>
+            </span>
+            ${tier === null ? `<span class="hist-rarity is-blank" aria-hidden="true"></span>` : `<span class="hist-rarity">${tier}</span>`}
+            <time class="hist-time">${time}</time>
+          </button>
+        </li>`;
 }
 
 function clearData() {

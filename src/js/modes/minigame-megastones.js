@@ -128,14 +128,10 @@ registerMinigameCase({
   searchHint: "Search by stone or Pokémon name…",
   attrs: (s) => `data-minigame="megastone" data-item="${escHtml(s.id)}"`,
   thumb: (s) => stoneIcon(s, "mini-img"),
-  card: (s) => `
-    <span class="card-top">
-      <span class="card-id">${escHtml(stoneMod(s).name)}</span>
-      <span class="card-type" style="--t:${stoneColor(s)}">${escHtml(s.form)}</span>
-    </span>
-    ${stoneIcon(s, "card-img")}
-    <span class="card-name">${escHtml(s.name)}</span>
-    <span class="card-meta">${escHtml(s.pokemon)}</span>`,
+  card: (s) => cardFrame({
+    id: escHtml(stoneMod(s).name), tag: escHtml(s.form), color: stoneColor(s),
+    art: stoneIcon(s, "card-img"), name: escHtml(s.name), meta: escHtml(s.pokemon),
+  }),
   art: (s, cls) => stoneIcon(s, cls),
   chips: (s) => (s.types.length ? `<div class="type-chips">${typeChips(s.types)}</div>` : ""),
   facts: stoneFacts,

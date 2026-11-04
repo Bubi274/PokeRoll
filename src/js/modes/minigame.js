@@ -19,7 +19,7 @@
 //   searchHint      chữ mờ trong ô tìm kiếm
 //   attrs(item)     thuộc tính HTML của ô bấm được, vd. data-pokemon="25" (mở chi tiết Pokémon)
 //   thumb(item)     HTML ảnh nhỏ (phần tử có class mini-img)
-//   card(item)      HTML bên trong thẻ trên dải quay
+//   card(item)      HTML bên trong thẻ trên dải quay (dựng bằng cardFrame ở ui/reel.js)
 //   art(item, cls)  HTML ảnh lớn (popup), cls là class thêm cho phần tử ảnh
 //   chips(item)     HTML dưới tên trong popup (vd. nhãn hệ)                                   — tuỳ chọn
 //   facts(item, o)  HTML phần thông tin bên phải popup; o = { count } (count: số bản đang có, null nếu không sưu tập)
@@ -132,30 +132,18 @@ const shownMinigameHistory = () => minigame.history.filter((h) => minigameEntry(
 
 function minigameRecentItem(h) {
   const { c, item } = minigameEntry(h);
-  return `
-    <li>
-      <button type="button" class="recent-item r-minigame" ${c.attrs(item)} title="${escHtml(c.title(item))}">
-        ${c.thumb(item)}
-        <span class="recent-name">${escHtml(c.title(item))}</span>
-        <span class="recent-id">${escHtml(c.short(item))}${sourceTag(dropSource(h, true))}</span>
-      </button>
-    </li>`;
+  return recentRow({
+    cls: "r-minigame", attrs: c.attrs(item), title: escHtml(c.title(item)), thumb: c.thumb(item),
+    sub: `${escHtml(c.short(item))}${sourceTag(dropSource(h, true))}`,
+  });
 }
 
 function minigameHistoryRow(h, time) {
   const { c, item } = minigameEntry(h);
-  return `
-    <li>
-      <button type="button" class="hist r-minigame" ${c.attrs(item)}>
-        <span class="hist-thumb">${c.thumb(item)}</span>
-        <span class="hist-main">
-          <span class="hist-name">${escHtml(c.title(item))}</span>
-          <span class="hist-meta">${escHtml(c.meta(item))} ${sourceTag(dropSource(h))}</span>
-        </span>
-        <span class="hist-rarity is-blank" aria-hidden="true"></span>
-        <time class="hist-time">${time}</time>
-      </button>
-    </li>`;
+  return historyRow({
+    cls: "r-minigame", attrs: c.attrs(item), thumb: c.thumb(item), name: escHtml(c.title(item)),
+    meta: `${escHtml(c.meta(item))} ${sourceTag(dropSource(h))}`, tier: null, time,
+  });
 }
 
 // ----- Giao diện chế độ -----
@@ -265,26 +253,9 @@ async function openMinigameCase({ quick = false } = {}) {
   const entry = recordMinigameDrop(minigame.history, minigame.collections[c.key] || null, c.key, c.idOf(item));
   saveMinigameProgress();
 
-  const reel = $("mg-reel");
-  const list = buildUniformReel(item, items);
-  if (quick) {
-    setCustomSpinning(true);
-    renderReel(reelItemsOf(c, list), reel);
-    jumpReel(WIN_INDEX, undefined, reel);
-  } else {
-    setCustomSpinning(true, "Loading…");
-    audio();
-    if (c.images) {
-      const visible = list.filter((_, i) => i < IDLE_REEL_SIZE || Math.abs(i - WIN_INDEX) <= 6);
-      await preloadImages([...new Set(visible.flatMap((it) => c.images(it)))], PRELOAD_TIMEOUT_MS);
-    }
-    renderReel(reelItemsOf(c, list), reel);
-    setCustomSpinning(true, "Opening…");
-    await animateReel(WIN_INDEX, reel, ROULETTE_REEL_MS);
-  }
-
-  stripOf(reel).children[WIN_INDEX].classList.add("is-winner");
-  setCustomSpinning(false);
+  await runCustomReel($("mg-reel"), reelItemsOf(c, buildUniformReel(item, items)), {
+    quick, urlsOf: c.images ? (it) => c.images(it.item) : null,
+  });
   renderRecent();
   if (state.view === "collection") renderCollection();
   showMinigameResult(c, item, { isNew: entry ? entry.count === 1 : false, count: entry ? entry.count : null });

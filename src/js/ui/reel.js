@@ -8,6 +8,27 @@ const reelOffsets = new WeakMap();
 // Dải thẻ đang quay → hàm tính lại điểm dừng theo cỡ mới (realignReel gọi khi đổi cỡ cửa sổ giữa lượt quay).
 const reelSpins = new WeakMap();
 
+// Phần bên trong một thẻ (HTML đã escape sẵn): góc trên trái (id) và phải (nhãn màu --t), ảnh, tên, dòng phụ.
+// Dùng chung cho thẻ Pokémon của hòm chính / chế độ bánh xe và thẻ của các hòm Minigame.
+function cardFrame({ id, tag, color, art, name, meta }) {
+  return `
+    <span class="card-top">
+      <span class="card-id">${id}</span>
+      <span class="card-type" style="--t:${color}">${tag}</span>
+    </span>
+    ${art}
+    <span class="card-name">${name}</span>
+    <span class="card-meta">${meta}</span>`;
+}
+
+// Thẻ Pokémon: số Pokédex, hệ, ảnh (gắn sau bằng setPokemonImage), tên, "BST …" + metaExtra (HTML, vd. tên bậc).
+function pokemonCardFrame(p, metaExtra = "") {
+  return cardFrame({
+    id: dexLabel(p), tag: p.types.join("/"), color: TYPE_COLORS[p.types[0]] || "#777",
+    art: `<img class="card-img" alt="" draggable="false">`, name: p.name, meta: `BST ${p.bst}${metaExtra}`,
+  });
+}
+
 // Mục của hòm Minigame ({ minigame, item }) do hòm đó tự vẽ (minigameCard ở modes/minigame.js).
 function createCard(item) {
   if (item.minigame) return minigameCard(item);
@@ -15,14 +36,7 @@ function createCard(item) {
   const p = item.pokemon;
   card.className = `card r-${item.rarity}${item.shiny ? " is-shiny" : ""}${isSpecial(p) ? " is-special" : ""}`;
   if (isSpecial(p)) card.title = `${sourceLabel(p)} — base form #${p.baseId} ${p.baseName}`;
-  card.innerHTML = `
-    <span class="card-top">
-      <span class="card-id">${dexLabel(p)}</span>
-      <span class="card-type" style="--t:${TYPE_COLORS[p.types[0]] || "#777"}">${p.types.join("/")}</span>
-    </span>
-    <img class="card-img" alt="" draggable="false">
-    <span class="card-name">${p.name}</span>
-    <span class="card-meta">BST ${p.bst}<span class="card-tier"> · ${rarityInfo(item.rarity).name}</span></span>
+  card.innerHTML = `${pokemonCardFrame(p, `<span class="card-tier"> · ${rarityInfo(item.rarity).name}</span>`)}
     ${item.shiny ? `<span class="card-shiny" title="Shiny">★</span>` : ""}`;
   setPokemonImage(card.querySelector("img"), p, item.shiny);
   return card;

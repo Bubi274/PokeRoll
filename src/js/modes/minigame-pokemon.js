@@ -22,14 +22,7 @@ registerMinigameCase({
   searchHint: "Search by name or Pokédex number…",
   attrs: (p) => `data-pokemon="${p.id}"`, // bấm vào → chi tiết Pokémon như mọi nơi khác
   thumb: (p) => `<img class="mini-img" src="${thumbUrl(p)}" alt="" loading="lazy">`,
-  card: (p) => `
-    <span class="card-top">
-      <span class="card-id">${dexLabel(p)}</span>
-      <span class="card-type" style="--t:${TYPE_COLORS[p.types[0]] || "#777"}">${p.types.join("/")}</span>
-    </span>
-    <img class="card-img" alt="" draggable="false">
-    <span class="card-name">${p.name}</span>
-    <span class="card-meta">BST ${p.bst}</span>`,
+  card: (p) => pokemonCardFrame(p),
   art: (p, cls) => `<img class="${cls}" alt="${p.name}">`,
   chips: (p) => `<div class="type-chips">${typeChips(p.types)}</div>`,
   facts: (p) => `

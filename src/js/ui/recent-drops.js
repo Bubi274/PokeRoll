@@ -3,19 +3,31 @@
 
 // ----- Recent drops (trang Case) -----
 
+// Khung một dòng Recent drops (HTML đã escape sẵn): cls màu vạch (vd. "r-gold"), attrs thuộc tính của nút bấm
+// (vd. data-pokemon="25"), title tên (cũng là chú thích khi rê chuột), thumb ảnh nhỏ, sub dòng phụ, extra thêm cuối nút.
+// Dùng chung cho lượt của hòm chính / chế độ Custom và lượt Minigame (minigameRecentItem).
+function recentRow({ cls, attrs, title, thumb, sub, extra = "" }) {
+  return `
+    <li>
+      <button type="button" class="recent-item ${cls}" ${attrs} title="${title}">
+        ${thumb}
+        <span class="recent-name">${title}</span>
+        <span class="recent-id">${sub}</span>
+        ${extra}
+      </button>
+    </li>`;
+}
+
 // Một dòng trong Recent drops: ảnh nhỏ, tên, số # (hoặc "Special"), vạch màu độ hiếm, ★ nếu shiny.
 function recentItem(h) {
   if (isMinigameEntry(h)) return minigameRecentItem(h);
   const p = state.byId.get(h.id);
-  return `
-    <li>
-      <button type="button" class="recent-item r-${h.rarity}" data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""} title="${p.name}">
-        <img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy">
-        <span class="recent-name">${p.name}</span>
-        <span class="recent-id">${dexLabel(p)}${h.mode ? sourceTag(dropSource(h, true)) : ""}</span>
-        ${h.shiny ? `<span class="recent-shiny" aria-label="Shiny">★</span>` : ""}
-      </button>
-    </li>`;
+  return recentRow({
+    cls: `r-${h.rarity}`, attrs: `data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""}`, title: p.name,
+    thumb: `<img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy">`,
+    sub: `${dexLabel(p)}${h.mode ? sourceTag(dropSource(h, true)) : ""}`,
+    extra: h.shiny ? `<span class="recent-shiny" aria-label="Shiny">★</span>` : "",
+  });
 }
 
 // Nguồn của một lượt quay trong lịch sử. Lượt mở hòm (kể cả lịch sử cũ chưa có trường mode) là "Case";
