@@ -159,5 +159,7 @@ if (typeof document !== "undefined") {
     BIOME_GROUPS, BIOME_TAG_GROUP, biomeGroupsOf, biomePools, wheelPools, COMMON_TIERS,
     CUSTOM_POOL_MIN, customPoolProblems, canCustomizePool, resolveCustomPool, mergeCustomPool,
     LETTERS, letterOf, letterPools, letterColor,
-    MINIGAME_CASES, MINIGAME_HISTORY_LIMIT, pickUniform, buildUniformReel, recordMinigameDrop, minigameCase, MEGA_STONES };
+    MINIGAME_CASES, MINIGAME_HISTORY_LIMIT, pickUniform, buildUniformReel, recordMinigameDrop, minigameCase, MEGA_STONES,
+    PITY_PURPLE, PITY_GOLD, PITY_MODES, PITY_KINDS, newPityCounter, cleanPityCounter, cleanPityCounters, pityDue,
+    pityTiers, pickPityTier, nextPityCounter, rollWithPity, pityProgress, pityDropText };
 }

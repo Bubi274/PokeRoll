@@ -6,7 +6,7 @@
 "use strict";
 
 const SUITES = [
-  ["logic", "case"], ["logic", "type-roulette"], ["logic", "biome-roulette"], ["logic", "custom-pool"], ["logic", "letter-roulette"], ["logic", "minigame"], ["logic", "shards"], ["logic", "ui-text"], ["logic", "release"], ["logic", "wait-for-ci"],
+  ["logic", "case"], ["logic", "type-roulette"], ["logic", "biome-roulette"], ["logic", "custom-pool"], ["logic", "letter-roulette"], ["logic", "minigame"], ["logic", "pity"], ["logic", "shards"], ["logic", "ui-text"], ["logic", "release"], ["logic", "wait-for-ci"],
   ["ui", "case"], ["ui", "case-odds"], ["ui", "custom"], ["ui", "layout"], ["ui", "type-roulette"], ["ui", "biome-roulette"], ["ui", "case-contents"], ["ui", "wheel-keep"], ["ui", "motion"], ["ui", "desktop"], ["ui", "reel-timing"], ["ui", "custom-pool"], ["ui", "letter-roulette"],
   ["ui", "reel-resize"], ["ui", "reel-hidden"], ["ui", "wheel-fallback"], ["ui", "transition-end"], ["ui", "history"], ["ui", "favicon"], ["ui", "navigation"], ["ui", "minigame"], ["ui", "megastone-images"], ["ui", "megastone-dpr"],
 ];
@@ -14,7 +14,7 @@ const SUITES = [
 // Thời gian chạy (giây) đo bằng npm test, chỉ dùng để chia nhóm. Lệch chút cũng không sao: mọi bộ vẫn được chạy.
 const SUITE_TIMES = {
   "logic/case": 0.2, "logic/type-roulette": 2.7, "logic/biome-roulette": 2.5, "logic/custom-pool": 0.1, "logic/letter-roulette": 0.4,
-  "logic/minigame": 0.1, "logic/shards": 0.1, "logic/ui-text": 0.1, "logic/release": 0.1, "logic/wait-for-ci": 0.1,
+  "logic/minigame": 0.1, "logic/pity": 0.1, "logic/shards": 0.1, "logic/ui-text": 0.1, "logic/release": 0.1, "logic/wait-for-ci": 0.1,
   "ui/case": 34.8, "ui/case-odds": 9.4, "ui/custom": 20.4, "ui/layout": 5.4, "ui/type-roulette": 47.3, "ui/biome-roulette": 42.8,
   "ui/case-contents": 14.0, "ui/wheel-keep": 29.7, "ui/motion": 22.4, "ui/desktop": 2.7, "ui/reel-timing": 93.7, "ui/custom-pool": 8.1,
   "ui/letter-roulette": 34.6, "ui/reel-resize": 45.3, "ui/reel-hidden": 46.7, "ui/wheel-fallback": 55.2, "ui/transition-end": 31.3,
