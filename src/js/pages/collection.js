@@ -129,13 +129,14 @@ function historyRow({ cls, attrs, thumb, name, meta, tier, time }) {
 }
 
 function clearData() {
-  if (!confirm("Delete your whole collection (Pokémon and Mega Stones), roll history and pity counters?\nThis cannot be undone.")) return;
+  if (!confirm("Delete your whole collection (Pokémon and Mega Stones), roll history, pity counters and your Challenge team and its code?\nThis cannot be undone.")) return;
   state.collection = {};
   state.history = [];
   saveProgress();
   state.pity = cleanPityCounters({}); // mọi bộ đếm pity về 0
   savePity();
   renderPityMeters();
+  clearChallengeProgress(); // đội, mã và reroll của tab Challenge
   clearMinigameProgress(); // bộ sưu tập và lịch sử riêng của Minigame
   renderRecent();
   updateCollectionTab();

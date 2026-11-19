@@ -1,7 +1,7 @@
-// Chuyển giữa các trang Case, Collection và Custom.
+// Chuyển giữa các trang Case, Collection, Custom và Challenge.
 "use strict";
 
-const VIEWS = ["case", "collection", "custom"];
+const VIEWS = ["case", "collection", "custom", "challenge"];
 
 function showView(view) {
   state.view = view;
@@ -14,6 +14,7 @@ function showView(view) {
   if (view === "case") realignReel(); // dải có thể đã quay hoặc dừng lúc trang còn ẩn (chưa đo được kích thước)
   if (view === "collection") renderCollection();
   if (view === "custom") showCustomMode(); // trang vừa hiện ra mới đo được kích thước để căn dải quay
+  if (view === "challenge") showChallengeView();
   window.scrollTo(0, 0);
 }
 

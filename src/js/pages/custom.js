@@ -216,24 +216,25 @@ function setCustomSpinning(on, label) {
 // Dải thẻ của một lượt mở hòm ở trang Custom (chế độ bánh xe, Minigame): Quick thì nhảy thẳng tới thẻ thắng; không thì
 // tải trước ảnh các thẻ nhìn thấy (urlsOf(mục) → mảng URL; không truyền thì không tải trước) rồi quay. Xong thì đánh dấu
 // thẻ thắng và mở khóa nút. Ghi lượt, vẽ lại các phần khác và popup do chế độ tự làm.
-async function runCustomReel(reel, items, { quick, urlsOf = null }) {
+// setSpinning(on, label): hàm khóa / mở các nút (mặc định của trang Custom; tab Challenge truyền hàm của nó).
+async function runCustomReel(reel, items, { quick, urlsOf = null, setSpinning = setCustomSpinning }) {
   if (quick) {
-    setCustomSpinning(true);
+    setSpinning(true);
     renderReel(items, reel);
     jumpReel(WIN_INDEX, undefined, reel);
   } else {
-    setCustomSpinning(true, "Loading…");
+    setSpinning(true, "Loading…");
     audio();
     if (urlsOf) {
       const visible = items.filter((_, i) => i < IDLE_REEL_SIZE || Math.abs(i - WIN_INDEX) <= 6);
       await preloadImages([...new Set(visible.flatMap(urlsOf))], PRELOAD_TIMEOUT_MS);
     }
     renderReel(items, reel);
-    setCustomSpinning(true, "Opening…");
+    setSpinning(true, "Opening…");
     await animateReel(WIN_INDEX, reel, ROULETTE_REEL_MS);
   }
   stripOf(reel).children[WIN_INDEX].classList.add("is-winner");
-  setCustomSpinning(false);
+  setSpinning(false);
 }
 
 function runCustomAction(key, { quick = false } = {}) {

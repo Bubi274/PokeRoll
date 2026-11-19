@@ -1,4 +1,4 @@
-// Kiểm tra không có cuộn ngang ở các độ rộng điện thoại, cho cả 3 trang.
+// Kiểm tra không có cuộn ngang ở các độ rộng điện thoại, cho cả 4 trang.
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -16,9 +16,14 @@ app.whenReady().then(async () => {
   // Quay một lượt ở trang Custom để dải thẻ, bánh xe và bảng tỉ lệ đều có nội dung
   await js(`showView("custom"); document.querySelector('.action-quick[data-action="wheel"]').click(); document.querySelector('.action-quick[data-action="open"]').click(); document.getElementById("result-modal").close();
     selectCustomMode("biome-roulette"); document.querySelector('.action-quick[data-action="biome"]').click(); document.querySelector('.action-quick[data-action="open"]').click(); document.getElementById("result-modal").close()`); // trang Custom kiểm tra với Biome Roulette đang mở
+  // Tab Challenge kiểm tra với đội đã đủ 6 ô (có mã TW1)
+  await js(`(async () => { for (let n = 0; n < 40 && (nextChallengeIndex() !== null || challenge.pending); n++) {
+    if (challenge.pending) { keepChallengeLegend(); continue; }
+    await runChallengeRoll({ quick: true }); document.getElementById("result-modal").close(); }
+    document.getElementById("ch-legend-modal").close(); return 1; })()`);
   for (const w of [320, 360, 390, 430, 768]) {
     win.setContentSize(w, 800); await sleep(300);
-    for (const view of ["case", "collection", "custom"]) {
+    for (const view of ["case", "collection", "custom", "challenge"]) {
       await js(`showView("${view}")`); await sleep(150);
       const r = await js(`(() => { const d = document.documentElement;
         const tabs = [...document.querySelectorAll(".tab")].map(t => t.getBoundingClientRect());

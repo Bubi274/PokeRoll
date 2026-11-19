@@ -1,0 +1,192 @@
+/* Tab Challenge: 6 ô đội hình, chọn nguồn, ô mã TW1 / dán mã, popup Legendary / Mythical. */
+
+/* ===== Đội hình: 6 ô (màn hình rộng 6 cột, tablet 3, điện thoại 2) ===== */
+.ch-team {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ch-slot { position: relative; display: grid; min-width: 0; }
+.ch-slot-num {
+  position: absolute;
+  top: -7px;
+  left: -5px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+}
+.ch-card { padding: 8px 6px 10px; gap: 2px; }
+.ch-card .mini-img { width: 84px; height: 84px; }
+.ch-card .mini-name { font-size: 0.82rem; }
+.ch-card-src {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ch-badge {
+  padding: 0 5px;
+  font-size: 0.6rem;
+  color: var(--accent-ink);
+  background: var(--amber);
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Ô trống: viền đứt; ô quay tới viền màu nhấn */
+.ch-empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-height: 150px;
+  padding: 10px 6px;
+  text-align: center;
+  background: var(--bg-2);
+  border: 1.5px dashed rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+}
+.ch-empty-title { font-family: var(--font-display); font-size: 0.9rem; font-weight: 600; color: var(--muted); }
+.ch-empty-sub { font-family: var(--font-mono); font-size: 0.66rem; color: #6b7380; }
+.ch-slot.is-next .ch-empty { border-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+.ch-slot.is-next .ch-empty-title { color: var(--text); }
+.ch-slot.is-next .ch-empty-sub { color: var(--accent-hover); }
+
+/* Reroll: ô đã chọn để quay lại, ô đang chờ, ô vừa đổi; Legendary chờ Keep / Reroll */
+.ch-slot.is-picked .ch-card { outline: 2px solid var(--amber); outline-offset: 2px; }
+.ch-slot.is-waiting .ch-card { opacity: 0.5; }
+.ch-slot.is-changed .ch-card { outline: 1px solid color-mix(in srgb, var(--amber) 60%, transparent); outline-offset: 2px; }
+.ch-slot.is-pending .ch-card { outline: 2px dashed var(--r-gold); outline-offset: 2px; }
+.ch-card[data-pick] .mini-img { transition: transform 0.15s; }
+
+/* ===== Nguồn quay (giống ô chọn hòm của Minigame, màu nhấn xanh) ===== */
+.ch-stage { display: grid; gap: 14px; min-width: 0; }
+.ch-stage > * { min-width: 0; }
+.ch-sources { display: flex; flex-wrap: wrap; gap: 8px; }
+.ch-source {
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 9px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ch-source:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.18); }
+.ch-source:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+.ch-source:disabled { cursor: not-allowed; }
+.ch-source:disabled:not([aria-checked="true"]) { opacity: 0.5; }
+.ch-source[aria-checked="true"] {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
+  border-color: var(--accent);
+}
+.ch-source-name { font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; }
+.ch-source-desc { font-size: 0.76rem; color: var(--muted); }
+
+/* ===== Mã TW1, dán mã ===== */
+.ch-code-panel { display: grid; gap: 14px; }
+.ch-code-panel .panel-head { margin-bottom: 0; }
+.ch-code-box { display: grid; gap: 8px; }
+.ch-code-box[hidden], .ch-reroll-bar[hidden] { display: none; }
+.ch-code {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--text);
+  word-break: break-all;
+  resize: vertical;
+  background: var(--bg-2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid var(--amber);
+  border-radius: var(--radius);
+}
+.ch-code:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(82, 183, 42, 0.15); }
+.ch-code::placeholder { color: #6b7380; }
+#ch-paste { border-left-color: rgba(255, 255, 255, 0.1); }
+.ch-code-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.ch-code-meta { margin: 0; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+.ch-code-empty { text-align: left; }
+
+.ch-reroll-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  color: var(--amber);
+  background: rgba(255, 184, 46, 0.08);
+  border: 1px solid rgba(255, 184, 46, 0.3);
+  border-radius: var(--radius);
+}
+.ch-reroll-bar p { margin: 0; }
+.ch-reroll-bar .btn[hidden] { display: none; }
+
+.ch-paste { display: grid; gap: 8px; }
+.ch-paste-label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.ch-msg { margin: 0; min-height: 1.4em; font-size: 0.85rem; color: var(--muted); overflow-wrap: anywhere; }
+.ch-msg.is-error { color: #ff8a8a; }
+.ch-msg.is-ok { color: var(--accent-hover); }
+
+/* ===== Popup Legendary / Mythical ===== */
+.ch-legend-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 14px;
+  background:
+    radial-gradient(70% 90% at 0% 50%, color-mix(in srgb, var(--c) 18%, transparent), transparent 70%),
+    var(--bg-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c);
+  border-radius: var(--radius);
+}
+.ch-legend-img { width: 120px; height: 120px; flex-shrink: 0; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5)); }
+.ch-legend-info { display: grid; gap: 6px; min-width: 0; }
+.ch-legend-name { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; text-transform: uppercase; color: var(--c); overflow-wrap: anywhere; }
+.ch-legend-text { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.ch-keep { width: auto; padding: 11px 24px; font-size: 0.9rem; }
+
+/* ===== Tablet / điện thoại ===== */
+@media (max-width: 1023px) {
+  .ch-team { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .ch-team { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 8px; }
+  .ch-card .mini-img { width: 68px; height: 68px; }
+  .ch-empty { min-height: 128px; }
+  .ch-sources { gap: 6px; }
+  .ch-source { flex-basis: calc(50% - 3px); padding: 8px 10px; }
+  .ch-source-name { font-size: 0.85rem; }
+  .ch-source-desc { display: none; } /* "How it works" giải thích từng nguồn */
+  .ch-legend-head { flex-direction: column; text-align: center; }
+  .ch-legend-info { justify-items: center; }
+  .ch-keep { padding: 11px 12px; font-size: 0.82rem; letter-spacing: 0.06em; }
+}

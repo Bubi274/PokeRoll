@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="src/css/pages/collection.css">
   <link rel="stylesheet" href="src/css/pages/history.css">
   <link rel="stylesheet" href="src/css/pages/custom.css">
+  <link rel="stylesheet" href="src/css/pages/challenge.css">
   <link rel="stylesheet" href="src/css/modes/wheel.css">
   <link rel="stylesheet" href="src/css/modes/biome-letter.css">
   <link rel="stylesheet" href="src/css/modes/minigame.css">
@@ -56,6 +57,10 @@
     <button type="button" class="tab" role="tab" aria-selected="false" data-view="custom">
       <svg class="tab-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 13V5M12 13l6.9 4M12 13l-6.9 4M12 2v3"/></svg>
       Custom
+    </button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-view="challenge">
+      <svg class="tab-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v3M8 21h8M9 17h6v4H9z"/></svg>
+      Challenge
     </button>
   </nav>
 
@@ -249,6 +254,99 @@
     </div>
   </main>
 
+  <!-- ===== Trang Challenge: quay đội 6 Pokémon cho mod Trainer's Workshop (src/js/pages/challenge*.js) ===== -->
+  <main class="container view" id="view-challenge" hidden>
+    <section class="panel ch-team-panel" aria-labelledby="ch-team-title">
+      <div class="panel-head">
+        <div class="panel-title">
+          <h2 id="ch-team-title">Challenge team <span class="modal-sub" id="ch-team-count"></span></h2>
+          <p class="panel-sub">Roll 6 Pokémon, then paste the team's code into Trainer's Workshop.</p>
+        </div>
+        <button type="button" class="btn btn-ghost" id="ch-start-over">Start over</button>
+      </div>
+      <ol class="ch-team" id="ch-team"></ol>
+    </section>
+
+    <div class="ch-stage">
+      <!-- Nguồn quay của ô kế tiếp -->
+      <div class="ch-sources" id="ch-sources" role="radiogroup" aria-label="Source of the next roll"></div>
+      <section class="reel" id="ch-reel" aria-label="Challenge reel">
+        <div class="reel-strip"></div>
+        <div class="reel-marker" aria-hidden="true"></div>
+        <p class="reel-empty">Select at least one generation</p>
+      </section>
+    </div>
+
+    <div class="spin-area">
+      <div class="action-row">
+        <div class="action-group">
+          <button type="button" class="btn btn-spin action-main" id="ch-roll"><span class="action-label">Roll</span></button>
+          <button type="button" class="btn btn-ghost action-quick" id="ch-quick"></button>
+        </div>
+      </div>
+      <!-- Thanh pity của nguồn quay kế tiếp (Minigame: ẩn) -->
+      <div class="pity-meters" id="ch-pity" aria-label="Pity" hidden></div>
+      <p class="kbd-hint">Press <kbd>Space</kbd> to roll</p>
+      <p class="hint" id="ch-hint" aria-live="polite"></p>
+    </div>
+
+    <section class="panel ch-code-panel" aria-labelledby="ch-code-title">
+      <div class="panel-head">
+        <div class="panel-title">
+          <h2 id="ch-code-title">Challenge code</h2>
+          <p class="panel-sub">Codes go between PokéRoll and Trainer's Workshop: TW1 is your team, TWR1 is a reroll the game gives you after a loss.</p>
+        </div>
+      </div>
+      <div class="ch-code-box" id="ch-code-box" hidden>
+        <textarea class="ch-code" id="ch-code" rows="3" readonly spellcheck="false" aria-label="Your Challenge code"></textarea>
+        <div class="ch-code-row">
+          <p class="ch-code-meta" id="ch-code-meta"></p>
+          <button type="button" class="btn btn-ghost" id="ch-copy">Copy code</button>
+        </div>
+      </div>
+      <p class="hint ch-code-empty" id="ch-code-empty"></p>
+      <div class="ch-reroll-bar" id="ch-reroll-bar" hidden>
+        <p id="ch-reroll-text"></p>
+        <button type="button" class="btn btn-ghost" id="ch-reroll-cancel">Cancel reroll</button>
+      </div>
+      <div class="ch-paste">
+        <label class="ch-paste-label" for="ch-paste">Paste a code from Trainer's Workshop</label>
+        <textarea class="ch-code" id="ch-paste" rows="2" spellcheck="false" placeholder="TWR1.… (reroll) or TW1.… (your team)"></textarea>
+        <div class="btn-group">
+          <button type="button" class="btn btn-ghost" id="ch-use-reroll">Use reroll code</button>
+          <button type="button" class="btn btn-ghost" id="ch-import">Import TW1 code</button>
+        </div>
+        <p class="ch-msg" id="ch-msg" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <div class="case-setup">
+      <section class="panel panel-gens" aria-labelledby="ch-gen-title">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h2 id="ch-gen-title">Select generations</h2>
+            <p class="panel-sub">Only Pokémon from these generations can be rolled for your team, from every source. Separate from the Case and Custom pages.</p>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="btn btn-ghost" id="ch-all">All</button>
+            <button type="button" class="btn btn-ghost" id="ch-none">None</button>
+          </div>
+        </div>
+        <div class="gen-grid" id="ch-gen-grid"></div>
+      </section>
+
+      <section class="panel mode-rules" aria-labelledby="ch-rules-title">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h2 id="ch-rules-title">How it works</h2>
+            <p class="panel-sub">Challenge for Trainer's Workshop</p>
+          </div>
+        </div>
+        <ul class="mode-rule-list" id="ch-rule-list"></ul>
+      </section>
+    </div>
+  </main>
+
   <!-- Credit & disclaimer -->
   <footer class="site-footer">
     <p>PokéRoll is a non-commercial fan project and is not affiliated with Nintendo, Game Freak or The Pokémon Company.</p>
@@ -273,6 +371,20 @@
         </button>
         <button type="button" class="btn btn-ghost" id="result-close">Close</button>
         <button type="button" class="btn btn-spin btn-again" id="result-again" autofocus>Open again</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Popup: Legendary / Mythical trong tab Challenge — giữ hay quay lại ô đó -->
+  <dialog class="modal modal-narrow ch-legend-modal" id="ch-legend-modal" aria-labelledby="ch-legend-title">
+    <div class="modal-inner">
+      <div class="modal-head">
+        <h2 id="ch-legend-title">Legendary Pokémon</h2>
+      </div>
+      <div class="modal-body" id="ch-legend-body"></div>
+      <div class="result-actions">
+        <button type="button" class="btn btn-ghost" id="ch-legend-reroll">Reroll</button>
+        <button type="button" class="btn btn-spin ch-keep" id="ch-legend-keep">Keep</button>
       </div>
     </div>
   </dialog>
@@ -335,6 +447,8 @@
   <script src="src/js/pages/collection.js"></script>
   <script src="src/js/pages/custom.js"></script>
   <script src="src/js/pages/custom-init.js"></script>
+  <script src="src/js/pages/challenge-team.js"></script>
+  <script src="src/js/pages/challenge.js"></script>
   <script src="src/js/modes/wheel-pools.js"></script>
   <script src="src/js/modes/wheel-helpers.js"></script>
   <script src="src/js/modes/wheel-spin.js"></script>

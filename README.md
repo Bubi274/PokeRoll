@@ -20,6 +20,12 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
     - **Pokémon Case**: every Pokémon (1025 + Special), always all generations. Drops are not added to your collection and don't change any stats
     - **Mega Stone Case**: 156 Mega Stones from the Cobblemon mods Mega Showdown, ZA Mega and Mushiromega, with each stone's item image from its mod (shown pixel-sharp), the Mega form's type, stats, ability and crafting recipe. Stones go into their own **Mega Stones** collection on the Collection tab (filter by mod, search by stone or Pokémon name, duplicates counted)
     - Minigame opens show in Recent drops and Roll history with a "Minigame" tag. They are saved in their own history (last 200), so they never push out your Case and Roulette opens
+- **Challenge** tab, for the Minecraft mod **Trainer's Workshop**:
+  - Roll a team of 6 Pokémon. Pick a source for each roll: Case, Type Roulette, Biome Roulette, Letter Roulette (a random group from the ones that can go on that wheel; custom pools are not used) or Minigame Pokémon Case. Each roll fills the next empty slot; there is no way to remove one slot, only **Start over** for the whole team. The tab has its own generation selection (all by default)
+  - Case and Roulette rolls use the same odds and pity counters as their modes. Legendary and Mythical Pokémon ask first: keep it, or reroll that slot from the same source (with where it spawns in Cobbleverse)
+  - Every roll is added to your collection and roll history, marked Challenge
+  - A complete team gives a **TW1 code** to paste into Trainer's Workshop. After a loss, the game gives a **TWR1 reroll code**: paste it, pick the slots to reroll (as many as the code allows) and they are rolled again from their own sources, giving a new TW1 code. A reroll code only works for the team you have, and only once. **Import TW1 code** restores a team
+  - The code format is in [docs/challenge-code.md](docs/challenge-code.md), with test vectors both projects test against in [docs/challenge-vectors.json](docs/challenge-vectors.json)
 - Spawn locations for each Pokémon in the Cobbleverse modpack
 - **Special** group: the 8 Kazeran forms from the Cobblemon addon [Kazeran Eeveelutions](https://modrinth.com/datapack/kazeran-eeveelutions), with their evolution methods. Ranked by the same BST rules, tracked separately in the collection (X/8)
 - Animated odds table, page and popup transitions. Turned off when your system asks for reduced motion, or by opening `index.html?nomotion`
@@ -32,7 +38,7 @@ src/js/core/     configuration and timings, rolling and odds logic, pity, Challe
                  storage, shared state
 src/js/ui/       parts used across pages: gen grid, odds table, reel, transition fallback timer,
                  popups, recent drops, sound, images, motion
-src/js/pages/    the Case, Collection and Custom pages, and switching between them
+src/js/pages/    the Case, Collection, Custom and Challenge pages, and switching between them
 src/js/modes/    Custom modes: shared wheel code and custom pool editor, then one file per mode
                  (type-roulette.js, biome-roulette.js, letter-roulette.js, minigame.js), then one file
                  per Minigame case (minigame-pokemon.js, minigame-megastones.js)

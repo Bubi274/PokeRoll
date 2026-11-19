@@ -112,7 +112,21 @@
   .tab { font-size: 0.78rem; gap: 6px; }
 }
 
-/* Điện thoại nhỏ: 3 tab không đủ chỗ → bỏ biểu tượng, giữ chữ */
-@media (max-width: 400px) {
+/* Điện thoại: 4 tab không đủ chỗ → bỏ biểu tượng, giữ chữ */
+@media (max-width: 480px) {
   .tab-icon { display: none; }
+}
+
+/* Điện thoại nhỏ: chữ sát hơn */
+@media (max-width: 400px) {
+  .tabs { gap: 8px; padding: 0 4px; }
+  .tab { font-size: 0.72rem; letter-spacing: 0.02em; }
+  .tab-count { padding: 1px 4px; font-size: 0.66rem; }
+}
+
+/* Điện thoại rất hẹp (320px): đủ chỗ cả khi số đếm Collection dài nhất ("1025/1025") */
+@media (max-width: 360px) {
+  .tabs { gap: 6px; }
+  .tab { font-size: 0.68rem; letter-spacing: 0; }
+  .tab-count { padding: 1px 3px; font-size: 0.62rem; }
 }

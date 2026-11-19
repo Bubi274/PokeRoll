@@ -72,7 +72,8 @@ function oddsBlock(result, groups) {
 // groups: Pokémon trong hòm lúc quay (để "1 in N" đúng kể cả khi đổi gen trong lúc dải đang chạy).
 // again: hàm chạy khi bấm "Open again" (mặc định mở hòm ở trang Case); canAgain: nút đó có bấm được không.
 // extra: HTML thêm vào ngay dưới khung "1 in N" (vd. thông tin riêng của chế độ quay).
-function showResultModal(result, { isNew, count, groups = state.groups, again = spin, canAgain = poolSize() > 0, extra = "" }) {
+// odds: HTML thay cho khung "1 in N", khung bậc và thanh bậc (lượt không theo bậc, vd. Minigame trong tab Challenge).
+function showResultModal(result, { isNew, count, groups = state.groups, again = spin, canAgain = poolSize() > 0, extra = "", odds = null }) {
   const { pokemon: p, rarity, shiny, downgraded } = result;
   const epic = rarity === "red" || rarity === "gold";
   const modal = $("result-modal");
@@ -99,8 +100,7 @@ function showResultModal(result, { isNew, count, groups = state.groups, again = 
         </div>
       </div>
       <div class="reveal-info">
-        ${tierPanel(rarity, shiny, groups)}
-        ${result.pity ? pityOddsBlock(result, groups) : oddsBlock(result, groups)}
+        ${odds || `${tierPanel(rarity, shiny, groups)}${result.pity ? pityOddsBlock(result, groups) : oddsBlock(result, groups)}`}
         ${extra}
         ${downgraded ? `<div class="result-note">Rolled a higher tier with no Pokémon in this case — dropped to ${rarityInfo(rarity).name}.</div>` : ""}
         <dl class="facts">
@@ -108,7 +108,7 @@ function showResultModal(result, { isNew, count, groups = state.groups, again = 
           <div><dt>Base stat total</dt><dd>${p.bst}</dd></div>
           <div><dt>In collection</dt><dd>×${count}</dd></div>
         </dl>
-        ${tierLadder(rarity)}
+        ${odds ? "" : tierLadder(rarity)}
         ${findSection(p)}
       </div>
     </div>`;

@@ -35,6 +35,10 @@ function recentItem(h) {
 // Lượt quay từ custom pool (h.pool = "custom"): nhãn đầy đủ thêm " · Custom pool", nhãn gọn có thêm dấu ✦ nhỏ.
 function dropSource(h, short = false) {
   if (!h.mode) return { label: "Case", color: "" };
+  if (h.mode === CHALLENGE_MODE) { // lượt quay ở tab Challenge: "Challenge · Type · Fire", gọn: "Challenge"
+    const [source, detail] = String(h.detail || "").split(":");
+    return { label: short ? "Challenge" : `Challenge · ${challengeSourceLabel(source, detail)}`, color: "var(--amber)" };
+  }
   const mode = CUSTOM_MODES.find((m) => m.key === h.mode);
   if (!mode) return { label: "Custom", color: "" };
   const customPool = h.pool === "custom";

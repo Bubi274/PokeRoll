@@ -31,6 +31,7 @@ function init() {
 
   renderIdleReel();
   initCustom();
+  initChallenge();
   renderPityMeters();
 
   $("btn-all").addEventListener("click", () => {
@@ -55,6 +56,7 @@ function init() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       realignReel();
+      realignReel($("ch-reel"));
       if (state.view === "custom") revealActiveModeButton();
       if (state.view === "custom" && custom.active && custom.active.realign) custom.active.realign();
     }, 100);
@@ -92,7 +94,10 @@ function init() {
     let btn = null;
     if (e.code === "Space") {
       if (resultModal.open) btn = $("result-again");
-      else if (!otherDialog) btn = state.view === "case" ? $("btn-spin") : state.view === "custom" ? customActionButton("Space") : null;
+      else if (!otherDialog) {
+        btn = state.view === "case" ? $("btn-spin") : state.view === "custom" ? customActionButton("Space")
+          : state.view === "challenge" ? $("ch-roll") : null;
+      }
     } else if (state.view === "custom" && !otherDialog) {
       btn = customActionButton(e.code);
     }
@@ -167,5 +172,7 @@ if (typeof document !== "undefined") {
     pityTiers, pickPityTier, nextPityCounter, rollWithPity, pityProgress, pityDropText,
     CHALLENGE_PREFIX, REROLL_PREFIX, CHALLENGE_TEAM_SIZE, ChallengeCodeError, crc32Hex, utf8Bytes, utf8Text, base64urlEncode,
     base64urlDecode, newChallengeId, encodeChallengeCode, decodeChallengeCode, encodeRerollCode, decodeRerollCode,
-    challengeSlot, rerolledChallenge };
+    challengeSlot, rerolledChallenge,
+    CHALLENGE_SOURCES, challenge, challengeCase, challengeSourceProblem, entryFromSlot, nextChallengeIndex, sourceForIndex,
+    challengeSourceLabel };
 }

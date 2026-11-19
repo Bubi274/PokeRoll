@@ -37,7 +37,7 @@ app.whenReady().then(async () => {
 
   // 1. Tab Custom
   const tabs = await js(`[...document.querySelectorAll(".tab")].map(t => t.dataset.view).join(",")`);
-  check("Tab bar: Case, Collection, Custom", tabs === "case,collection,custom", tabs);
+  check("Tab bar: Case, Collection, Custom, Challenge", tabs === "case,collection,custom,challenge", tabs);
   await js(`document.querySelector('.tab[data-view="custom"]').click()`); await sleep(200);
   const vis = await js(`["case","collection","custom"].map(v => document.getElementById("view-" + v).hidden ? 0 : 1).join("")`);
   check("Custom tab shows only the Custom page", vis === "001" && await js(`document.querySelector('.tab[data-view="custom"]').getAttribute("aria-selected") === "true"`), vis);

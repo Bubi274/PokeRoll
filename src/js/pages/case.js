@@ -26,6 +26,7 @@ function updateSpinButton(label) {
   if (label || !state.spinning) btn.textContent = label || "Open case";
   $("spin-hint").textContent = empty && !state.spinning ? "Select at least one generation to open the case." : "";
   if (custom.ready) renderCustomControls(); // đang quay ở trang này thì nút quay trang Custom cũng khóa
+  if (challenge.ready) renderChallengeControls(); // và nút của tab Challenge
 }
 
 function onSelectionChanged() {

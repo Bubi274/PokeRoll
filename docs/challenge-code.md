@@ -97,7 +97,7 @@ PokéRoll only writes `rule`. The mod checks the evolution line.
 
 - The player picks which slots to reroll, up to `allow`.
 - A rerolled slot is rolled again from the same `mode` as before.
-- PokéRoll only accepts a reroll code whose TW1 code is the team it currently has active. A reroll code that was already used no longer matches, so it is rejected.
+- PokéRoll only accepts a reroll code whose TW1 code is the team it currently has active. A reroll code that was already used is rejected. PokéRoll also remembers which teams it has rerolled, so importing the old TW1 code again doesn't make the reroll code usable again.
 
 ## Test vectors
 
