@@ -114,6 +114,7 @@ const STORAGE_KEY_HISTORY = "pokeroll.history";       // [{ id, rarity, shiny, t
 const STORAGE_KEY_MUTED = "pokeroll.muted";
 const STORAGE_KEY_CUSTOM_GENS = "pokeroll.custom.gens"; // gen đã chọn ở trang Custom (riêng với trang Case)
 const STORAGE_KEY_CUSTOM_MODE = "pokeroll.custom.mode"; // chế độ Custom đang chọn
+const STORAGE_KEY_PITY = "pokeroll.pity";               // bộ đếm pity: { [mã chế độ]: { purple, gold } }
 
 // Âm báo kết quả: các nốt nhạc (tần số Hz) chơi nối tiếp, bậc càng hiếm càng dài và cao.
 const REVEAL_NOTES = {

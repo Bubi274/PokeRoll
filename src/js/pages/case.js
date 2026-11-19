@@ -12,7 +12,7 @@ function renderPoolStats() {
   state.groups = groupByRarity(pool);
   countTo($("pool-count"), pool.length, fmtCount);
 
-  renderOddsTable($("rarity-list"), state.groups, { rules: true });
+  renderOddsTable($("rarity-list"), state.groups, { rules: true, pity: true });
 
   updateSpinButton();
 }
@@ -42,13 +42,14 @@ function onSelectionChanged() {
 async function spin({ quick = false } = {}) {
   if (state.spinning) return;
   const groups = state.groups; // hòm lúc quay
-  const result = rollOnce(groups);
+  const result = rollModePity("case", groups); // thẻ thắng có pity; các thẻ khác trên dải vẫn quay thường
   if (!result) return;
 
   // Ghi vào bộ sưu tập ngay (không mất kết quả nếu lỡ đóng app giữa chừng),
   // nhưng chỉ hiện ra sau khi dải thẻ dừng.
   const isNew = !state.collection[result.pokemon.id];
   const entry = recordDrop(state.collection, state.history, result);
+  tagPityDrop(result);
   saveProgress();
 
   state.spinning = true;
@@ -76,6 +77,7 @@ async function spin({ quick = false } = {}) {
   state.caseSpinning = false;
   updateSpinButton();
   renderRecent();
+  renderPityMeters();
   updateCollectionTab();
   if (state.view === "collection") renderCollection();
   showResultModal(result, { isNew, count: entry.count, groups });

@@ -122,7 +122,8 @@ app.whenReady().then(async () => {
   // ---- 4b. Không còn tỉ lệ viết cứng trong HTML; câu shiny lấy từ SHINY_CHANCE ----
   const html = fs.readFileSync(PAGE, "utf8");
   check("index.html has no hard-coded odds", !/79\.92|15\.98|3\.20|0\.64|0\.26|1 in 100/.test(html));
-  check("Case sub line: shiny odds from SHINY_CHANCE", (await js(`document.getElementById("pool-sub").textContent`)) === `Each open rolls a tier by these odds. Shiny is rolled separately: 1 in ${await js(`oneIn(SHINY_CHANCE)`)}.`);
+  check("Case sub line: shiny odds from SHINY_CHANCE, pity from PITY_PURPLE / PITY_GOLD", (await js(`document.getElementById("pool-sub").textContent`)) === `Each open rolls a tier by these odds. Shiny is rolled separately: 1 in ${await js(`oneIn(SHINY_CHANCE)`)}. `
+    + `Pity: the ${await js("PITY_PURPLE")}th open in a row without Purple or better is guaranteed one, the ${await js("PITY_GOLD")}th without Gold is guaranteed Gold.`);
 
   // ---- 4c. Panel tỉ lệ Type / Biome Roulette: cùng bảng, không có dòng BST ----
   await js(`document.getElementById("custom-none").click(); document.querySelector('#custom-gen-grid input[value="6"]').click(); 0`);

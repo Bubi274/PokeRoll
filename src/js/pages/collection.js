@@ -103,7 +103,7 @@ function renderCollection() {
         cls: `r-${h.rarity}`, attrs: `data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""}`,
         thumb: `<img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy">`,
         name: `${p.name}${h.shiny ? ` <span class="mini-shiny">★ Shiny</span>` : ""}`,
-        meta: `${isSpecial(p) ? sourceLabel(p) : `#${pad4(p.id)} · Gen ${p.gen}`} · BST ${p.bst} ${sourceTag(dropSource(h))}`,
+        meta: `${isSpecial(p) ? sourceLabel(p) : `#${pad4(p.id)} · Gen ${p.gen}`} · BST ${p.bst} ${sourceTag(dropSource(h))}${pityTag(h)}`,
         tier: rarityInfo(h.rarity).name, time: fmtTime(h.t),
       });
     }).join("")
@@ -129,10 +129,13 @@ function historyRow({ cls, attrs, thumb, name, meta, tier, time }) {
 }
 
 function clearData() {
-  if (!confirm("Delete your whole collection (Pokémon and Mega Stones) and roll history?\nThis cannot be undone.")) return;
+  if (!confirm("Delete your whole collection (Pokémon and Mega Stones), roll history and pity counters?\nThis cannot be undone.")) return;
   state.collection = {};
   state.history = [];
   saveProgress();
+  state.pity = cleanPityCounters({}); // mọi bộ đếm pity về 0
+  savePity();
+  renderPityMeters();
   clearMinigameProgress(); // bộ sưu tập và lịch sử riêng của Minigame
   renderRecent();
   updateCollectionTab();

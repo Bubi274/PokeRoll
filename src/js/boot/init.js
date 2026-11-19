@@ -16,19 +16,22 @@ function init() {
   const validIds = new Set(state.byId.keys());
   state.collection = loadCollection(validIds);
   state.history = loadHistory(validIds);
+  state.pity = loadPity();
 
   // Bộ lọc nhóm trong bộ sưu tập: thêm một mục cho mỗi nhóm Special
   $("f-gen").insertAdjacentHTML("beforeend",
     SPECIAL_GROUP_LIST.map((g) => `<option value="${g.key}">Special · ${g.name}</option>`).join(""));
 
   buildGenGrid();
-  $("pool-sub").textContent = `Each open rolls a tier by these odds. Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`;
+  $("pool-sub").textContent = `Each open rolls a tier by these odds. Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}. `
+    + `Pity: the ${ordinal(PITY_PURPLE)} open in a row without Purple or better is guaranteed one, the ${ordinal(PITY_GOLD)} without Gold is guaranteed Gold.`;
   renderPoolStats();
   renderRecent();
   updateCollectionTab();
 
   renderIdleReel();
   initCustom();
+  renderPityMeters();
 
   $("btn-all").addEventListener("click", () => {
     for (const key of allSourceKeys()) state.selectedGens.add(key);

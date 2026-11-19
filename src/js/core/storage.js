@@ -63,7 +63,12 @@ function loadHistory(validIds) {
     .slice(0, HISTORY_LIMIT);
 }
 
-// Phần dữ liệu đang lưu lỗi ("progress": bộ sưu tập + lịch sử chính, "minigame": dữ liệu Minigame).
+// Bộ đếm pity của mọi chế độ (core/pity.js), sai hoặc thiếu thì về 0.
+function loadPity() {
+  return cleanPityCounters(loadJson(STORAGE_KEY_PITY, {}, isPlainObject));
+}
+
+// Phần dữ liệu đang lưu lỗi ("progress": bộ sưu tập + lịch sử chính, "minigame": dữ liệu Minigame, "pity": bộ đếm pity).
 // state.saveFailed = true khi còn phần nào lỗi, để lưu thành công phần này không che lỗi của phần kia.
 const saveFailures = new Set();
 function markSaved(part, ok) {
@@ -77,4 +82,8 @@ function saveProgress() {
   const ok = saveJson(STORAGE_KEY_COLLECTION, state.collection) &&
              saveJson(STORAGE_KEY_HISTORY, state.history);
   markSaved("progress", ok);
+}
+
+function savePity() {
+  markSaved("pity", saveJson(STORAGE_KEY_PITY, state.pity));
 }

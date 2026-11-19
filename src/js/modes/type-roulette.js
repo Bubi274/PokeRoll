@@ -75,6 +75,7 @@ registerCustomMode({
     "Your type stays until you spin the wheel again, even after reloading the page. If a generation change leaves it with no Pokémon, spin again.",
     "Dual-type Pokémon count for both types: Gyarados can drop from Water or Flying.",
     customPoolRule("type"),
+    PITY_RULE,
     `Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`,
   ],
   // Nhãn trong lịch sử: "Type Roulette · Fire", gọn: "Type · Fire"

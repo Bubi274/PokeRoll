@@ -147,6 +147,7 @@ registerCustomMode({
     "A Pokémon that spawns in several groups belongs to all of them. Pokémon without Cobbleverse spawn data, and Special forms, are not included.",
     "Your biome stays until you spin again, even after reloading the page. If a generation change leaves it with no Pokémon, spin again.",
     customPoolRule("biome"),
+    PITY_RULE,
     `Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`,
   ],
   // Nhãn trong lịch sử: "Biome Roulette · Forest", gọn: "Biome · Forest"

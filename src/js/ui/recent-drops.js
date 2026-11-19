@@ -25,7 +25,7 @@ function recentItem(h) {
   return recentRow({
     cls: `r-${h.rarity}`, attrs: `data-pokemon="${p.id}"${h.shiny ? ` data-shiny="1"` : ""}`, title: p.name,
     thumb: `<img class="mini-img" src="${thumbUrl(p, h.shiny)}" alt="" loading="lazy">`,
-    sub: `${dexLabel(p)}${h.mode ? sourceTag(dropSource(h, true)) : ""}`,
+    sub: `${dexLabel(p)}${h.mode ? sourceTag(dropSource(h, true)) : ""}${pityTag(h)}`,
     extra: h.shiny ? `<span class="recent-shiny" aria-label="Shiny">★</span>` : "",
   });
 }

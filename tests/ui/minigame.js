@@ -406,7 +406,7 @@ app.whenReady().then(async () => {
   // ---- 11. Clear data: xoá luôn bộ sưu tập đá và lịch sử Minigame ----
   await tab("collection");
   const confirmText = await js(`(() => { let text = ""; window.confirm = (t) => { text = t; return true; }; document.getElementById("btn-clear").click(); return text; })()`);
-  check("Clear data asks about Pokémon and Mega Stones", confirmText.startsWith("Delete your whole collection (Pokémon and Mega Stones) and roll history?"), confirmText);
+  check("Clear data asks about Pokémon and Mega Stones", confirmText.startsWith("Delete your whole collection (Pokémon and Mega Stones), roll history and pity counters?"), confirmText);
   const cleared = await js(`({ h: localStorage.getItem("${K.history}"), s: localStorage.getItem("${K.stones}"), count: document.getElementById("mgc-megastone-count").textContent,
     rows: document.querySelectorAll("#history-list .hist").length, recent: document.querySelectorAll("#recent-row .recent-item").length })`);
   check("Clear data: Minigame history + stone collection emptied, 0/156, no history rows", cleared.h === "[]" && cleared.s === "{}" && cleared.count === "0/156" && cleared.rows === 0 && cleared.recent === 0, JSON.stringify(cleared));

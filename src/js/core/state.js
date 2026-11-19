@@ -23,6 +23,7 @@ const state = {
   caseSpinning: false,  // dải trang Case đang quay (spinning khóa chung cả trang Case lẫn Custom)
   collection: {},       // bộ sưu tập: { [id]: { count, shiny, first } }
   history: [],          // lịch sử quay, mới nhất trước
+  pity: {},             // bộ đếm pity của từng chế độ: { case: { purple, gold }, "type-roulette": {...}, ... }
   saveFailed: false,    // true nếu không lưu được vào localStorage
   view: "case",         // trang đang xem: "case", "collection" hoặc "custom"
   resultAgain: null,    // nút "Open again" trong popup kết quả sẽ chạy hàm này

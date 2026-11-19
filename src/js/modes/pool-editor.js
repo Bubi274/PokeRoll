@@ -94,7 +94,7 @@ function updatePoolEdit() {
     }
   }
   countTo($("pool-edit-count"), list.length, (x, final) => `${fmtCount(x, final)} selected`);
-  renderOddsTable($("pool-odds"), groups);
+  renderOddsTable($("pool-odds"), groups, { pity: true });
   $("pool-odds").querySelector(".odds-hint").textContent = "Pick Pokémon to see the odds.";
   const problems = customPoolProblems(list);
   $("pool-problems").innerHTML = problems.map((t) => `<li>${t}</li>`).join("");

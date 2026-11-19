@@ -99,6 +99,7 @@ registerCustomMode({
     "Special forms count under their original name: Kazeran Vaporeon is V, next to Vaporeon.",
     "Your letter stays until you spin again, even after reloading the page.",
     customPoolRule("letter"),
+    PITY_RULE,
     `Shiny is rolled separately: 1 in ${oneIn(SHINY_CHANCE)}.`,
   ],
   // Nhãn trong lịch sử: "Letter Roulette · A", gọn: "Letter · A"

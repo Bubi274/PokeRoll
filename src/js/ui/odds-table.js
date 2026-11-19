@@ -34,9 +34,10 @@ function renderCaseCount(el, n) {
 // Bậc nhận thêm tỉ lệ của bậc trống có dòng "base 3.20% + 0.64% from Red"; bậc trống 0%, chữ mờ.
 // Hòm rỗng (chưa chọn gen nào): "—" thay cho số và %, kèm dòng nhắc chọn gen.
 // rules: hiện dòng quy tắc xếp bậc dưới tên (bảng chính ở trang Case).
+// pity: hiện dòng ghi chú cuối bảng khi hòm thiếu bậc mục tiêu của pity (pityCaseNote ở ui/pity-meter.js).
 // Các hàng được giữ lại giữa các lần vẽ để thanh (CSS transition), % (followBar) và số Pokémon (countTo)
 // chạy từ giá trị cũ tới giá trị mới; lần đầu (hoặc bảng vừa bị xoá) thì chạy từ 0.
-function renderOddsTable(list, groups, { rules = false } = {}) {
+function renderOddsTable(list, groups, { rules = false, pity = false } = {}) {
   const order = [...RARITIES].reverse();
   if (list.querySelectorAll(".rarity-row").length !== order.length || list.dataset.rules !== String(rules)) {
     list.dataset.rules = rules;
@@ -50,7 +51,8 @@ function renderOddsTable(list, groups, { rules = false } = {}) {
         </span>
         <span class="rarity-count" title="Pokémon in this tier">0</span>
         <span class="rarity-chance">0%</span>
-      </li>`).join("") + `<li class="odds-hint" hidden>Select at least one generation to see the odds.</li>`;
+      </li>`).join("") + `<li class="odds-hint" hidden>Select at least one generation to see the odds.</li>`
+      + `<li class="odds-pity" hidden></li>`;
     void list.offsetWidth; // áp --p:0 trước để thanh chạy từ 0
   }
   const empty = groupsSize(groups) === 0;
@@ -74,4 +76,7 @@ function renderOddsTable(list, groups, { rules = false } = {}) {
     }
   });
   list.querySelector(".odds-hint").hidden = !empty;
+  const note = list.querySelector(".odds-pity");
+  note.textContent = pity ? pityCaseNote(groups) : "";
+  note.hidden = !note.textContent;
 }

@@ -100,7 +100,7 @@ function showResultModal(result, { isNew, count, groups = state.groups, again = 
       </div>
       <div class="reveal-info">
         ${tierPanel(rarity, shiny, groups)}
-        ${oddsBlock(result, groups)}
+        ${result.pity ? pityOddsBlock(result, groups) : oddsBlock(result, groups)}
         ${extra}
         ${downgraded ? `<div class="result-note">Rolled a higher tier with no Pokémon in this case — dropped to ${rarityInfo(rarity).name}.</div>` : ""}
         <dl class="facts">

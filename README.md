@@ -7,6 +7,7 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
 - Pick any mix of generations (Gen 1–9) and the Special group, view the case contents and the drop rate of each Pokémon
 - 5 rarity tiers using CS2 odds: Blue 79.92% · Purple 15.98% · Pink 3.2% · Red 0.64% · Gold 0.26%, Shiny 1/100. A tier with no Pokémon in your selection drops to the next lower tier, and the odds table shows the real odds after that (e.g. "base 3.20% + 0.64% from Red")
 - 6-second spinning card strip with tick sounds, a result sound, and a Quick open button
+- **Pity**: the 5th open in a row without Purple or better is guaranteed Purple or better (Purple, Pink, Red or Gold by their base odds), and the 10th open in a row without Gold is guaranteed Gold. The Case page and each Roulette keep their own count, shown as two bars under the Open button (Minigame cases have no pity). If a case has no Pokémon of that tier, pity gives the highest tier it has, and its odds table says so. Pity drops are marked in the popup, Recent drops and Roll history
 - Result popup with the exact odds of the drop (1 in N), and roll history
 - **Collection** tab: search by name, Pokédex number or type; filter by generation, rarity or owned/missing/duplicates/shiny; sort by Pokédex number, rarity or copies; progress per generation and per rarity
 - **Custom** tab, with its own generation selection:

@@ -116,6 +116,7 @@ function selectCustomMode(key, { save = true } = {}) {
   $("mode-rules-name").textContent = mode.name;
   $("mode-rule-list").innerHTML = (mode.rules || []).map((r) => `<li>${r}</li>`).join("");
   renderCustomActions();
+  renderPityMeter($("custom-pity"), mode.key); // thanh pity của chế độ này (Minigame: ẩn)
   renderInPlayCount();
   if (state.view === "custom") showCustomMode();
 }

@@ -73,7 +73,7 @@ function renderWheelOdds(w, key, note) {
   $(`${p}-odds-title`).innerHTML = `${w.chip(key)} case${customPoolBadge(c)}`;
   renderCaseCount($(`${p}-odds-count`), groupsSize(groups));
   setOddsSub($(`${p}-odds-sub`), `${w.label(key)} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`, c);
-  renderOddsTable($(`${p}-odds-list`), groups);
+  renderOddsTable($(`${p}-odds-list`), groups, { pity: true });
   if (info) {
     info.hidden = false;
     info.innerHTML = w.info(key);
@@ -136,19 +136,21 @@ async function openWheelCase(w, { quick = false }) {
   const st = w.state, key = st.selected;
   const c = wheelCase(w.mode, st, key);
   const groups = groupByRarity(c.list);
-  const result = rollOnce(groups);
+  const result = rollModePity(w.mode, groups); // bộ đếm pity riêng của chế độ này
   if (!result) return;
 
   // Ghi ngay vào bộ sưu tập (giống trang Case), kèm chế độ và nhóm trong lịch sử.
   const isNew = !state.collection[result.pokemon.id];
   const entry = recordDrop(state.collection, state.history, result);
   Object.assign(state.history[0], { mode: w.mode, detail: key, ...customPoolTag(c) });
+  tagPityDrop(result);
   saveProgress();
 
   await runCustomReel($(`${w.prefix}-reel`), buildReelItems(result, groups), {
     quick, urlsOf: (it) => [imageUrl(it.pokemon, it.shiny)],
   });
   renderRecent();
+  renderPityMeters();
   updateCollectionTab();
   if (state.view === "collection") renderCollection();
   const name = w.label(key);

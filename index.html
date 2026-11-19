@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="src/css/layout/footer.css">
   <link rel="stylesheet" href="src/css/components/gen-grid.css">
   <link rel="stylesheet" href="src/css/components/odds-table.css">
+  <link rel="stylesheet" href="src/css/components/pity-meter.css">
   <link rel="stylesheet" href="src/css/components/modal.css">
   <link rel="stylesheet" href="src/css/components/case-contents.css">
   <link rel="stylesheet" href="src/css/components/custom-pool.css">
@@ -73,6 +74,8 @@
     <!-- Nút quay -->
     <div class="spin-area">
       <button type="button" class="btn btn-spin" id="btn-spin">Open case</button>
+      <!-- Thanh pity của trang Case (src/js/ui/pity-meter.js) -->
+      <div class="pity-meters" id="case-pity" aria-label="Pity"></div>
       <div class="spin-actions">
         <button type="button" class="btn btn-ghost" id="btn-quick" title="Skip the animation">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>
@@ -201,6 +204,8 @@
     <!-- Nút hành động của chế độ đang chọn (src/js/pages/custom.js tạo từ danh sách actions của chế độ) -->
     <div class="spin-area">
       <div class="action-row" id="custom-actions"></div>
+      <!-- Thanh pity của chế độ đang chọn (ẩn ở chế độ không có pity, vd. Minigame) -->
+      <div class="pity-meters" id="custom-pity" aria-label="Pity" hidden></div>
       <div class="spin-actions">
         <!-- Chỉ hiện khi chế độ đang chọn có khai báo contents() -->
         <button type="button" class="btn btn-ghost" id="custom-contents" hidden>
@@ -316,6 +321,7 @@
   <script src="src/js/ui/gen-select.js"></script>
   <script src="src/js/ui/motion.js"></script>
   <script src="src/js/ui/odds-table.js"></script>
+  <script src="src/js/ui/pity-meter.js"></script>
   <script src="src/js/ui/images.js"></script>
   <script src="src/js/ui/transition.js"></script>
   <script src="src/js/ui/reel.js"></script>
