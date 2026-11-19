@@ -15,7 +15,8 @@
     "test": "node tests/run.js",
     "dist": "electron-builder --win --x64 --publish never",
     "dist:linux": "electron-builder --linux --x64 --publish never",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "version": "node scripts/sync-version.js && git add src/js/core/config.js"
   },
   "build": {
     "appId": "com.bubi.pokeroll",

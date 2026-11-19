@@ -1,4 +1,5 @@
-// Kiểm tra phần tính version và cổng CI của scripts/release.js: version luôn tăng, chỉ phát hành khi CI đã qua.
+// Kiểm tra phần tính version và cổng CI của scripts/release.js: version luôn tăng, chỉ phát hành khi CI đã qua;
+// và APP_VERSION trong config.js luôn khớp package.json (scripts/sync-version.js).
 const { parseVersion, compareVersions, bumpVersion, checkNextVersion, ciVerdict } = require("../../scripts/release.js");
 let fails = 0;
 const check = (name, ok, info = "") => { if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"}  ${name}${info ? "  — " + info : ""}`); };
@@ -31,6 +32,21 @@ check("CI gate: the newest run decides (old failure, new success → passed; old
 check("CI gate: a re-run (newer attempt) decides over the first attempt",
   ciVerdict([run(3, "completed", "failure", 1), run(3, "completed", "success", 2)]).state === "passed"
   && ciVerdict([run(3, "completed", "success", 1), run(3, "in_progress", null, 2)]).state === "running");
+
+// APP_VERSION (ghi vào mã Challenge) luôn khớp package.json: npm version chạy scripts/sync-version.js trước khi commit
+const fs = require("fs");
+const pkg = require("../../package.json");
+const { setAppVersion, readAppVersion, CONFIG } = require("../../scripts/sync-version.js");
+const config = fs.readFileSync(CONFIG, "utf8");
+check("APP_VERSION in src/js/core/config.js matches package.json", readAppVersion(config) === pkg.version, `${readAppVersion(config)} vs ${pkg.version}`);
+const bumped = setAppVersion(config, "9.8.7");
+check("setAppVersion changes only the APP_VERSION line", readAppVersion(bumped) === "9.8.7"
+  && bumped.split("\n").filter((l, i) => l !== config.split("\n")[i]).length === 1);
+let threw = false;
+try { setAppVersion("const X = 1;", "1.0.0"); } catch (e) { threw = true; }
+check("setAppVersion refuses a file without an APP_VERSION line", threw);
+check("npm version runs sync-version.js and stages config.js (package.json \"version\" script)",
+  /node scripts\/sync-version\.js/.test(pkg.scripts.version || "") && /git add src\/js\/core\/config\.js/.test(pkg.scripts.version || ""));
 
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
 process.exit(fails ? 1 : 0);

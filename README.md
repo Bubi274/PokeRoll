@@ -27,7 +27,8 @@ A CS2-style case opening simulator that rolls Pokémon from Gen 1–9. Plain HTM
 
 ```text
 index.html       the page; lists every stylesheet and script in load order
-src/js/core/     configuration and timings, rolling and odds logic, Pokémon catalog, storage, shared state
+src/js/core/     configuration and timings, rolling and odds logic, pity, Challenge codes, Pokémon catalog,
+                 storage, shared state
 src/js/ui/       parts used across pages: gen grid, odds table, reel, transition fallback timer,
                  popups, recent drops, sound, images, motion
 src/js/pages/    the Case, Collection and Custom pages, and switching between them
@@ -43,6 +44,7 @@ electron/        desktop app: main process and preload
 scripts/         data generators and the release script; scripts/data/ holds the Mega Stone CSV
 tests/           logic tests (Node) and UI tests (Electron)
 build/           icons used when packaging the desktop app
+docs/            the Challenge code format shared with Trainer's Workshop, and its test vectors
 ```
 
 The site has no build step and uses plain `<script>` tags so it also runs from `file://`. Scripts load folder by folder: core → ui → pages → modes → boot. **When you add a JS or CSS file, add its tag to `index.html` in the right position:** a script must come after any file its top-level code depends on (code inside functions runs later and can use any file), stylesheets apply in the order they are listed, and `src/js/boot/init.js` stays last. The tests read the file list from `index.html`, so a file without a tag is not tested either.
@@ -88,7 +90,7 @@ npm run release -- major    # 1.1.0 → 2.0.0
 
 The script only goes ahead when everything is committed, `main` matches GitHub, **CI has passed on that exact commit**, and the new version is higher than every existing tag (a version is never reused). If CI is still running or has failed, it stops without creating a tag, so a red build never costs a version number. Checking CI uses GitHub's public API and needs no login.
 
-It then bumps the version in `package.json`, commits, tags `vX.Y.Z` and pushes. The tag starts the **Release** workflow: it waits for CI on that exact commit to pass (it doesn't run the tests again, and stops without building if CI fails or never ran), builds the Windows installer and the Linux AppImage, and publishes them as a GitHub Release together with `latest.yml` and `latest-linux.yml`, which the installed apps read to find updates. If anything fails, nothing is published. Progress: [Actions tab](https://github.com/Bubi274/PokeRoll/actions).
+It then bumps the version in `package.json` (and `APP_VERSION` in `src/js/core/config.js`, which Challenge codes record), commits, tags `vX.Y.Z` and pushes. The tag starts the **Release** workflow: it waits for CI on that exact commit to pass (it doesn't run the tests again, and stops without building if CI fails or never ran), builds the Windows installer and the Linux AppImage, and publishes them as a GitHub Release together with `latest.yml` and `latest-linux.yml`, which the installed apps read to find updates. If anything fails, nothing is published. Progress: [Actions tab](https://github.com/Bubi274/PokeRoll/actions).
 
 ## Testing
 

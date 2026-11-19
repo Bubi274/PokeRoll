@@ -47,6 +47,10 @@ const PSEUDO_LEGENDARY_IDS = new Set([
 
 const SHINY_CHANCE = 1 / 100;
 
+// Phiên bản app, ghi vào mã Challenge ("app": "pokeroll 1.3.0"). Khi phát hành, npm version chạy scripts/sync-version.js
+// để sửa dòng này theo package.json (tests/logic/release.js kiểm tra hai chỗ khớp nhau).
+const APP_VERSION = "1.3.0";
+
 // Ảnh có sẵn trong app (tạo bằng scripts/build-images.js) — dùng trước, không cần mạng.
 const LOCAL_ARTWORK = "assets/images/artwork";
 const LOCAL_SPRITE = "assets/images/sprite";
