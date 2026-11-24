@@ -47,6 +47,7 @@ const letter = {
   selected: null,   // chữ đang chọn; null = chưa quay
   lost: null,
   lostRare: false,
+  pitySpin: null,   // lần quay ra chữ đang chọn bị pity giới hạn (wheel-mode.js)
   all: null,        // letterPools của mọi Pokémon (không đổi theo gen nên chỉ tính một lần)
 };
 

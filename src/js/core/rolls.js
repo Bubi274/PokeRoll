@@ -105,10 +105,12 @@ function rollOnce(groups, rng = Math.random) {
 
 // Tạo danh sách thẻ cho dải quay: thẻ thắng ở winIndex, các thẻ khác quay ngẫu nhiên
 // theo đúng tỉ lệ độ hiếm. Mỗi thẻ có dạng { pokemon, rarity, shiny }.
+// Lượt pity (winner.pity): các thẻ khác chỉ thuộc bậc mà pity đó cho ra trong hòm (pityReelRoll ở core/pity.js).
 function buildReelItems(winner, groups, size = REEL_SIZE, winIndex = WIN_INDEX, rng = Math.random) {
+  const filler = winner && winner.pity ? () => pityReelRoll(winner.pity, groups, rng) : () => rollOnce(groups, rng);
   const items = [];
   for (let i = 0; i < size; i++) {
-    items.push(i === winIndex ? winner : rollOnce(groups, rng));
+    items.push(i === winIndex ? winner : filler());
   }
   return items;
 }

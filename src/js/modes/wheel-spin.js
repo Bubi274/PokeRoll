@@ -31,21 +31,24 @@ function clearWheelWinner(w) {
 }
 
 // Quay bánh xe w tới ô key (phải có trên bánh xe). quick: nhảy ngay tới góc dừng, không có hiệu ứng.
-// Xong thì đánh dấu ô trúng (tên ô hiện ở tâm). Trả về Promise xong khi bánh xe dừng.
-async function spinWheelTo(w, key, { quick = false } = {}) {
+// Xong thì đánh dấu ô trúng (tên ô hiện ở tâm). Trả về Promise xong khi bánh xe dừng; quick thì xong ngay (đồng bộ, trả về
+// null) để Quick xong trong cùng lượt bấm — người gọi viết `const done = spinWheelTo(...); if (done) await done;`.
+function spinWheelTo(w, key, { quick = false } = {}) {
   const st = w.state, keys = st.types;
   const target = wheelTarget(st.rotation % 360, keys.indexOf(key), keys.length);
   clearWheelWinner(w);
   if (quick) {
     setWheelRotation(target, w);
-  } else {
-    setWheelRotation(st.rotation % 360, w); // thu góc về 0–360° (nhìn không đổi) để số không lớn dần
-    await animateWheel(target, w);
+    markWheelWinner(key, w);
+    return null;
+  }
+  setWheelRotation(st.rotation % 360, w); // thu góc về 0–360° (nhìn không đổi) để số không lớn dần
+  return animateWheel(target, w).then(() => {
     // Bánh xe đang ẩn (ở tab khác) thì không đọc được góc trên màn hình
     const landed = $(w.disc).getClientRects().length ? keys[wheelSliceOnScreen(w)] : key;
     if (landed !== key) console.error(`${w.text ? w.text.stopped : "Wheel"} stopped on ${landed}, expected ${key}`);
-  }
-  markWheelWinner(key, w);
+    markWheelWinner(key, w);
+  });
 }
 
 // Đặt ngay góc xoay của bánh xe, không có hiệu ứng.

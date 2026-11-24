@@ -38,6 +38,11 @@ app.whenReady().then(async () => {
   const closePopup = () => js(`document.getElementById("result-modal").close()`);
   const openCase = () => js(`spin({ quick: true }).then(() => 1)`);
   const openCustom = () => js(`runCustomAction("open", { quick: true }).then(() => 1)`);
+  // Bậc của mọi thẻ trên dải quay (reel: id khung .reel), thẻ thắng tách riêng
+  const reelTiers = (reel) => js(`(() => { const cards = [...document.querySelectorAll("#${reel} .reel-strip .card")];
+    const tier = (c) => [...c.classList].find((k) => k.startsWith("r-")).slice(2);
+    return { winner: tier(cards[WIN_INDEX]), others: [...new Set(cards.filter((c) => !c.classList.contains("is-winner")).map(tier))].sort(), n: cards.length }; })()`);
+  const nextLine = (id) => js(`(() => { const el = document.querySelector("#${id} .pity-next"); return el ? el.textContent : ""; })()`);
 
   // 1. Thanh lúc đầu
   let m = await meters("case-pity");
@@ -63,9 +68,19 @@ app.whenReady().then(async () => {
   await win.reload(); await sleep(500);
   m = await meters("case-pity");
   check("Counter is read back after reload, 4/5 is marked due", same(m.text, ["Purple or better 4/5", "Gold 2/10"]) && same(m.due, ["purple"]) && same(m.on, [4, 2]), JSON.stringify(m));
-  await openCase();
+  check("Before the 5th open: \"Next open: guaranteed Purple or better\"", await nextLine("case-pity") === "Next open: guaranteed Purple or better");
+  // Có hiệu ứng: giữa lúc dải chạy, thanh và dòng "Next open" chưa đổi (không lộ kết quả)
+  await js(`spin(); 1`); await sleep(150);
+  const midCase = await meters("case-pity");
+  check("While the 5th open spins: bars and the Next open line don't change", await js("state.spinning")
+    && same(midCase.text, ["Purple or better 4/5", "Gold 2/10"]) && await nextLine("case-pity") === "Next open: guaranteed Purple or better", JSON.stringify(midCase.text));
+  await js(`new Promise((done) => { const t = setInterval(() => { if (!state.spinning) { clearInterval(t); done(1); } }, 50); })`); await sleep(200);
   p = await popup();
   check("5th open: Purple or better", ["purple", "pink", "red", "gold"].includes(p.rarity), p.rarity);
+  let rt = await reelTiers("reel");
+  check("5th open: every card on the reel is Purple, Pink, Red or Gold (no Blue)", rt.n > 50 && rt.others.length > 0
+    && rt.others.every((t) => ["purple", "pink", "red", "gold"].includes(t)), JSON.stringify(rt));
+  check("After the 5th open: Next open line gone", await nextLine("case-pity") === "");
   check("5th open: popup says the pity line", p.pityBlock && p.text.includes("Pity drop: guaranteed Purple or better after 5 opens") && !/Odds of pulling/.test(p.text));
   check("5th open: history entry tagged pity = purple", p.pity === "purple");
   check("5th open: Purple counter back to 0, saved", same(await js(`JSON.parse(localStorage.getItem("pokeroll.pity")).case.purple`), 0));
@@ -75,9 +90,12 @@ app.whenReady().then(async () => {
   // 4. Pity vàng
   await setPity("case", 1, 9);
   check("Gold 9/10 is marked due", same((await meters("case-pity")).due, ["gold"]));
+  check("Before the 10th open: \"Next open: guaranteed Gold\"", await nextLine("case-pity") === "Next open: guaranteed Gold");
   await openCase();
   p = await popup();
   check("10th open: Gold", p.rarity === "gold", p.rarity);
+  rt = await reelTiers("reel");
+  check("10th open: every card on the reel is Gold", same(rt.others, ["gold"]) && rt.winner === "gold", JSON.stringify(rt));
   check("10th open: popup says the Gold pity line", p.text.includes("Pity drop: guaranteed Gold after 10 opens"));
   check("10th open: both counters reset", same(await js(`state.pity.case`), { purple: 0, gold: 0 }));
   await closePopup();
@@ -95,6 +113,8 @@ app.whenReady().then(async () => {
   await openCustom();
   p = await popup();
   check("Type Roulette pity: tagged gold, uses the Type Roulette counter", p.pity === "gold" && p.mode === "type-roulette");
+  rt = await reelTiers("tr-reel");
+  check("Type Roulette Gold pity: every card on the reel is the tier it gives", same(rt.others, [p.rarity]) && rt.winner === p.rarity, JSON.stringify(rt));
   check("Type Roulette pity: Case counter unchanged", same(await js(`state.pity.case`), caseBefore));
   await closePopup();
   await js(`selectCustomMode("minigame")`); await sleep(200);
@@ -109,12 +129,45 @@ app.whenReady().then(async () => {
   check("Odds table explains the Gold pity in a case with no Gold", note === "No Gold in this case: Gold pity (10th open) gives Pink instead.", note);
   check("Case page odds table (all gens) has no pity note", await js(`document.querySelector("#rarity-list .odds-pity").hidden`));
   await setPity("type-roulette", 2, 9);
+  await js(`renderCustomControls()`);
+  const hint = () => js(`document.getElementById("custom-hint").textContent`);
+  check("Gold pity due, Bug has no Gold: warning next to Open", await hint() === "This type has no Gold — spin the wheel again to use your Gold pity.", await hint());
+  await setPity("type-roulette", 4, 2);
+  await js(`renderCustomControls()`);
+  check("Purple pity due, Bug has Pink: no warning", await hint() === "", await hint());
+  await setPity("type-roulette", 2, 9);
+  await js(`renderCustomControls()`);
   await openCustom();
   p = await popup();
   check("Gold pity with no Gold: gives Pink (highest tier there)", p.rarity === "pink" && p.pity === "gold", p.rarity);
+  rt = await reelTiers("tr-reel");
+  check("Gold pity with no Gold: every card on the reel is Pink (the fallback)", same(rt.others, ["pink"]), JSON.stringify(rt));
   check("Gold pity with no Gold: popup explains it", p.text.includes("This case has no Gold Pokémon, so it gave its highest tier: Pink."));
   check("Gold pity with no Gold: both counters reset", same(await js(`state.pity["type-roulette"]`), { purple: 0, gold: 0 }));
   await closePopup();
+
+  // 6b. Bánh xe ở lượt pity (Gen 1): chỉ dừng ở hệ có Gold, chú thích ghi rõ; lượt thường như cũ
+  await closePopup();
+  const goldTypes = await js(`roulette.types.filter((t) => !pityTiers("gold", groupByRarity(wheelCase("type-roulette", roulette, t).list)).fallback)`);
+  const spinWheel = () => js(`runCustomAction("wheel", { quick: true }).then(() => roulette.selected)`);
+  await setPity("type-roulette", 0, 9);
+  const landed = [];
+  for (let i = 0; i < 12; i++) landed.push(await spinWheel());
+  check("Gold pity due: the wheel only lands on types with Gold", goldTypes.length > 0 && goldTypes.length < (await js("roulette.types.length"))
+    && landed.every((t) => goldTypes.includes(t)), `${landed.join(",")} / ${goldTypes.join(",")}`);
+  check("Pity spin: caption says only the types with Gold could come up",
+    await js(`document.getElementById("tr-wheel-caption").textContent`) === `Pity spin: only the ${goldTypes.length} types with Gold could come up`);
+  check("Pity spin: odds panel says it came from a pity spin", await js(`/came from a pity spin/.test(document.getElementById("tr-odds-sub").textContent)`));
+  check("Pity spin, type with Gold: no warning", await hint() === "");
+  await openCustom();
+  p = await popup();
+  check("Open after the pity spin: Gold, popup notes the pity spin", p.rarity === "gold" && /came from a pity spin/.test(p.text), p.rarity);
+  await closePopup();
+  await setPity("type-roulette", 0, 0);
+  const normal = new Set();
+  for (let i = 0; i < 40; i++) normal.add(await spinWheel());
+  check("Not due: the wheel can land on types without Gold again", [...normal].some((t) => !goldTypes.includes(t)), [...normal].join(","));
+  check("Normal spin: caption is each 1 in N again", /on the wheel · each 1 in \d+$/.test(await js(`document.getElementById("tr-wheel-caption").textContent`)));
 
   // 7. Clear data
   await setPity("case", 3, 7);

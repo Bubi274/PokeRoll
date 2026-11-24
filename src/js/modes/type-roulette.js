@@ -32,6 +32,7 @@ const roulette = {
   selected: null,   // hệ đang chọn (trúng ở lần quay bánh xe gần nhất); null = chưa quay
   lost: null,       // hệ vừa bị bỏ vì đổi gen (để báo); đổi gen làm nó hợp lệ lại thì chọn lại
   lostRare: false,  // true nếu hệ đó bị bỏ vì chỉ còn Pokémon hiếm (Red/Gold)
+  pitySpin: null,   // lần quay ra hệ đang chọn bị pity giới hạn: { key, due, n } (wheel-mode.js)
 };
 
 // Bánh xe của Type Roulette (xem phần "Khung chung cho các chế độ bánh xe" ở wheel-mode.js).

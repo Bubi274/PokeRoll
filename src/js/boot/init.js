@@ -169,7 +169,7 @@ if (typeof document !== "undefined") {
     LETTERS, letterOf, letterPools, letterColor,
     MINIGAME_CASES, MINIGAME_HISTORY_LIMIT, pickUniform, buildUniformReel, recordMinigameDrop, minigameCase, MEGA_STONES,
     APP_VERSION, PITY_PURPLE, PITY_GOLD, PITY_MODES, PITY_KINDS, newPityCounter, cleanPityCounter, cleanPityCounters, pityDue,
-    pityTiers, pickPityTier, nextPityCounter, rollWithPity, pityProgress, pityDropText,
+    pityTiers, pickPityTier, nextPityCounter, rollWithPity, pityProgress, pityDropText, pityReelRoll, pityWheelKeys,
     CHALLENGE_PREFIX, REROLL_PREFIX, CHALLENGE_TEAM_SIZE, ChallengeCodeError, crc32Hex, utf8Bytes, utf8Text, base64urlEncode,
     base64urlDecode, newChallengeId, encodeChallengeCode, decodeChallengeCode, encodeRerollCode, decodeRerollCode,
     challengeSlot, rerolledChallenge,

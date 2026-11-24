@@ -29,7 +29,10 @@ function tagPityDrop(result) {
 }
 
 // Hai thanh của một chế độ: "Purple or better 3/5" và "Gold 3/10". Mỗi thanh có một ô cho mỗi lượt; ô cuối là lượt chắc chắn.
+// Lượt tới là pity thì thêm dòng "Next open: guaranteed Gold" (chỉ theo bộ đếm trước khi quay, không lộ kết quả).
 function pityMetersHtml(mode) {
+  const due = pityDue(state.pity[mode]);
+  const next = due ? `<p class="pity-next r-${due}">Next open: guaranteed ${PITY_KINDS[due].label}</p>` : "";
   return pityProgress(state.pity[mode]).map(({ kind, label, count, need }) => {
     const due = count === need - 1;
     const title = due
@@ -42,7 +45,7 @@ function pityMetersHtml(mode) {
           `<i class="${i < count ? "is-on" : ""}${i === need - 1 ? " is-last" : ""}"></i>`).join("")}</span>
         <span class="pity-count">${count}/${need}</span>
       </div>`;
-  }).join("");
+  }).join("") + next;
 }
 
 // Vẽ thanh vào el theo chế độ mode; mode không có pity (vd. Minigame) thì ẩn.

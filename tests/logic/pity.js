@@ -95,6 +95,44 @@ check("Case with no Gold: Gold pity every 10th open gives Purple, never crashes"
 check("Empty case: rollWithPity returns null (with or without pity due)", A.rollWithPity(only(), C(0, 0)) === null && A.rollWithPity(only(), C(4, 9)) === null);
 check("Forced results are not marked as downgraded", !blueOnly.result.downgraded && !noGold.result.downgraded);
 
+// 4b. Dải quay của lượt pity: mọi thẻ phụ chỉ thuộc bậc mà pity đó cho ra; lượt thường không đổi
+const reelTiers = (winner, groups, seed) => {
+  const items = A.buildReelItems(winner, groups, 60, 50, rng(seed));
+  return { winnerKept: items[50] === winner, tiers: [...new Set(items.filter((_, i) => i !== 50).map((x) => x.rarity))].sort() };
+};
+const purpleWin = once(full, C(4, 0)).result, goldWin = once(full, C(0, 9)).result;
+const pr = Array.from({ length: 30 }, (_, s) => reelTiers(purpleWin, full, s));
+check("Purple pity reel: every card is Purple, Pink, Red or Gold (no Blue)",
+  pr.every((x) => x.winnerKept && x.tiers.every((t) => ["purple", "pink", "red", "gold"].includes(t))) && pr.some((x) => x.tiers.includes("purple")),
+  JSON.stringify(pr[0].tiers));
+const gr = Array.from({ length: 30 }, (_, s) => reelTiers(goldWin, full, s));
+check("Gold pity reel: every card is Gold", gr.every((x) => x.winnerKept && same(x.tiers, ["gold"])), JSON.stringify(gr[0].tiers));
+const fbGold = once(only("blue", "purple", "red"), C(0, 9)).result;
+check("Gold pity reel, case with no Gold: every card is the fallback tier (Red)",
+  Array.from({ length: 20 }, (_, s) => reelTiers(fbGold, only("blue", "purple", "red"), s)).every((x) => same(x.tiers, ["red"])));
+const fbPurple = once(only("blue"), C(4, 0)).result;
+check("Purple pity reel, Blue-only case: every card is Blue (the fallback)",
+  same(reelTiers(fbPurple, only("blue"), 3).tiers, ["blue"]));
+const bpWin = once(only("blue", "pink"), C(4, 0)).result;
+check("Purple pity reel, Blue + Pink case: every card is Pink", same(reelTiers(bpWin, only("blue", "pink"), 4).tiers, ["pink"]));
+const normalWin = A.rollOnce(full, rng(1));
+const ra = A.buildReelItems({ ...normalWin, pity: null }, full, 60, 50, rng(8)), rb = A.buildReelItems(normalWin, full, 60, 50, rng(8));
+const ro = rng(8), byRollOnce = Array.from({ length: 59 }, () => A.rollOnce(full, ro));
+check("Normal reel: filler cards are exactly rollOnce (unchanged), all tiers can show",
+  ra.filter((_, i) => i !== 50).every((x, i) => x.pokemon.id === byRollOnce[i].pokemon.id && x.rarity === byRollOnce[i].rarity)
+  && same(ra.map((x) => x.pokemon.id), rb.map((x) => x.pokemon.id)) && ra.some((x) => x.rarity === "blue"));
+check("pityReelRoll: empty case → null", A.pityReelRoll("gold", only()) === null);
+
+// 4c. Bánh xe ở lượt pity: chỉ dừng ở nhóm có bậc bảo đảm
+const wheelGroups = { a: only("blue", "purple"), b: only("blue", "gold"), c: only("blue", "pink", "gold"), d: only("blue") };
+const wOf = (k) => wheelGroups[k];
+const wk = (counter, keys = ["a", "b", "c", "d"]) => A.pityWheelKeys(keys, wOf, counter);
+check("pityWheelKeys: not due → every group, not limited", same(wk(C(3, 8)), { keys: ["a", "b", "c", "d"], due: null, limited: false }));
+check("pityWheelKeys: Gold due → only groups with Gold", same(wk(C(0, 9)), { keys: ["b", "c"], due: "gold", limited: true }));
+check("pityWheelKeys: Purple due → only groups with Purple or better", same(wk(C(4, 0)), { keys: ["a", "b", "c"], due: "purple", limited: true }));
+check("pityWheelKeys: no group has the tier → wheel unchanged (fallback)", same(wk(C(0, 9), ["a", "d"]), { keys: ["a", "d"], due: "gold", limited: false }));
+check("pityWheelKeys: every group has the tier → not limited", same(wk(C(4, 0), ["a", "b"]), { keys: ["a", "b"], due: "purple", limited: false }));
+
 // 5. Đọc lại bộ đếm đã lưu
 check("cleanPityCounter: missing or broken → 0", same(A.cleanPityCounter(null), C(0, 0)) && same(A.cleanPityCounter({ purple: -1, gold: 2.5 }), C(0, 0))
   && same(A.cleanPityCounter({ purple: "3", gold: 4 }), C(0, 4)));

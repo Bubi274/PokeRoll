@@ -95,6 +95,28 @@ function rollWithPity(groups, counter, rng = Math.random) {
   return { result, counter: nextPityCounter(counter, result.rarity, result.pity) };
 }
 
+// Một thẻ phụ trên dải quay của lượt pity kind: chỉ lấy từ các bậc mà pity cho ra trong hòm groups (Purple trở lên /
+// chỉ Gold / chỉ bậc fallback), theo tỉ lệ gốc giữa các bậc đó — dải quay không hiện bậc mà lượt này không thể ra.
+// Không đụng bộ đếm. Hòm rỗng → null.
+function pityReelRoll(kind, groups, rng = Math.random) {
+  const { tiers } = pityTiers(kind, groups);
+  if (!tiers.length) return null;
+  const rarity = pickPityTier(tiers, rng());
+  return { pokemon: pickRandom(groups[rarity], rng()), rarity, downgraded: false, shiny: rng() < SHINY_CHANCE };
+}
+
+// Các nhóm bánh xe được dừng khi lượt mở hòm tới là pity (bộ đếm counter): chỉ nhóm có bậc bảo đảm (không phải fallback).
+// keys: các nhóm trên bánh xe; groupsOf(k): hòm của nhóm k (theo bậc). Trả về { keys, due, limited }:
+//   due      loại pity của lượt tới ("purple" / "gold" / null)
+//   limited  true khi bánh xe bị giới hạn (keys chỉ còn các nhóm có bậc bảo đảm). Không có nhóm nào có bậc đó, hoặc nhóm
+//            nào cũng có, thì keys giữ nguyên (lượt pity dùng fallback như cũ) và limited = false.
+function pityWheelKeys(keys, groupsOf, counter) {
+  const due = pityDue(counter);
+  if (!due) return { keys, due: null, limited: false };
+  const good = keys.filter((k) => !pityTiers(due, groupsOf(k)).fallback);
+  return good.length && good.length < keys.length ? { keys: good, due, limited: true } : { keys, due, limited: false };
+}
+
 // Hai thanh tiến độ: [{ kind, label, count, need }], vd. "Purple or better 3/5", "Gold 3/10".
 function pityProgress(counter) {
   return Object.entries(PITY_KINDS).map(([kind, k]) => ({ kind, label: k.label, count: counter[kind], need: k.need }));

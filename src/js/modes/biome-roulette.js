@@ -91,6 +91,7 @@ const biome = {
   selected: null,   // nhóm đang chọn; null = chưa quay
   lost: null,       // nhóm vừa bị bỏ vì đổi gen (để báo); đổi gen làm nó hợp lệ lại thì chọn lại
   lostRare: false,  // true nếu nhóm đó bị bỏ vì chỉ còn Pokémon hiếm (Red/Gold)
+  pitySpin: null,   // lần quay ra nhóm đang chọn bị pity giới hạn (wheel-mode.js)
 };
 
 function biomeChip(key) {

@@ -13,7 +13,8 @@ const ICON_WHEEL_BTN = ICON_WHEEL.replace('width="20" height="20"', 'width="18" 
 //   title           tên chế độ trong popup kết quả, vd. "Type Roulette"
 //   prefix          đầu id các phần tử của chế độ, vd. "tr" → tr-wheel, tr-reel, tr-odds-title…
 //   wheel, disc, hub id khung bánh xe, phần quay, tâm (= prefix + "-wheel" / "-disc" / "-hub")
-//   state           trạng thái: { types, pools, rotation, selected, lost, lostRare }
+//   state           trạng thái: { types, pools, rotation, selected, lost, lostRare, pitySpin }
+//                     pitySpin: lần quay ra nhóm đang chọn bị pity giới hạn { key, due, n } (null = quay thường)
 //   storageKey      khóa localStorage của nhóm đang chọn; valid(key): nhóm đọc lại được không
 //   noun            tên một nhóm, vd. "type" (→ "Type case", "18 types on the wheel"…)
 //   color(k), label(k)   màu và tên của nhóm (ô bánh xe, tâm, popup kết quả)
@@ -32,14 +33,49 @@ const ICON_WHEEL_BTN = ICON_WHEEL.replace('width="20" height="20"', 'width="18" 
 const capFirst = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 const wheelCaseTitle = (w) => `${capFirst(w.noun)} case`;
 const wheelValid = (w) => w.state.pools[w.state.selected] ? w.state.selected : null;
+const wheelPlural = (w, n) => `${n} ${w.noun}${n > 1 ? "s" : ""}`;
+
+// Hòm (theo bậc, đã áp custom pool) của nhóm k trên bánh xe w — dùng để xét pity của bánh xe.
+const wheelGroupsOf = (w) => (k) => groupByRarity(wheelCase(w.mode, w.state, k).list);
+
+// Lần quay bánh xe ra nhóm đang chọn có bị giới hạn vì pity không: { key, due, n } hoặc null.
+const wheelPitySpin = (w) => (w.state.pitySpin && w.state.pitySpin.key === w.state.selected ? w.state.pitySpin : null);
+
+// Câu về cơ hội của nhóm key trên bánh xe: "Fire is 1 in 18 on the wheel", hoặc lượt quay bị pity giới hạn:
+// "Fire came from a pity spin: only the 4 types with Gold could come up".
+function wheelChanceText(w, key) {
+  const ps = wheelPitySpin(w);
+  return ps && ps.key === key
+    ? `${w.label(key)} came from a pity spin: only the ${wheelPlural(w, ps.n)} with ${PITY_KINDS[ps.due].label} could come up`
+    : `${w.label(key)} is 1 in ${w.state.types.length} on the wheel`;
+}
+
+// Dòng dưới bánh xe: số nhóm và cơ hội mỗi nhóm (lượt quay bị pity giới hạn thì ghi rõ).
+function renderWheelCaption(w) {
+  const st = w.state, n = st.types.length, ps = wheelPitySpin(w);
+  $(`${w.prefix}-wheel-caption`).textContent = !n
+    ? custom.pool.length ? `No ${w.noun}s on the wheel` : `No ${w.noun}s: select at least one generation`
+    : ps ? `Pity spin: only the ${wheelPlural(w, ps.n)} with ${PITY_KINDS[ps.due].label} could come up`
+    : `${wheelPlural(w, n)} on the wheel · each 1 in ${n}`;
+}
+
+// Cảnh báo cạnh nút Open: lượt mở tới là pity nhưng hòm của nhóm đang chọn không có bậc bảo đảm, trong khi quay lại
+// bánh xe thì ra được nhóm có bậc đó. Chỉ dựa vào bộ đếm và nhóm hiện tại (không lộ kết quả). "" nếu không cần.
+function pityWheelWarning(w) {
+  const st = w.state, counter = state.pity[w.mode], due = pityDue(counter);
+  if (!due || !st.pools[st.selected]) return "";
+  const groupsOf = wheelGroupsOf(w);
+  if (!pityTiers(due, groupsOf(st.selected)).fallback) return "";
+  if (!pityWheelKeys(st.types, groupsOf, counter).limited) return ""; // không nhóm nào có bậc đó: quay lại cũng vậy
+  const label = PITY_KINDS[due].label;
+  return `This ${w.noun} has no ${label} — spin the wheel again to use your ${label} pity.`;
+}
 
 // Vẽ lại bánh xe theo các nhóm hiện có; đang có nhóm thì kim chỉ vào giữa ô của nhóm đó.
 function renderModeWheel(w) {
   const st = w.state, n = st.types.length;
   drawWheel(w, st.types);
-  $(`${w.prefix}-wheel-caption`).textContent = n
-    ? `${n} ${w.noun}${n > 1 ? "s" : ""} on the wheel · each 1 in ${n}`
-    : custom.pool.length ? `No ${w.noun}s on the wheel` : `No ${w.noun}s: select at least one generation`;
+  renderWheelCaption(w);
   if (st.pools[st.selected]) {
     setWheelRotation(wheelTarget(0, st.types.indexOf(st.selected), n, 0, 0), w);
     markWheelWinner(st.selected, w);
@@ -67,7 +103,7 @@ function renderWheelOdds(w, key, note) {
   const groups = groupByRarity(c.list);
   $(`${p}-odds-title`).innerHTML = `${w.chip(key)} case${customPoolBadge(c)}`;
   renderCaseCount($(`${p}-odds-count`), groupsSize(groups));
-  setOddsSub($(`${p}-odds-sub`), `${w.label(key)} is 1 in ${n} on the wheel. Empty tiers drop to the next lower tier.`, c);
+  setOddsSub($(`${p}-odds-sub`), `${wheelChanceText(w, key)}. Empty tiers drop to the next lower tier.`, c);
   renderOddsTable($(`${p}-odds-list`), groups, { pity: true });
   if (info) {
     info.hidden = false;
@@ -92,12 +128,15 @@ function refreshWheelMode(w) {
 }
 
 // Hành động 1: quay bánh xe ra một nhóm (mỗi nhóm trên bánh xe có cơ hội như nhau). Không mở hòm.
+// Lượt mở tới là pity: bánh xe chỉ dừng ở nhóm có bậc bảo đảm (pityWheelKeys); không có nhóm nào như vậy thì quay như thường.
 async function spinModeWheel(w, { quick = false }) {
-  const st = w.state, keys = st.types;
-  const key = pickRandom(keys, Math.random());
+  const st = w.state;
+  const pity = pityWheelKeys(st.types, wheelGroupsOf(w), state.pity[w.mode]);
+  const key = pickRandom(pity.keys, Math.random());
   // Lưu ngay kết quả (tải lại trang giữa chừng vẫn giữ), nhưng chỉ hiện ra khi bánh xe dừng
   st.selected = null;
   st.lost = null;
+  st.pitySpin = pity.limited ? { key, due: pity.due, n: pity.keys.length } : null;
   saveJson(w.storageKey, key);
 
   if (quick) {
@@ -107,9 +146,11 @@ async function spinModeWheel(w, { quick = false }) {
     audio(); // mở âm thanh ngay trong lúc bấm
     renderWheelOdds(w, null, w.text.spinning);
   }
-  await spinWheelTo(w, key, { quick });
+  const done = spinWheelTo(w, key, { quick });
+  if (done) await done; // Quick: không chờ, xong ngay trong lượt bấm
 
   st.selected = key;
+  renderWheelCaption(w);
   renderWheelOdds(w, key);
   renderWheelIdleReel(w);
   setCustomSpinning(false);
@@ -145,7 +186,7 @@ async function openWheelCase(w, { quick = false }) {
     canAgain: st.selected === key,
     extra: `
       <div class="result-note mode-note" style="--t:${w.color(key)}">
-        ${w.title} · <b>${name}</b> case. The odds above are within the ${name} case; ${name} is 1 in ${st.types.length} on the wheel.${customPoolNote(c)}
+        ${w.title} · <b>${name}</b> case. The odds above are within the ${name} case; ${wheelChanceText(w, key)}.${customPoolNote(c)}
       </div>`,
   });
 }
@@ -211,7 +252,7 @@ function wheelModeParts(w) {
       if (!st.types.length) return emptyWheelText(w.noun);
       if (st.lost) return lostGroupMessage(w.label(st.lost), st.lostRare, w.text.again);
       if (!st.selected) return w.text.first;
-      return "";
+      return pityWheelWarning(w);
     },
     mount: (stage) => mountWheelMode(w, stage),
     contents: (key) => wheelContents(key, {
