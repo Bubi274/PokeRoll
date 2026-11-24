@@ -1,5 +1,52 @@
-// Hoạt ảnh xoay bánh xe và đánh dấu ô trúng.
+// Bánh xe dùng chung (trang Custom và tab Challenge): khung HTML, vẽ ô, quay tới một ô, hoạt ảnh và đánh dấu ô trúng.
+// Mọi hàm nhận w = mô tả bánh xe: { wheel, disc, hub (id khung, phần quay, tâm), state: { types, rotation },
+// color(k), label(k), upright?, wheelClass? }. Bỏ trống w = bánh xe Type Roulette.
 "use strict";
+
+// Khung HTML của một bánh xe (phần quay, tâm, kim chỉ).
+function wheelMarkup(w) {
+  return `
+    <div class="wheel${w.wheelClass ? ` ${w.wheelClass}` : ""}" id="${w.wheel}">
+      <div class="wheel-disc" id="${w.disc}"></div>
+      <div class="wheel-hub"><span class="wheel-hub-type" id="${w.hub}"></span></div>
+      <div class="wheel-pointer" aria-hidden="true"></div>
+    </div>`;
+}
+
+// Vẽ các ô keys lên bánh xe w (giữ góc xoay hiện tại), chưa có ô trúng: tâm hiện "?" (bánh xe trống: không có gì).
+function drawWheel(w, keys) {
+  w.state.types = keys;
+  setWheelRotation(w.state.rotation % 360, w);
+  setWheelDisc($(w.disc), keys, keys.length ? wheelSvg(keys, w) : "");
+  $(w.wheel).classList.toggle("is-empty", keys.length === 0);
+  clearWheelWinner(w);
+  $(w.hub).textContent = keys.length ? "?" : "";
+}
+
+// Bỏ đánh dấu ô trúng (trước khi quay lại).
+function clearWheelWinner(w) {
+  $(w.wheel).classList.remove("has-winner");
+  $(w.hub).textContent = "?";
+  $(w.hub).style.removeProperty("--t");
+}
+
+// Quay bánh xe w tới ô key (phải có trên bánh xe). quick: nhảy ngay tới góc dừng, không có hiệu ứng.
+// Xong thì đánh dấu ô trúng (tên ô hiện ở tâm). Trả về Promise xong khi bánh xe dừng.
+async function spinWheelTo(w, key, { quick = false } = {}) {
+  const st = w.state, keys = st.types;
+  const target = wheelTarget(st.rotation % 360, keys.indexOf(key), keys.length);
+  clearWheelWinner(w);
+  if (quick) {
+    setWheelRotation(target, w);
+  } else {
+    setWheelRotation(st.rotation % 360, w); // thu góc về 0–360° (nhìn không đổi) để số không lớn dần
+    await animateWheel(target, w);
+    // Bánh xe đang ẩn (ở tab khác) thì không đọc được góc trên màn hình
+    const landed = $(w.disc).getClientRects().length ? keys[wheelSliceOnScreen(w)] : key;
+    if (landed !== key) console.error(`${w.text ? w.text.stopped : "Wheel"} stopped on ${landed}, expected ${key}`);
+  }
+  markWheelWinner(key, w);
+}
 
 // Đặt ngay góc xoay của bánh xe, không có hiệu ứng.
 function setWheelRotation(deg, w = TYPE_WHEEL) {

@@ -36,12 +36,7 @@ const wheelValid = (w) => w.state.pools[w.state.selected] ? w.state.selected : n
 // Vẽ lại bánh xe theo các nhóm hiện có; đang có nhóm thì kim chỉ vào giữa ô của nhóm đó.
 function renderModeWheel(w) {
   const st = w.state, n = st.types.length;
-  setWheelRotation(st.rotation % 360, w);
-  setWheelDisc($(w.disc), st.types, n ? wheelSvg(st.types, w) : "");
-  $(w.wheel).classList.toggle("is-empty", n === 0);
-  $(w.wheel).classList.remove("has-winner");
-  $(w.hub).textContent = n ? "?" : "";
-  $(w.hub).style.removeProperty("--t");
+  drawWheel(w, st.types);
   $(`${w.prefix}-wheel-caption`).textContent = n
     ? `${n} ${w.noun}${n > 1 ? "s" : ""} on the wheel · each 1 in ${n}`
     : custom.pool.length ? `No ${w.noun}s on the wheel` : `No ${w.noun}s: select at least one generation`;
@@ -100,31 +95,21 @@ function refreshWheelMode(w) {
 async function spinModeWheel(w, { quick = false }) {
   const st = w.state, keys = st.types;
   const key = pickRandom(keys, Math.random());
-  const target = wheelTarget(st.rotation % 360, keys.indexOf(key), keys.length);
   // Lưu ngay kết quả (tải lại trang giữa chừng vẫn giữ), nhưng chỉ hiện ra khi bánh xe dừng
   st.selected = null;
   st.lost = null;
   saveJson(w.storageKey, key);
-  $(w.wheel).classList.remove("has-winner");
-  $(w.hub).textContent = "?";
-  $(w.hub).style.removeProperty("--t");
 
   if (quick) {
     setCustomSpinning(true);
-    setWheelRotation(target, w);
   } else {
     setCustomSpinning(true, "Spinning…");
     audio(); // mở âm thanh ngay trong lúc bấm
     renderWheelOdds(w, null, w.text.spinning);
-    setWheelRotation(st.rotation % 360, w); // thu góc về 0–360° (nhìn không đổi) để số không lớn dần
-    await animateWheel(target, w);
-    // Bánh xe đang ẩn (ở tab khác) thì không đọc được góc trên màn hình
-    const landed = $(w.disc).getClientRects().length ? keys[wheelSliceOnScreen(w)] : key;
-    if (landed !== key) console.error(`${w.text.stopped} stopped on ${landed}, expected ${key}`);
   }
+  await spinWheelTo(w, key, { quick });
 
   st.selected = key;
-  markWheelWinner(key, w);
   renderWheelOdds(w, key);
   renderWheelIdleReel(w);
   setCustomSpinning(false);
@@ -172,11 +157,7 @@ function mountWheelMode(w, stage) {
   stage.innerHTML = `
       <div class="tr-layout">
         <div class="tr-wheel-col">
-          <div class="wheel${w.wheelClass ? ` ${w.wheelClass}` : ""}" id="${w.wheel}">
-            <div class="wheel-disc" id="${w.disc}"></div>
-            <div class="wheel-hub"><span class="wheel-hub-type" id="${w.hub}"></span></div>
-            <div class="wheel-pointer" aria-hidden="true"></div>
-          </div>
+          ${wheelMarkup(w)}
           <p class="wheel-caption" id="${p}-wheel-caption" aria-live="polite"></p>
         </div>
         <div class="tr-side">
