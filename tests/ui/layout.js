@@ -21,7 +21,7 @@ app.whenReady().then(async () => {
     if (challenge.pending) { keepChallengeLegend(); continue; }
     await runChallengeRoll({ quick: true }); document.getElementById("result-modal").close(); }
     document.getElementById("ch-legend-modal").close(); return 1; })()`);
-  for (const w of [320, 360, 390, 430, 768]) {
+  for (const w of [320, 360, 390, 430, 768, 1280]) {
     win.setContentSize(w, 800); await sleep(300);
     for (const view of ["case", "collection", "custom", "challenge"]) {
       await js(`showView("${view}")`); await sleep(150);
@@ -34,7 +34,19 @@ app.whenReady().then(async () => {
         return { sw: d.scrollWidth, cw: d.clientWidth, tabRight: Math.max(...tabs.map(b => b.right)), tabLeft: Math.min(...tabs.map(b => b.left)), out }; })()`);
       const ok = r.sw <= r.cw && r.tabRight <= r.cw && r.tabLeft >= 0;
       if (!ok) fails++;
-      console.log(`${ok ? "PASS" : "FAIL"}  ${w}px ${view}: scrollWidth ${r.sw} / ${r.cw}, tabs ${r.tabLeft.toFixed(0)}–${r.tabRight.toFixed(0)}${r.out.length ? "  overflow: " + r.out.join(", ") : ""}`);
+      console.log(`${ok ? "PASS" : "FAIL"}  ${w}px ${view}: scrollWidth ${r.sw} / ${r.cw}, tabs ${r.tabLeft.toFixed(0)}–${r.tabRight.toFixed(0)}${r.out.length ? "  overflow: " + r.out.join(", ") : ""}`);      // Nút Roll của tab Challenge: chữ dài nhất vẫn hiện đủ (không bị cắt "…", không tràn khỏi nút)
+      if (view === "challenge") {
+        const fit = await js(`(() => { const btn = document.getElementById("ch-roll"), lab = btn.querySelector(".action-label"), before = lab.textContent;
+          const labels = ["Reroll slot 6 · Letter Roulette", "Reroll slot 6 · Biome Roulette", "Roll slot 6 · Letter Roulette", "Roll slot 6 · Type Roulette", "Pick slots to reroll", before];
+          const bad = labels.filter((t) => { lab.textContent = t;
+            const b = btn.getBoundingClientRect(), l = lab.getBoundingClientRect();
+            return lab.scrollWidth > lab.clientWidth + 1 || l.left < b.left - 0.5 || l.right > b.right + 0.5 || l.top < b.top - 0.5 || l.bottom > b.bottom + 0.5; });
+          lab.textContent = before;
+          return { bad, lines: Math.round(lab.getBoundingClientRect().height / parseFloat(getComputedStyle(lab).lineHeight)) }; })()`);
+        const fits = fit.bad.length === 0;
+        if (!fits) fails++;
+        console.log(`${fits ? "PASS" : "FAIL"}  ${w}px challenge: Roll button shows its whole label${fits ? "" : "  cut: " + fit.bad.join(" | ")}`);
+      }
     }
   }
   win.setContentSize(360, 300); await js(`showView("custom")`); await sleep(300);

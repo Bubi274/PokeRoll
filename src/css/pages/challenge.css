@@ -191,6 +191,20 @@
 .ch-legend-text { margin: 0; font-size: 0.85rem; color: var(--muted); }
 .ch-keep { width: auto; padding: 11px 24px; font-size: 0.9rem; }
 
+/* ===== Nút Roll: chữ dài ("Reroll slot 6 · Letter Roulette") luôn hiện đủ =====
+   Nhóm nút rộng hơn nút hành động trang Custom; hết chỗ thì chữ xuống dòng (cân hai dòng) thay vì bị cắt "…". */
+.ch-roll-group { flex-basis: 560px; }
+#ch-roll { padding-block: 12px; min-height: 58px; }
+#ch-roll .action-label {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere; /* phòng một từ dài hơn cả nút ở màn rất hẹp */
+  text-wrap: balance;
+  line-height: 1.35;
+  text-align: center;
+}
+
 /* ===== Tablet / điện thoại ===== */
 @media (max-width: 1023px) {
   .ch-team { grid-template-columns: repeat(3, minmax(0, 1fr)); }
