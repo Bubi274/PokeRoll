@@ -78,13 +78,14 @@ check("Step 2: a group that's not on the wheel any more → null", A.challengeGr
   && A.challengeGroupCase("biome", special, "forest") === null);
 check("Step 1 with Gold pity due: only types with Gold", Array.from({ length: 100 }, (_, i) => A.pickChallengeGroup("type", gen1, rng(100 + i), { purple: 0, gold: 9 }))
   .every((x) => goldTypes.includes(x.key) && same(x.pitySpin, { due: "gold", n: goldTypes.length })));
-// Kết quả bánh xe đã lưu (khoá)
-const W = A.cleanChallengeWheel;
-check("Saved wheel: valid result kept", same(W({ source: "type", key: "fire", pitySpin: null }), { source: "type", key: "fire", pitySpin: null })
-  && same(W({ source: "letter", key: "S", pitySpin: { due: "gold", n: 3 } }), { source: "letter", key: "S", pitySpin: { due: "gold", n: 3 } }));
-check("Saved wheel: broken or unknown → null (no lock)", [null, "x", {}, { source: "case", key: "fire" }, { source: "minigame", key: "fire" },
-  { source: "type", key: "lava" }, { source: "letter", key: "s" }, { source: "biome", key: 3 }].every((x) => W(x) === null));
-check("Saved wheel: a broken pitySpin is dropped, the result is kept", same(W({ source: "type", key: "ice", pitySpin: { due: "blue", n: 2 } }), { source: "type", key: "ice", pitySpin: null }));
+// Nhóm đang giữ của từng nguồn Roulette (lưu trong storage, như trang Custom)
+const G = A.cleanChallengeGroups;
+const none = { type: null, biome: null, letter: null };
+check("Saved groups: each Roulette source keeps its own group", same(G({ type: { key: "fire", pitySpin: null }, letter: { key: "S", pitySpin: { due: "gold", n: 3 } } }),
+  { type: { key: "fire", pitySpin: null }, biome: null, letter: { key: "S", pitySpin: { due: "gold", n: 3 } } }));
+check("Saved groups: missing or broken → none", same(G(null), none) && same(G([1]), none) && same(G("x"), none));
+check("Saved groups: a key that isn't a group of that source is dropped", same(G({ type: { key: "S" }, biome: { key: 3 }, letter: { key: "s" }, case: { key: "fire" } }), none));
+check("Saved groups: a broken pitySpin is dropped, the group is kept", same(G({ type: { key: "ice", pitySpin: { due: "blue", n: 2 } } }).type, { key: "ice", pitySpin: null }));
 
 // 3. Ô của mã TW1 → Pokémon trong app
 const slot = (o) => ({ dex: 25, name: "Pikachu", special: null, rule: "evo", shiny: false, tier: "blue", mode: "case", ...o });

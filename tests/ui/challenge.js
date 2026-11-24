@@ -46,7 +46,8 @@ app.whenReady().then(async () => {
     space: challengeSpaceButton().id,
   }))()`);
   // Một lượt đủ (Roulette: quay bánh xe rồi mở hòm), Quick
-  const roll = () => js(`(async () => { await runChallengeNext({ quick: true }); if (challengeLockedGroup()) await runChallengeRoll({ quick: true }); return 1; })()`);
+  // Roulette chưa có nhóm thì quay bánh xe trước; có rồi thì mở luôn hòm của nhóm đang giữ
+  const roll = () => js(`(async () => { if (challengeTwoStep() && !challengeHeldGroup()) await runChallengeSpin({ quick: true }); await runChallengeRoll({ quick: true }); return 1; })()`);
   const waitIdle = () => js(`new Promise((done) => { const t = setInterval(() => { if (!state.spinning) { clearInterval(t); done(1); } }, 50); })`);
   // Bánh xe của tab Challenge
   const wheel = () => js(`(() => { const col = document.getElementById("ch-wheel-col"), w = document.getElementById("ch-wheel");
@@ -99,45 +100,41 @@ app.whenReady().then(async () => {
     b.blur(); document.body.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true })); b.removeEventListener("click", f, { capture: true }); return hit; })()`));
   await js(`resetChallenge(); renderChallenge(); state.pity = cleanPityCounters({}); savePity(); renderPityMeters()`);
 
-  // 2. Nguồn Type: 2 bước (Spin type wheel → Open <type> case), bộ đếm Type Roulette, lịch sử gắn nhãn Challenge
+  // 2. Nguồn Type như trang Custom: Spin type wheel giữ một hệ, Open <type> case mở nhiều lần; bộ đếm Type Roulette; lịch sử
   await js(`selectChallengeSource("type")`);
   u = await ui();
-  check("Type source: two buttons, Spin type wheel and Open case", u.spinShown && u.spinLabel === "Spin type wheel" && !u.spinDisabled
+  check("Type source: two buttons, Spin type wheel and Open case (locked until the first spin)", u.spinShown && u.spinLabel === "Spin type wheel" && !u.spinDisabled
     && u.label === "Open case" && u.disabled && !u.pityHidden, JSON.stringify(u));
-  check("Before spinning: Space spins the wheel, Open case is the secondary button", u.space === "ch-spin" && /to spin the wheel/.test(u.kbd)
+  check("No type yet: Space spins the wheel, Open case is the secondary button", u.space === "ch-spin" && /to spin the wheel/.test(u.kbd)
     && await js(`document.getElementById("ch-roll").classList.contains("is-secondary")`));
   let wh = await wheel();
   check("Type source: the type wheel shows before rolling (18 types, hub ?)", !wh.hidden && wh.slices === 18 && wh.hub === "?" && !wh.winner
     && wh.caption === "18 types on the wheel · each 1 in 18", JSON.stringify(wh));
   await js(`state.pity["type-roulette"] = { purple: 2, gold: 2 }; savePity(); renderPityMeters()`);
   const histLen = await js(`state.history.length`);
-  // Bước 1 (Quick): chỉ quay bánh xe
+  // Quay bánh xe (Quick): chỉ chọn hệ
   await js(`runChallengeSpin({ quick: true }).then(() => 1)`);
   u = await ui();
-  const lock1 = await js(`challenge.wheel`);
-  const typeName1 = await js(`typeName(${JSON.stringify(lock1 && lock1.key)})`);
+  const held1 = await js(`challenge.groups.type`);
+  const typeName1 = await js(`typeName(${JSON.stringify(held1 && held1.key)})`);
   wh = await wheel();
-  check("Step 1 (Quick): the wheel shows the type, no Pokémon yet", lock1 && lock1.source === "type" && wh.winner === lock1.key && wh.hub === typeName1
-    && u.slots[0] === "-" && await js(`state.history.length`) === histLen, JSON.stringify(lock1));
-  check("Step 1: pity counter not touched yet", same(await js(`state.pity["type-roulette"]`), { purple: 2, gold: 2 }));
-  check("Step 1: wheel result saved right away", same(await js(`JSON.parse(localStorage.getItem("pokeroll.challenge")).wheel`), lock1));
-  check("Locked: Open <type> case enabled, Spin locked, hint says open it first", u.label === `Open ${typeName1} case` && !u.disabled && u.spinDisabled
-    && u.hint === `Open the ${typeName1} case first.` && u.space === "ch-roll" && /to open the case/.test(u.kbd), JSON.stringify(u));
-  check("Locked: sources, generations, Start over, Import and Use reroll code are locked", u.sourcesLocked
-    && await js(`["ch-import", "ch-use-reroll", "ch-start-over", "ch-all", "ch-none"].every((id) => document.getElementById(id).disabled)
-      && [...document.querySelectorAll("#ch-gen-grid input")].every((x) => x.disabled)`));
-  await js(`selectChallengeSource("case"); runChallengeSpin({ quick: true }); 1`);
-  check("Locked: can't change the source or spin again", await js(`challenge.source`) === "type" && same(await js(`challenge.wheel`), lock1));
-  await js(`importChallenge(); 1`);
-  check("Locked: Import says to open the case first", (await ui()).msg === `Open the ${typeName1} case first.`);
-  // Bước 2 (Quick): mở hòm của hệ đã trúng
+  check("Spin (Quick): the wheel shows the type, no Pokémon yet", held1 && wh.winner === held1.key && wh.hub === typeName1
+    && u.slots[0] === "-" && await js(`state.history.length`) === histLen, JSON.stringify(held1));
+  check("Spin: pity counter not touched", same(await js(`state.pity["type-roulette"]`), { purple: 2, gold: 2 }));
+  check("Spin: the type is saved for the Type source", same(await js(`JSON.parse(localStorage.getItem("pokeroll.challenge")).groups.type`), held1));
+  check("With a type: Open <type> case, Space opens it, Spin still available", u.label === `Open ${typeName1} case` && !u.disabled && !u.spinDisabled
+    && u.space === "ch-roll" && /to open the case/.test(u.kbd) && u.hint === "", JSON.stringify(u));
+  check("Nothing else is locked by the wheel: sources, generations, Import, Use reroll code", !u.sourcesLocked
+    && await js(`["ch-import", "ch-use-reroll", "ch-all", "ch-none"].every((id) => !document.getElementById(id).disabled)
+      && [...document.querySelectorAll("#ch-gen-grid input")].every((x) => !x.disabled)`));
+  // Mở hòm (Quick), hai lần liên tiếp với cùng hệ
   await js(`runChallengeRoll({ quick: true }).then(() => 1)`);
   u = await ui();
   const h = await js(`state.history[0]`);
   const typeEntry = await js(`challenge.pending ? challenge.pending.entry : challenge.team[0]`);
   if (u.legend) await js(`keepChallengeLegend()`);
-  check("Step 2 fills slot 1 from the type that came up", typeEntry.source === "type" && typeEntry.detail === lock1.key, JSON.stringify(typeEntry));
-  check("Step 2 unlocks the wheel", await js(`challenge.wheel`) === null && await js(`JSON.parse(localStorage.getItem("pokeroll.challenge")).wheel`) === null);
+  check("Open fills slot 1 from the type on the wheel", typeEntry.source === "type" && typeEntry.detail === held1.key, JSON.stringify(typeEntry));
+  check("The type is kept after opening", same(await js(`challenge.groups.type`), held1));
   check("History entry: mode challenge, detail type:<type>", h.mode === "challenge" && h.detail === `type:${typeEntry.detail}`, JSON.stringify(h));
   check("Rolled Pokémon is added to the collection", await js(`Boolean(state.collection[${JSON.stringify(typeEntry.id)}])`));
   const tp = await js(`state.pity["type-roulette"]`), cp = await js(`state.pity.case`);
@@ -147,43 +144,56 @@ app.whenReady().then(async () => {
     && await js(`document.getElementById("result-body").textContent.replace(/\\s+/g, " ")`).then((t) => t.includes(`Challenge · slot 1/6 · Type Roulette · ${typeName1}.`)));
   await closeAll();
   u = await ui();
-  check("Next: back to step 1 for slot 2", u.spinLabel === "Spin type wheel" && !u.spinDisabled && u.label === "Open case" && u.disabled
-    && u.slots[0] !== "-" && u.slots[1] === "-" && !u.sourcesLocked);
+  check("Next slot: still Open <type> case, no need to spin again", u.label === `Open ${typeName1} case` && !u.disabled && u.space === "ch-roll"
+    && u.slots[0] !== "-" && u.slots[1] === "-", JSON.stringify(u));
   check("Slot 1 says its source: Type Roulette · <type>", await srcLabel(0) === `Type Roulette · ${typeName1}`, await srcLabel(0));
   check("Slot 1 has a Remove button, empty slots don't", same(await removable(), [true, false, false, false, false, false]));
+  await js(`runChallengeRoll({ quick: true }).then(() => 1)`);
+  const again = await js(`challenge.pending ? challenge.pending.entry : challenge.team[1]`);
+  check("Open again: slot 2 from the same type", again && again.detail === held1.key, JSON.stringify(again));
+  await closeAll();
+  if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
+  await js(`removeChallengeSlot(1); saveChallenge(); renderChallenge()`); // giữ số ô cho các mục sau
 
-  // 2b. Có hiệu ứng: bánh xe quay (chưa lộ nhóm); tải lại trang vẫn khoá; Space mở hòm
+  // 2b. Spin bất cứ lúc nào; mỗi nguồn nhớ nhóm riêng; tải lại trang vẫn giữ; có hiệu ứng; Space
+  await js(`selectChallengeSource("biome")`);
+  u = await ui();
+  check("Biome has no group yet: Open case locked, Space spins (Type keeps its own)", u.label === "Open case" && u.disabled && u.space === "ch-spin"
+    && same(await js(`challenge.groups.type`), held1) && await js(`challenge.groups.biome`) === null, JSON.stringify(u));
+  await js(`runChallengeSpin({ quick: true }).then(() => 1)`);
+  const heldBiome = await js(`challenge.groups.biome`);
+  await js(`selectChallengeSource("type")`);
+  u = await ui(); wh = await wheel();
+  check("Back to Type: its type is still there (wheel and Open button)", u.label === `Open ${typeName1} case` && wh.winner === held1.key
+    && same(await js(`challenge.groups.biome`), heldBiome), JSON.stringify(wh));
+  // Có hiệu ứng: bánh xe quay (chưa lộ hệ mới)
   await js(`state.pity["type-roulette"] = { purple: 0, gold: 0 }; savePity(); renderChallenge(); runChallengeSpin(); 1`); await sleep(120);
   const midWheel = await wheel();
   u = await ui();
-  check("While the wheel spins: no winner yet, hub ?, Spinning… on the Spin button", await js("state.spinning") && !midWheel.winner && midWheel.hub === "?"
+  check("While the wheel spins: no winner yet, hub ?, Spinning… on the Spin button, Open locked", await js("state.spinning") && !midWheel.winner && midWheel.hub === "?"
     && u.slots[1] === "-" && u.spinLabel === "Spinning…" && u.disabled, JSON.stringify(midWheel));
   await waitIdle(); await sleep(200);
-  const lock2 = await js(`challenge.wheel`);
+  const held2 = await js(`challenge.groups.type`);
   wh = await wheel();
-  check("After the spin: the wheel shows the type, slot 2 still empty", lock2 && wh.winner === lock2.key && (await ui()).slots[1] === "-", JSON.stringify(wh));
+  check("After the spin: the wheel shows the new type, slot 2 still empty", held2 && wh.winner === held2.key && (await ui()).slots[1] === "-", JSON.stringify(wh));
   await win.reload(); await sleep(500);
   await js(`showView("challenge")`); await sleep(300);
   u = await ui();
   wh = await wheel();
-  check("After reload: still locked on the same type (shown on the wheel), can't spin again", same(await js(`challenge.wheel`), lock2)
-    && wh.winner === lock2.key && u.spinDisabled && u.label === `Open ${await js(`typeName(${JSON.stringify(lock2.key)})`)} case` && !u.disabled, JSON.stringify(u));
+  const typeName2 = await js(`typeName(${JSON.stringify(held2.key)})`);
+  check("After reload: Type and Biome keep their groups; the wheel shows the type", same(await js(`challenge.groups.type`), held2)
+    && same(await js(`challenge.groups.biome`), heldBiome) && wh.winner === held2.key && u.label === `Open ${typeName2} case` && !u.disabled && !u.spinDisabled, JSON.stringify(u));
   await js(`document.activeElement && document.activeElement.blur(); document.body.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true })); 1`);
   await sleep(100); await waitIdle(); await sleep(200);
   const e2 = await js(`challenge.pending ? challenge.pending.entry : challenge.team[1]`);
-  check("Space opens the locked type's case", e2 && e2.source === "type" && e2.detail === lock2.key
-    && await js(`challengePokemon(${JSON.stringify(e2)}).types.includes(${JSON.stringify(lock2.key)})`), JSON.stringify(e2));
+  check("Space opens the type's case", e2 && e2.source === "type" && e2.detail === held2.key
+    && await js(`challengePokemon(${JSON.stringify(e2)}).types.includes(${JSON.stringify(held2.key)})`), JSON.stringify(e2));
   await closeAll();
   if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
-  check("Space spins the wheel when there is no type yet", await js(`(() => { let hit = false; const b = document.getElementById("ch-spin");
-    const f = (e) => { hit = true; e.stopImmediatePropagation(); }; b.addEventListener("click", f, { capture: true });
-    document.body.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true })); b.removeEventListener("click", f, { capture: true }); return hit; })()`));
-  check("Quick buttons on both steps", await js(`Boolean(document.querySelector("#ch-spin-quick svg")) && Boolean(document.querySelector("#ch-quick svg"))`));
+  check("Quick buttons on both", await js(`Boolean(document.querySelector("#ch-spin-quick svg")) && Boolean(document.querySelector("#ch-quick svg"))`));
   await js(`document.getElementById("ch-spin-quick").click(); 1`);
-  check("⚡ on step 1: the wheel result shows at once", await js(`Boolean(challenge.wheel) && !state.spinning
-    && document.getElementById("ch-wheel").classList.contains("has-winner")`));
-  // Không lấp ô này (giữ số ô cho các mục sau): khoá rồi xoá khoá như Clear data
-  await js(`challenge.wheel = null; saveChallenge(); renderChallenge()`);
+  check("⚡ Spin: the new type shows at once", await js(`!state.spinning && document.getElementById("ch-wheel").classList.contains("has-winner")
+    && document.querySelector("#ch-wheel .wheel-slice.is-winner").dataset.type === challenge.groups.type.key`));
 
   // 3. Nguồn Minigame không còn; Biome và Letter có bánh xe riêng
   await js(`selectChallengeSource("minigame")`);
@@ -209,23 +219,30 @@ app.whenReady().then(async () => {
     selectChallengeSource("type"); state.pity["type-roulette"] = { purple: 0, gold: 9 }; savePity(); renderChallenge()`);
   check("Gold pity due: Next open line under the Challenge pity bars", await js(`(document.querySelector("#ch-pity .pity-next") || {}).textContent`) === "Next open: guaranteed Gold");
   const goldTypes = await js(`challengeWheelGroups("type", challengePool()).keys.filter((k) => !pityTiers("gold", groupByRarity(typePools(challengePool())[k])).fallback)`);
+  // Pity mà hệ đang giữ không có Gold: cảnh báo như trang Custom (mở lúc này thì dùng fallback)
+  await js(`challenge.groups.type = { key: "bug", pitySpin: null }; saveChallenge(); renderChallenge()`);
+  check("Gold pity due, held type has no Gold: warning next to Open", (await ui()).hint === "This type has no Gold — spin the wheel again to use your Gold pity.", (await ui()).hint);
+  await js(`state.pity["type-roulette"] = { purple: 4, gold: 2 }; savePity(); renderChallenge()`);
+  check("Purple pity due, Bug has Purple or better: no warning", (await ui()).hint === "", (await ui()).hint);
+  await js(`state.pity["type-roulette"] = { purple: 0, gold: 9 }; savePity(); renderChallenge()`);
   const i4 = await js(`nextChallengeIndex()`);
+  await js(`runChallengeSpin({ quick: true }).then(() => 1)`);
+  check("Spin with Gold pity due: lands on a type with Gold, the warning goes away", goldTypes.includes(await js(`challenge.groups.type.key`)) && (await ui()).hint === "");
   await roll();
   const e4 = await js(`challenge.pending ? challenge.pending.entry : challenge.team[${i4}]`);
   wh = await wheel();
   check("Gold pity: the wheel landed on a type with Gold", goldTypes.includes(e4.detail) && wh.winner === e4.detail, `${e4.detail} / ${goldTypes.join(",")}`);
   check("Gold pity: caption says it was a pity spin", wh.caption === `Pity spin: only the ${goldTypes.length} types with Gold could come up`, wh.caption);
   check("Gold pity: Gold, every card on the reel is Gold", e4.rarity === "gold" && same(await reelOthers(), ["gold"]), JSON.stringify(await reelOthers()));
-  // Legendary từ Roulette → Reroll: quay về bước 1 (bánh xe mới), không tự mở hòm cũ
+  // Legendary từ Roulette → Reroll: mở lại hòm của hệ đang giữ (không phải quay bánh xe)
   check("Gold from the Type wheel: Keep/Reroll dialog, Reroll (Type Roulette)", (await ui()).legend
     && await js(`document.getElementById("ch-legend-reroll").textContent`) === "Reroll (Type Roulette)");
   const histBefore = await js(`state.history.length`);
-  await js(`document.getElementById("ch-legend-reroll").click()`); await sleep(150);
-  u = await ui();
-  check("Reroll a Roulette Legendary: back to step 1 (spin a new wheel), slot empty, nothing rolled", !(await js("state.spinning"))
-    && await js(`challenge.wheel`) === null && !u.spinDisabled && u.space === "ch-spin" && u.label === "Open case" && u.disabled
-    && u.slots[i4] === "-" && await js(`state.history.length`) === histBefore, JSON.stringify(u));
-  await roll();
+  const heldGold = await js(`challenge.groups.type`);
+  await js(`legendQuick = true; document.getElementById("ch-legend-reroll").click()`); await sleep(150); await waitIdle(); await sleep(100);
+  const rr4 = await js(`challenge.pending ? challenge.pending.entry : challenge.team[${i4}]`);
+  check("Reroll a Roulette Legendary: opens the held type's case again (no new spin)", rr4 && rr4.detail === heldGold.key && rr4.source === "type"
+    && await js(`state.history.length`) === histBefore + 1 && same(await js(`challenge.groups.type`), heldGold), JSON.stringify(rr4));
   await closeAll();
   if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
   check("After the pity roll: Next open line gone", !(await js(`Boolean(document.querySelector("#ch-pity .pity-next"))`)));

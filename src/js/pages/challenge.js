@@ -8,8 +8,8 @@ const CHALLENGE_RULES_TEXT = [
   "Pick a source, then roll: each roll fills the first empty slot until you have 6 Pokémon.",
   "Don't want a Pokémon (a duplicate, say)? Remove it from its slot. It asks first and can't be undone; the slot is rolled again later. Pity counters are not given back.",
   "Case, Type, Biome and Letter use the same tier odds as their modes, and the same pity counters. Custom pools are not used here.",
-  "Type, Biome and Letter take two steps, like on the Custom page: Spin wheel picks a type, biome or letter, then Open case opens a case of it. The wheel holds the same groups as in Custom, each with the same chance.",
-  "Once the wheel has stopped, its result is locked until you open that case: you can't spin again or change the source (not even by reloading the page). Space does the next step; Quick works for both.",
+  "Type, Biome and Letter work like the Custom page: Spin wheel picks a type, biome or letter, and Open case opens a case of it. Your type, biome and letter each stay until you spin that wheel again (even after reloading), so you can open the same case for several slots, or spin again any time. The wheel holds the same groups as in Custom, each with the same chance.",
+  "Space spins the wheel if you have no group yet, then opens the case. Quick works for both.",
   "Pity: when the next roll is guaranteed Purple or better or Gold, the wheel only stops on groups that have that tier (if any do), and the reel only shows that tier.",
   "Later evolutions of a rolled Pokémon are allowed in the game.",
   "Legendary and Mythical Pokémon ask first: keep it, or reroll that slot from the same source.",
@@ -139,12 +139,12 @@ function renderChallengeWheel() {
   $("ch-play").classList.toggle("has-wheel", on);
   if (!on) return;
   setChallengeWheel(source, keys);
-  // Bánh xe đã quay mà chưa mở hòm (vd. vừa tải lại trang): kim chỉ vào nhóm đã trúng
-  const lock = challenge.wheel;
-  if (lock && lock.source === source && !CH_WHEEL.last && keys.includes(lock.key)) {
-    CH_WHEEL.last = { ...lock };
-    setWheelRotation(wheelTarget(0, keys.indexOf(lock.key), keys.length, 0, 0), CH_WHEEL);
-    markWheelWinner(lock.key, CH_WHEEL);
+  // Nhóm đang giữ của nguồn này (vd. vừa tải lại trang, vừa đổi nguồn): kim chỉ vào nhóm đó
+  const held = challenge.groups[source];
+  if (held && !CH_WHEEL.last && keys.includes(held.key)) {
+    CH_WHEEL.last = { source, ...held };
+    setWheelRotation(wheelTarget(0, keys.indexOf(held.key), keys.length, 0, 0), CH_WHEEL);
+    markWheelWinner(held.key, CH_WHEEL);
   }
   $("ch-wheel-caption").textContent = challengeWheelCaption();
 }
@@ -152,7 +152,7 @@ function renderChallengeWheel() {
 // ----- Nguồn quay -----
 
 function renderChallengeSources() {
-  const locked = state.spinning || Boolean(challenge.reroll) || Boolean(challenge.code) || Boolean(challenge.pending) || Boolean(challenge.wheel);
+  const locked = state.spinning || Boolean(challenge.reroll) || Boolean(challenge.code) || Boolean(challenge.pending);
   const shown = (() => { const i = nextChallengeIndex(); return i === null ? challenge.source : sourceForIndex(i); })();
   for (const btn of $("ch-sources").querySelectorAll(".ch-source")) {
     btn.setAttribute("aria-checked", String(btn.dataset.source === shown));
@@ -161,34 +161,54 @@ function renderChallengeSources() {
 }
 
 function selectChallengeSource(key) {
-  if (!challengeSource(key) || state.spinning || challenge.reroll || challenge.code || challenge.wheel) return;
+  if (!challengeSource(key) || state.spinning || challenge.reroll || challenge.code) return;
   challenge.source = key;
   saveChallenge();
   renderChallenge();
 }
 
 // ----- Nút và dòng nhắc -----
-// Nguồn Roulette có 2 nút: #ch-spin (bước 1: quay bánh xe) và #ch-roll (bước 2: mở hòm của nhóm trúng). Case: chỉ #ch-roll.
-// Trước khi bắt đầu reroll ("Reroll 1 slot") cũng chỉ có #ch-roll: bấm thì làm bước đầu tiên của ô đó.
+// Nguồn Roulette có 2 nút như trang Custom: #ch-spin (quay bánh xe, đổi nhóm đang giữ) và #ch-roll (mở hòm của nhóm đang giữ,
+// bao nhiêu lần cũng được). Case: chỉ #ch-roll.
 
 const isWheelSource = (key) => Boolean(challengeSource(key) && challengeSource(key).wheel);
 
-// Đang dùng 2 nút: lượt kế tiếp là nguồn Roulette (và reroll, nếu có, đã bắt đầu).
+// Đang dùng 2 nút: lượt kế tiếp là nguồn Roulette.
 function challengeTwoStep() {
-  const c = challenge, i = nextChallengeIndex();
-  return i !== null && isWheelSource(sourceForIndex(i)) && !(c.reroll && !c.reroll.started);
+  const i = nextChallengeIndex();
+  return i !== null && isWheelSource(sourceForIndex(i));
 }
 
-// Kết quả bánh xe đang khoá dùng cho lượt kế tiếp (null nếu chưa quay).
-function challengeLockedGroup() {
-  const w = challenge.wheel, i = nextChallengeIndex();
-  return w && i !== null && w.source === sourceForIndex(i) ? w : null;
+// Nhóm đang giữ của nguồn Roulette ở lượt kế tiếp, nếu còn trên bánh xe với các gen đang chọn: { source, key, pitySpin } | null.
+function challengeHeldGroup() {
+  const i = nextChallengeIndex();
+  if (i === null) return null;
+  const source = sourceForIndex(i), held = isWheelSource(source) ? challenge.groups[source] : null;
+  return held && challengeWheelKeys(source).includes(held.key) ? { source, ...held } : null;
 }
 
-// "Open the Fire case first." khi bánh xe đang khoá, không thì "".
-function challengeLockHint() {
-  const w = challenge.wheel;
-  return w ? `Open the ${challengeDetailName(w.source, w.key)} case first.` : "";
+// Nhóm đang giữ nhưng không còn trên bánh xe (đổi gen): báo như trang Custom. "" nếu không có.
+function challengeLostGroupHint() {
+  const i = nextChallengeIndex();
+  if (i === null) return "";
+  const source = sourceForIndex(i), held = isWheelSource(source) ? challenge.groups[source] : null;
+  if (!held || challengeHeldGroup()) return "";
+  return `${challengeDetailName(source, held.key)} isn't on the wheel with these generations. Spin the wheel again.`;
+}
+
+// Cảnh báo pity như trang Custom: lượt mở tới là pity nhưng nhóm đang giữ không có bậc bảo đảm, trong khi quay lại bánh xe thì
+// ra được nhóm có bậc đó (lượt mở vẫn dùng fallback nếu người chơi không quay lại). Chỉ dựa vào bộ đếm và nhóm hiện tại.
+function challengePityWarning() {
+  const held = challengeHeldGroup();
+  if (!held) return "";
+  const src = challengeSource(held.source), counter = state.pity[src.pity], due = pityDue(counter);
+  if (!due) return "";
+  const { all } = challengeWheelGroups(held.source, challengePool());
+  const groupsOf = (k) => groupByRarity(all[k]);
+  if (!pityTiers(due, groupsOf(held.key)).fallback) return "";
+  if (!pityWheelKeys(challengeWheelKeys(held.source), groupsOf, counter).limited) return "";
+  const label = PITY_KINDS[due].label;
+  return `This ${src.wheel().noun} has no ${label} — spin the wheel again to use your ${label} pity.`;
 }
 
 // Lý do không quay được lượt kế tiếp, chung cho cả hai nút ("" = được).
@@ -207,25 +227,25 @@ function challengeBaseHint() {
 
 // Lý do nút Roll / Open case đang khóa ("" = bấm được).
 function challengeRollHint() {
-  return challengeBaseHint() || (challengeTwoStep() && !challengeLockedGroup() ? "Spin the wheel first." : "");
+  return challengeBaseHint() || (challengeTwoStep() && !challengeHeldGroup() ? challengeLostGroupHint() || "Spin the wheel first." : "");
 }
 
 // Lý do nút Spin wheel đang khóa ("" = bấm được).
 function challengeSpinHint() {
-  return challengeBaseHint() || challengeLockHint();
+  return challengeBaseHint();
 }
 
 function challengeRollLabel() {
   const c = challenge, i = nextChallengeIndex();
+  if (challengeTwoStep()) {
+    const held = challengeHeldGroup();
+    return held ? `Open ${challengeDetailName(held.source, held.key)} case` : "Open case";
+  }
   if (c.reroll && !c.reroll.started) {
     const n = c.reroll.picked.length;
     return n ? `Reroll ${n} slot${n > 1 ? "s" : ""}` : "Pick slots to reroll";
   }
   if (i === null) return c.code ? "Team complete" : challengeTeamFull() ? "Team full" : "Roll";
-  if (challengeTwoStep()) {
-    const lock = challengeLockedGroup();
-    return lock ? `Open ${challengeDetailName(lock.source, lock.key)} case` : "Open case";
-  }
   const src = challengeSource(sourceForIndex(i)).name;
   return `${c.reroll ? "Reroll" : "Roll"} slot ${i + 1} · ${src}`;
 }
@@ -236,9 +256,9 @@ function challengeSpinLabel() {
   return src && src.wheel ? `Spin ${src.wheel().noun} wheel` : "Spin wheel";
 }
 
-// Nút mà phím Space bấm: bước kế tiếp (quay bánh xe nếu chưa có nhóm, không thì mở hòm / Roll).
+// Nút mà phím Space bấm (như trang Custom): nguồn Roulette chưa có nhóm thì quay bánh xe, có rồi thì mở hòm; Case: Roll.
 function challengeSpaceButton() {
-  return challengeTwoStep() && !challengeLockedGroup() ? $("ch-spin") : $("ch-roll");
+  return challengeTwoStep() && !challengeHeldGroup() ? $("ch-spin") : $("ch-roll");
 }
 
 // Trạng thái các nút của tab Challenge. Khóa quay dùng chung với trang Case và Custom (state.spinning).
@@ -246,15 +266,15 @@ function challengeSpaceButton() {
 function renderChallengeControls(label) {
   if (!challenge.ready) return;
   const hint = challengeRollHint(), spinHint = challengeSpinHint();
-  const two = challengeTwoStep(), lock = challengeLockedGroup();
+  const two = challengeTwoStep(), held = challengeHeldGroup();
   const roll = $("ch-roll"), spin = $("ch-spin");
   $("ch-spin-group").hidden = !two;
   $("ch-actions").classList.toggle("is-pair", two);
   roll.disabled = $("ch-quick").disabled = state.spinning || Boolean(hint) || (nextChallengeIndex() === null && !(challenge.reroll && challenge.reroll.picked.length));
   spin.disabled = $("ch-spin-quick").disabled = state.spinning || Boolean(spinHint);
   // Nút Space bấm thì xanh đặc, nút kia viền xanh (như trang Custom)
-  roll.classList.toggle("is-secondary", two && !lock);
-  spin.classList.toggle("is-secondary", two && Boolean(lock));
+  roll.classList.toggle("is-secondary", two && !held);
+  spin.classList.toggle("is-secondary", two && Boolean(held));
   const running = state.spinning ? challenge.running : null;
   if (running !== "open") roll.querySelector(".action-label").textContent = challengeRollLabel();
   else if (label) roll.querySelector(".action-label").textContent = label;
@@ -263,8 +283,8 @@ function renderChallengeControls(label) {
   $("ch-quick").title = two ? "Quick: open the case without the animation" : "Quick: roll without the animation";
   $("ch-spin-quick").title = "Quick: spin the wheel without the animation";
   for (const q of [$("ch-quick"), $("ch-spin-quick")]) q.setAttribute("aria-label", q.title);
-  $("ch-kbd").innerHTML = `Press <kbd>Space</kbd> to ${two ? (lock ? "open the case" : "spin the wheel") : "roll"}`;
-  $("ch-hint").textContent = state.spinning ? "" : challengeLockHint() || (two ? spinHint : hint);
+  $("ch-kbd").innerHTML = `Press <kbd>Space</kbd> to ${two ? (held ? "open the case" : "spin the wheel") : "roll"}`;
+  $("ch-hint").textContent = state.spinning ? "" : two ? spinHint || challengeLostGroupHint() || challengePityWarning() : hint;
   // Đang quay: lượt quay đã ghi xong (pity, ô, reroll) nhưng chưa được lộ ra. Chỉ khóa nút; phần còn lại vẽ khi dải dừng.
   if (state.spinning) {
     for (const b of $("ch-sources").querySelectorAll(".ch-source")) b.disabled = true;
@@ -272,11 +292,8 @@ function renderChallengeControls(label) {
     $("ch-all").disabled = $("ch-none").disabled = true;
     return;
   }
-  // Bánh xe đang khoá: không đổi gen, không làm lại / nhập mã / dùng mã reroll cho tới khi mở hòm
-  const wheelLocked = Boolean(challenge.wheel);
-  $("ch-start-over").disabled = wheelLocked || (!challenge.team.some(Boolean) && !challenge.pending);
-  for (const id of ["ch-import", "ch-use-reroll"]) $(id).disabled = wheelLocked;
-  for (const id of ["ch-start-over", "ch-import", "ch-use-reroll"]) $(id).title = wheelLocked ? challengeLockHint() : "";
+  $("ch-start-over").disabled = !challenge.team.some(Boolean) && !challenge.pending;
+  for (const id of ["ch-import", "ch-use-reroll"]) $(id).disabled = false;
   const r = challenge.reroll;
   $("ch-reroll-bar").hidden = !r;
   if (r) {
@@ -285,8 +302,8 @@ function renderChallengeControls(label) {
       : `Reroll code accepted for team ${challenge.data.id}. Click up to ${r.allow} slot${r.allow > 1 ? "s" : ""} above to reroll (${r.picked.length}/${r.allow} picked).`;
     $("ch-reroll-cancel").hidden = r.started;
   }
-  for (const input of $("ch-gen-grid").querySelectorAll("input")) input.disabled = wheelLocked;
-  $("ch-all").disabled = $("ch-none").disabled = wheelLocked;
+  for (const input of $("ch-gen-grid").querySelectorAll("input")) input.disabled = false;
+  $("ch-all").disabled = $("ch-none").disabled = false;
   renderChallengeSources();
   renderChallengeWheel();
   // Thanh pity của nguồn sẽ quay ở lượt tới; đội đã xong (không còn gì để quay) thì ẩn
@@ -361,16 +378,13 @@ function markRerollStarted() {
   if (!challenge.used.includes(challenge.data.id)) challenge.used.push(challenge.data.id);
 }
 
-// Bước kế tiếp (phím Space, nút "Reroll N slots", "Roll again" trong popup): nguồn Roulette chưa quay bánh xe thì quay,
-// còn lại thì mở hòm / Roll.
+// Bước kế tiếp (như phím Space): nguồn Roulette chưa có nhóm thì quay bánh xe, còn lại thì mở hòm / Roll.
 function runChallengeNext(opts = {}) {
-  const i = nextChallengeIndex();
-  if (i !== null && isWheelSource(sourceForIndex(i)) && !challengeLockedGroup()) return runChallengeSpin(opts);
-  return runChallengeRoll(opts);
+  return challengeTwoStep() && !challengeHeldGroup() ? runChallengeSpin(opts) : runChallengeRoll(opts);
 }
 
-// Bước 1 của nguồn Roulette: quay bánh xe ra một nhóm. Lưu ngay (tải lại trang vẫn giữ nhóm đã trúng) và khoá: không quay
-// lại, không đổi nguồn cho tới khi mở hòm của nhóm đó. Pity xét ở đây: lượt mở tới là pity thì chỉ dừng ở nhóm có bậc bảo đảm.
+// Quay bánh xe của nguồn Roulette ra một nhóm, thay nhóm đang giữ của nguồn đó. Bấm được bất cứ lúc nào (như trang Custom).
+// Lưu ngay (tải lại trang vẫn giữ). Pity xét ở đây: lượt mở tới là pity thì chỉ dừng ở nhóm có bậc bảo đảm.
 async function runChallengeSpin({ quick = false } = {}) {
   const index = nextChallengeIndex();
   if (index === null || state.spinning || challengeSpinHint()) return;
@@ -379,8 +393,7 @@ async function runChallengeSpin({ quick = false } = {}) {
   if (!src.wheel) return;
   const pick = pickChallengeGroup(source, challengePool(), Math.random, state.pity[src.pity]);
   if (!pick) return;
-  markRerollStarted();
-  challenge.wheel = { source, key: pick.key, pitySpin: pick.pitySpin };
+  challenge.groups[source] = { key: pick.key, pitySpin: pick.pitySpin };
   saveChallenge();
 
   setChallengeWheel(source, pick.keys);
@@ -393,7 +406,7 @@ async function runChallengeSpin({ quick = false } = {}) {
   if (!quick) audio();
   const done = spinWheelTo(CH_WHEEL, pick.key, { quick });
   if (done) await done; // Quick: không chờ, xong ngay trong lượt bấm
-  CH_WHEEL.last = { ...challenge.wheel };
+  CH_WHEEL.last = { source, ...challenge.groups[source] };
   $("ch-wheel-caption").textContent = challengeWheelCaption();
   renderIdleReel(groupByRarity(challengeGroupCase(source, challengePool(), pick.key).list), $("ch-reel"));
   setChallengeSpinning(false);
@@ -401,7 +414,7 @@ async function runChallengeSpin({ quick = false } = {}) {
   if (!quick) playReveal("blue", false);
 }
 
-// Bước 2 (Roulette: mở hòm của nhóm đã trúng) hoặc lượt Case. Ghi ngay (bộ sưu tập, lịch sử, pity, đội) trước khi dải chạy,
+// Mở hòm của nhóm đang giữ (Roulette; nhóm vẫn giữ sau đó) hoặc lượt Case. Ghi ngay (bộ sưu tập, lịch sử, pity, đội) trước khi dải chạy,
 // để tải lại trang giữa chừng không quay lại được.
 async function runChallengeRoll({ quick = false } = {}) {
   const index = nextChallengeIndex();
@@ -411,16 +424,11 @@ async function runChallengeRoll({ quick = false } = {}) {
   const pool = challengePool();
   let box;
   if (src.wheel) {
-    const lock = challengeLockedGroup();
-    if (!lock) return;
-    box = challengeGroupCase(source, pool, lock.key);
-    if (!box) { // nhóm không còn trên bánh xe (không xảy ra khi gen bị khoá, phòng dữ liệu lưu lệch): quay lại bánh xe
-      challenge.wheel = null;
-      saveChallenge();
-      renderChallenge();
-      return;
-    }
-    box.pitySpin = lock.pitySpin;
+    const held = challengeHeldGroup();
+    if (!held) return;
+    box = challengeGroupCase(source, pool, held.key);
+    if (!box) return;
+    box.pitySpin = held.pitySpin;
   } else {
     box = challengeCase(source, pool);
   }
@@ -439,7 +447,6 @@ async function runChallengeRoll({ quick = false } = {}) {
   const legendary = Boolean(p.isLegendary || p.isMythical);
   if (legendary) challenge.pending = { index, entry };
   else placeChallengeEntry(index, entry);
-  challenge.wheel = null; // đã mở hòm của nhóm trúng: mở khoá bánh xe
   saveChallenge();
 
   challenge.running = "open";
@@ -514,15 +521,14 @@ function keepChallengeLegend() {
   renderChallenge();
 }
 
-// Reroll ô Legendary từ cùng nguồn: Case quay lại luôn; Roulette quay về bước 1 (người chơi quay bánh xe mới).
+// Reroll ô Legendary từ cùng nguồn: Case quay lại; Roulette mở lại hòm của nhóm đang giữ (không phải quay bánh xe).
 function rerollChallengeLegend() {
   if (!challenge.pending) return;
-  const source = challenge.pending.entry.source;
   challenge.pending = null;
   saveChallenge();
   $("ch-legend-modal").close();
   renderChallenge();
-  if (!isWheelSource(source)) runChallengeRoll({ quick: legendQuick });
+  runChallengeRoll({ quick: legendQuick });
 }
 
 // ----- Xoá một ô, tạo mã TW1 -----
@@ -566,7 +572,6 @@ function createChallengeCodeNow() {
 
 function useRerollCode() {
   if (state.spinning) return;
-  if (challenge.wheel) return challengeMessage(challengeLockHint(), "error");
   if (challenge.reroll && challenge.reroll.started) {
     return challengeMessage("Finish the reroll you started first.", "error");
   }
@@ -602,7 +607,6 @@ function cancelReroll() {
 
 function importChallenge() {
   if (state.spinning) return;
-  if (challenge.wheel) return challengeMessage(challengeLockHint(), "error");
   let imported;
   try {
     imported = importChallengeCode($("ch-paste").value);
@@ -625,7 +629,7 @@ function importChallenge() {
 }
 
 function startChallengeOver() {
-  if (state.spinning || challenge.wheel) return;
+  if (state.spinning) return;
   if (!confirm("Start over? Your current team and its code are cleared. Pokémon you rolled stay in your collection.")) return;
   resetChallenge();
   challengeMessage("");
@@ -691,10 +695,8 @@ function initChallenge() {
   $("ch-wheel-col").insertAdjacentHTML("afterbegin", wheelMarkup(CH_WHEEL));
   $("ch-copy").insertAdjacentHTML("afterbegin", ICON_COPY);
 
-  // #ch-roll: mở hòm (Roulette, sau khi quay bánh xe) hoặc Roll; khi chỉ có một nút ("Reroll 1 slot") thì làm bước kế tiếp
-  const rollAction = (opts) => (challengeTwoStep() ? runChallengeRoll(opts) : runChallengeNext(opts));
-  $("ch-roll").addEventListener("click", () => rollAction());
-  $("ch-quick").addEventListener("click", () => rollAction({ quick: true }));
+  $("ch-roll").addEventListener("click", () => runChallengeRoll());
+  $("ch-quick").addEventListener("click", () => runChallengeRoll({ quick: true }));
   $("ch-spin").addEventListener("click", () => runChallengeSpin());
   $("ch-spin-quick").addEventListener("click", () => runChallengeSpin({ quick: true }));
   $("ch-team").addEventListener("click", (e) => {

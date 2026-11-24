@@ -2,7 +2,7 @@
 // Giao diện ở pages/challenge.js. Định dạng mã ở core/challenge-code.js và docs/challenge-code.md.
 "use strict";
 
-const STORAGE_KEY_CHALLENGE = "pokeroll.challenge";           // { source, team, pending, code, reroll, wheel }
+const STORAGE_KEY_CHALLENGE = "pokeroll.challenge";           // { source, team, pending, code, reroll, groups }
 const STORAGE_KEY_CHALLENGE_GENS = "pokeroll.challenge.gens"; // gen đã chọn ở tab Challenge (riêng với Case và Custom)
 const STORAGE_KEY_CHALLENGE_USED = "pokeroll.challenge.used"; // id các đội đã dùng mã reroll (Start over / Import không xoá)
 
@@ -34,7 +34,8 @@ const challenge = {
   code: null,        // mã TW1 của đội đã đủ 6 ô (đội đang dùng)
   data: null,        // Challenge đọc từ code
   reroll: null,      // reroll đang làm: { allow, picked: [ô], started, changes: { [ô]: mục mới } }
-  wheel: null,       // bánh xe đã quay mà chưa mở hòm: { source, key, pitySpin } — khoá: không quay lại, không đổi nguồn
+  groups: { type: null, biome: null, letter: null }, // nhóm đang giữ của từng nguồn Roulette: { key, pitySpin } (như trang Custom:
+                                                     // giữ tới lần quay bánh xe sau, mở hòm bao nhiêu lần cũng được)
   running: null,     // nút đang chạy: "spin" (bánh xe) | "open" (hòm) | null
   used: [],          // id các đội đã bắt đầu reroll: mã reroll của các đội này không dùng lại được (kể cả sau khi nhập lại mã TW1 cũ)
   ready: false,      // true khi tab Challenge đã dựng xong
@@ -242,19 +243,23 @@ function cleanEntry(e) {
   };
 }
 
-// Kết quả bánh xe đã lưu: { source (nguồn Roulette), key (nhóm có thật của nguồn đó), pitySpin } hoặc null nếu hỏng.
-function cleanChallengeWheel(raw) {
-  if (!raw || typeof raw !== "object") return null;
-  const src = challengeSource(raw.source);
-  if (!src || !src.wheel || typeof raw.key !== "string" || !challengeDetailName(raw.source, raw.key)) return null;
+// Nhóm đang giữ của nguồn Roulette source, đọc lại từ storage: { key (nhóm có thật của nguồn đó), pitySpin } hoặc null nếu hỏng.
+function cleanChallengeGroup(source, raw) {
+  if (!raw || typeof raw !== "object" || typeof raw.key !== "string" || !challengeDetailName(source, raw.key)) return null;
   const ps = raw.pitySpin;
   const pitySpin = ps && PITY_KINDS[ps.due] && Number.isInteger(ps.n) && ps.n > 0 ? { due: ps.due, n: ps.n } : null;
-  return { source: raw.source, key: raw.key, pitySpin };
+  return { key: raw.key, pitySpin };
+}
+
+// Nhóm đang giữ của mọi nguồn Roulette: { type, biome, letter } (thiếu hoặc hỏng → null).
+function cleanChallengeGroups(raw) {
+  const src = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return Object.fromEntries(CHALLENGE_SOURCES.filter((s) => s.wheel).map((s) => [s.key, cleanChallengeGroup(s.key, src[s.key])]));
 }
 
 function saveChallenge() {
-  const { source, team, pending, code, reroll, wheel } = challenge;
-  const ok = saveJson(STORAGE_KEY_CHALLENGE, { source, team, pending, code, reroll, wheel })
+  const { source, team, pending, code, reroll, groups } = challenge;
+  const ok = saveJson(STORAGE_KEY_CHALLENGE, { source, team, pending, code, reroll, groups })
     && saveJson(STORAGE_KEY_CHALLENGE_USED, challenge.used);
   markSaved("challenge", ok);
 }
@@ -264,7 +269,7 @@ function loadChallenge() {
   const raw = loadJson(STORAGE_KEY_CHALLENGE, {}, isPlainObject);
   challenge.used = loadJson(STORAGE_KEY_CHALLENGE_USED, [], Array.isArray).filter((id) => /^[A-Z0-9]{8}$/.test(id));
   challenge.source = challengeSource(raw.source) ? raw.source : "case";
-  challenge.wheel = cleanChallengeWheel(raw.wheel);
+  challenge.groups = cleanChallengeGroups(raw.groups);
   const team = Array.isArray(raw.team) ? raw.team.slice(0, CHALLENGE_TEAM_SIZE) : [];
   challenge.team = Array.from({ length: CHALLENGE_TEAM_SIZE }, (_, i) => cleanEntry(team[i]));
   challenge.code = null;
@@ -304,6 +309,5 @@ function resetChallenge() {
   challenge.code = null;
   challenge.data = null;
   challenge.reroll = null;
-  challenge.wheel = null;
   saveChallenge();
 }
