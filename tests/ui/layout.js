@@ -20,7 +20,7 @@ app.whenReady().then(async () => {
   await js(`(async () => { selectChallengeSource("type"); for (let n = 0; n < 80 && (nextChallengeIndex() !== null || challenge.pending); n++) {
     if (challenge.pending) { keepChallengeLegend(); continue; }
     await runChallengeNext({ quick: true }); document.getElementById("result-modal").close(); }
-    document.getElementById("ch-legend-modal").close(); return 1; })()`);
+    document.getElementById("ch-legend-modal").close(); if (challengeTeamFull()) document.getElementById("ch-create").click(); return 1; })()`);
   for (const w of [320, 360, 390, 430, 768, 1280]) {
     win.setContentSize(w, 800); await sleep(300);
     for (const view of ["case", "collection", "custom", "challenge"]) {

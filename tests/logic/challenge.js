@@ -109,6 +109,19 @@ check("Reroll: next picked slot not yet rerolled", A.nextChallengeIndex(rr) === 
 check("Reroll: the slot's own source, not the selected one", A.sourceForIndex(1, rr) === "type");
 check("Reroll of an old Minigame slot: rolled from Case", A.sourceForIndex(4, rr) === "case");
 check("Building: the selected source", A.sourceForIndex(0, c({ source: "letter" })) === "letter");
+
+// 5. Xoá một ô, đội đủ 6 chưa tạo mã
+const six = Array(6).fill(e);
+check("Team full without a code → Create TW1 code (no roll)", A.challengeTeamFull(c({ team: six })) && A.nextChallengeIndex(c({ team: six })) === null);
+check("Not full / has a code / Legendary waiting → not 'full'", !A.challengeTeamFull(c({ team: [e, null, e, e, e, e] }))
+  && !A.challengeTeamFull(c({ team: six, code: "x" })) && !A.challengeTeamFull(c({ team: [...six.slice(0, 5), null], pending: { index: 5, entry: e } })));
+const rm = c({ team: [...six] });
+check("Remove: the slot becomes empty, the next roll goes there", A.removeChallengeSlot(3, rm) && rm.team[3] === null && A.nextChallengeIndex(rm) === 3);
+check("Remove: the first empty slot is rolled first", A.removeChallengeSlot(1, rm) && A.nextChallengeIndex(rm) === 1);
+check("Remove: an empty slot can't be removed", !A.removeChallengeSlot(1, rm));
+check("Remove: not after the TW1 code, not while rerolling, not the waiting Legendary",
+  !A.canRemoveChallengeSlot(0, c({ team: six, code: "x" })) && !A.canRemoveChallengeSlot(0, c({ team: six, code: "x", reroll: { allow: 1, picked: [], started: false, changes: {} } }))
+  && !A.canRemoveChallengeSlot(5, c({ team: [...six.slice(0, 5), null], pending: { index: 5, entry: e } })) && A.canRemoveChallengeSlot(0, c({ team: six })));
 check("Source labels", A.challengeSourceLabel("type", "fire") === "Type Roulette · Fire" && A.challengeSourceLabel("biome", "forest") === "Biome Roulette · Forest"
   && A.challengeSourceLabel("letter", "S") === "Letter Roulette · S" && A.challengeSourceLabel("minigame", null) === "Minigame" && A.challengeSourceLabel("case", null) === "Case");
 

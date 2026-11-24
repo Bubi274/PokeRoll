@@ -154,6 +154,29 @@ function sourceForIndex(index, c = challenge) {
 
 const unixNow = () => Math.floor(Date.now() / 1000);
 
+// Đội đủ 6 ô mà chưa tạo mã: hiện nút "Create TW1 code" (trước đó ô nào cũng xoá được).
+const challengeTeamFull = (c = challenge) => !c.code && !c.pending && !c.team.includes(null);
+
+// Ô index xoá được không: có Pokémon, chưa tạo mã TW1, không đang reroll, không phải Legendary đang chờ Keep / Reroll.
+function canRemoveChallengeSlot(index, c = challenge) {
+  return Boolean(c.team[index]) && !c.code && !c.reroll && !(c.pending && c.pending.index === index);
+}
+
+// Xoá Pokémon ở ô index (ô trở thành trống, lượt sau điền vào ô trống đầu tiên). Không hoàn lại bộ đếm pity; bộ sưu tập và
+// lịch sử giữ nguyên (lượt đó đã thật sự quay ra). Trả về false nếu không xoá được.
+function removeChallengeSlot(index, c = challenge) {
+  if (!canRemoveChallengeSlot(index, c)) return false;
+  c.team[index] = null;
+  return true;
+}
+
+// Bấm "Create TW1 code": đội đủ 6 ô → mã TW1 mới (id ngẫu nhiên, parent null). Sau đó không xoá ô được nữa.
+function createChallengeCode(c = challenge) {
+  if (!challengeTeamFull(c)) return false;
+  completeChallenge(c);
+  return true;
+}
+
 // Đội đủ 6 ô → mã TW1 mới (id ngẫu nhiên, parent null).
 function completeChallenge(c = challenge) {
   const data = {
@@ -271,7 +294,6 @@ function loadChallenge() {
     for (const [i, e] of Object.entries(r.changes || {})) if (picked.includes(Number(i)) && cleanEntry(e)) changes[i] = cleanEntry(e);
     challenge.reroll = { allow: r.allow, picked, started: Boolean(r.started) && picked.length > 0, changes };
   }
-  if (!challenge.code && !challenge.team.includes(null) && !challenge.pending) completeChallenge(); // đủ 6 ô mà chưa có mã
 }
 
 

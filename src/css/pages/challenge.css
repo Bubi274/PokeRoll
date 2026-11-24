@@ -75,6 +75,44 @@
 .ch-slot.is-pending .ch-card { outline: 2px dashed var(--r-gold); outline-offset: 2px; }
 .ch-card[data-pick] .mini-img { transition: transform 0.15s; }
 
+/* Nút Remove ở góc trên phải mỗi ô có Pokémon (trước khi tạo mã TW1) */
+.ch-remove {
+  position: absolute;
+  top: -8px;
+  right: -5px;
+  z-index: 1;
+  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--bg, #0d1117);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.ch-remove:hover,
+.ch-remove:focus-visible { color: #fff; border-color: var(--r-red); background: color-mix(in srgb, var(--r-red) 30%, #0d1117); }
+
+/* Hộp xác nhận xoá */
+.ch-remove-text { margin: 0; }
+.ch-remove-shiny { margin: 10px 0 0; color: var(--amber); font-weight: 600; }
+.ch-remove-shiny[hidden] { display: none; }
+.ch-remove-confirm {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #fff;
+  background: color-mix(in srgb, var(--r-red) 80%, #000);
+  border: 1px solid var(--r-red);
+}
+.ch-remove-confirm:hover { background: var(--r-red); }
+
+/* Nút Create TW1 code (đội đủ 6 ô, chưa có mã) */
+.ch-create-box { display: flex; justify-content: center; margin-top: 10px; }
+.ch-create-box[hidden] { display: none; }
+
 /* ===== Nguồn quay (giống ô chọn hòm của Minigame, màu nhấn xanh) ===== */
 .ch-stage { display: grid; gap: 14px; min-width: 0; }
 .ch-stage > * { min-width: 0; }

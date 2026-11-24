@@ -1,6 +1,7 @@
 // Tab Challenge: quay đội 6 ô (mỗi lượt vào ô kế tiếp, không xoá từng ô), nguồn Case / Roulette dùng bộ đếm pity
 // của chế độ tương ứng, Roulette quay bánh xe trước (cả Quick) và ghi rõ nhóm trúng, lượt pity chỉ hiện bậc bảo đảm,
-// không còn nguồn Minigame (mã cũ có ô minigame vẫn đọc và reroll bằng Case), Legendary / Mythical hỏi Keep / Reroll (còn nhớ sau khi tải lại), mã TW1 đúng định dạng, reroll bằng
+// không còn nguồn Minigame (mã cũ có ô minigame vẫn đọc và reroll bằng Case), nút Remove ở mọi ô có Pokémon (có hộp xác nhận)
+// cho tới khi bấm "Create TW1 code", Legendary / Mythical hỏi Keep / Reroll (còn nhớ sau khi tải lại), mã TW1 đúng định dạng, reroll bằng
 // mã TWR1 (chỉ mã của đội đang dùng, không dùng lại được), nhập mã TW1, Start over, Clear data, lịch sử gắn nhãn Challenge.
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
@@ -57,7 +58,19 @@ app.whenReady().then(async () => {
   const reelOthers = () => js(`[...new Set([...document.querySelectorAll("#ch-reel .reel-strip .card:not(.is-winner)")].map((c) => [...c.classList].find((k) => k.startsWith("r-")).slice(2)))].sort()`);
   const srcLabel = (i) => js(`(() => { const li = document.querySelectorAll("#ch-team .ch-slot")[${i}]; const el = li && li.querySelector(".ch-card-src"); return el ? el.textContent : ""; })()`);
   const closeAll = () => js(`for (const d of document.querySelectorAll("dialog[open]")) d.close()`);
-  // Quay tới khi đầy các ô (Legendary thì giữ)
+  // Ô có nút Remove (theo thứ tự ô)
+  const removable = () => js(`[...document.querySelectorAll("#ch-team .ch-slot")].map((li) => Boolean(li.querySelector("[data-remove]")))`);
+  // Quay tới khi đầy các ô (Legendary thì giữ), chưa tạo mã
+  const fillTeam = () => js(`(async () => {
+    for (let n = 0; n < 80 && (nextChallengeIndex() !== null || challenge.pending); n++) {
+      if (challenge.pending) { keepChallengeLegend(); continue; }
+      await runChallengeNext({ quick: true });
+      document.getElementById("result-modal").close();
+    }
+    document.getElementById("ch-legend-modal").close();
+    return 1;
+  })()`);
+  // Quay tới khi đầy các ô rồi bấm Create TW1 code
   const fill = () => js(`(async () => {
     for (let n = 0; n < 80 && (nextChallengeIndex() !== null || challenge.pending); n++) {
       if (challenge.pending) { keepChallengeLegend(); continue; }
@@ -65,6 +78,7 @@ app.whenReady().then(async () => {
       document.getElementById("result-modal").close();
     }
     document.getElementById("ch-legend-modal").close();
+    if (challengeTeamFull()) document.getElementById("ch-create").click();
     return challenge.code;
   })()`);
 
@@ -73,6 +87,7 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('.tab[data-view="challenge"]').click()`); await sleep(300);
   let u = await ui();
   check("Empty team: 6 empty slots, Roll slot 1 · Case", same(u.slots, ["-", "-", "-", "-", "-", "-"]) && u.label === "Roll slot 1 · Case" && !u.disabled, JSON.stringify(u));
+  check("Empty team: no Remove buttons", same(await removable(), [false, false, false, false, false, false]));
   check("Case source: Case pity bars shown", !u.pityHidden && same(u.pity, ["0/5", "0/10"]));
   check("Case source: no wheel", (await wheel()).hidden);
   check("Sources: Case, Type, Biome, Letter (no Minigame Pokémon Case)",
@@ -135,6 +150,7 @@ app.whenReady().then(async () => {
   check("Next: back to step 1 for slot 2", u.spinLabel === "Spin type wheel" && !u.spinDisabled && u.label === "Open case" && u.disabled
     && u.slots[0] !== "-" && u.slots[1] === "-" && !u.sourcesLocked);
   check("Slot 1 says its source: Type Roulette · <type>", await srcLabel(0) === `Type Roulette · ${typeName1}`, await srcLabel(0));
+  check("Slot 1 has a Remove button, empty slots don't", same(await removable(), [true, false, false, false, false, false]));
 
   // 2b. Có hiệu ứng: bánh xe quay (chưa lộ nhóm); tải lại trang vẫn khoá; Space mở hòm
   await js(`state.pity["type-roulette"] = { purple: 0, gold: 0 }; savePity(); renderChallenge(); runChallengeSpin(); 1`); await sleep(120);
@@ -250,7 +266,62 @@ app.whenReady().then(async () => {
   check("Keep: the Legendary goes into the next slot", await js(`challenge.team[${kept}] && challenge.team[${kept}].rarity`) === "gold" && !(await ui()).legend);
   check("Case Gold pity: every card on the reel is Gold", same(await reelOthers(), ["gold"]), JSON.stringify(await reelOthers()));
 
-  // 5. Đầy đội → mã TW1
+  // 4b. Xoá Pokémon khỏi đội, đội đủ 6 → nút Create TW1 code
+  await closeAll();
+  if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
+  await js(`selectChallengeSource("case")`);
+  await fillTeam();
+  u = await ui();
+  const full6 = u.slots;
+  check("Team full: no code yet, Create TW1 code button, Roll says Team full", !u.code && u.label === "Team full" && u.disabled
+    && /Your team is full/.test(u.hint) && await js(`!document.getElementById("ch-create-box").hidden && !document.getElementById("ch-create").disabled`), JSON.stringify(u));
+  check("Team full: every slot has a Remove button", same(await removable(), [true, true, true, true, true, true]));
+  const pityBefore = await js(`JSON.stringify(state.pity)`), histBefore2 = await js(`state.history.length`);
+  // Hộp xác nhận: Cancel không xoá
+  await js(`document.querySelector('#ch-team [data-remove="5"]').click()`);
+  const dlg = () => js(`({ open: document.getElementById("ch-remove-modal").open, text: document.getElementById("ch-remove-text").textContent,
+    shiny: document.getElementById("ch-remove-shiny").hidden ? "" : document.getElementById("ch-remove-shiny").textContent,
+    buttons: [...document.querySelectorAll("#ch-remove-modal .result-actions button")].map((b) => b.textContent) })`);
+  let dd = await dlg();
+  const name6 = full6[5];
+  check("Remove asks first: \"Remove <name> from slot 6? This can't be undone.\" with Remove / Cancel", dd.open
+    && dd.text === `Remove ${name6} from slot 6? This can't be undone.` && same(dd.buttons, ["Cancel", "Remove"]), JSON.stringify(dd));
+  check("Not Shiny: no Shiny warning", await js(`challenge.team[5].shiny`) || dd.shiny === "");
+  await js(`document.getElementById("ch-remove-cancel").click()`);
+  check("Cancel: nothing removed", !(await dlg()).open && same((await ui()).slots, full6));
+  // Shiny: thêm dòng cảnh báo
+  await js(`challenge.team[2].shiny = true; saveChallenge(); renderChallenge(); document.querySelector('#ch-team [data-remove="2"]').click()`);
+  dd = await dlg();
+  check("Shiny: the dialog warns you lose the Shiny reward for that slot", dd.open && dd.shiny === `${full6[2]} is Shiny: you lose the Shiny reward for this slot.`, dd.shiny);
+  await js(`document.getElementById("ch-remove-cancel").click()`);
+  // Remove: ô 6 (chưa tạo mã thì ô thứ 6 vẫn xoá được), rồi ô 5
+  await js(`document.querySelector('#ch-team [data-remove="5"]').click(); document.getElementById("ch-remove-confirm").click()`);
+  u = await ui();
+  check("Remove: slot 6 is empty again (before Create TW1 code)", u.slots[5] === "-" && same(u.slots.slice(0, 5), full6.slice(0, 5)) && !u.code
+    && await js(`document.getElementById("ch-create-box").hidden`), JSON.stringify(u.slots));
+  await js(`document.querySelector('#ch-team [data-remove="4"]').click(); document.getElementById("ch-remove-confirm").click()`);
+  u = await ui();
+  check("Remove: slot 5 empty too; saved", u.slots[4] === "-" && u.slots[5] === "-"
+    && await js(`JSON.parse(localStorage.getItem("pokeroll.challenge")).team.map((e) => e === null)`).then((t) => same(t, [false, false, false, false, true, true])));
+  check("Remove: pity counters not given back, collection and history kept", await js(`JSON.stringify(state.pity)`) === pityBefore
+    && await js(`state.history.length`) === histBefore2);
+  check("After removing: the next roll goes into the first empty slot (5)", u.label === "Roll slot 5 · Case" && !u.disabled, u.label);
+  await roll(); await closeAll();
+  if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
+  u = await ui();
+  check("The roll filled slot 5, slot 6 is next", u.slots[4] !== "-" && u.slots[5] === "-" && u.label === "Roll slot 6 · Case", JSON.stringify(u.slots));
+  await roll(); await closeAll();
+  if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
+  check("Full again: Create TW1 code shows again", await js(`challengeTeamFull() && !document.getElementById("ch-create-box").hidden`));
+  await js(`document.getElementById("ch-create").click()`);
+  u = await ui();
+  check("Create TW1 code: the code appears, the button goes away", typeof u.code === "string" && u.code.startsWith("TW1.")
+    && await js(`document.getElementById("ch-create-box").hidden && !document.getElementById("ch-code-box").hidden`));
+  check("After Create TW1 code: no Remove buttons, removing does nothing", same(await removable(), [false, false, false, false, false, false])
+    && await js(`(() => { const before = JSON.stringify(challenge.team); askRemoveChallengeSlot(5); const open = document.getElementById("ch-remove-modal").open;
+      return !open && !removeChallengeSlot(5) && JSON.stringify(challenge.team) === before; })()`));
+
+  // 5. Đầy đội → mã TW1 (đội vừa tạo mã ở 4b)
   const code = await fill();
   u = await ui();
   check("Team complete: a TW1 code", typeof code === "string" && code.startsWith("TW1.") && !await js(`document.getElementById("ch-code-box").hidden`));
@@ -287,6 +358,7 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('#ch-team [data-pick="4"]').click()`); // chỉ được 1 ô: đổi sang ô 5
   u = await ui();
   check("Reroll: allow 1 → clicking another slot switches the pick", same(await js(`challenge.reroll.picked`), [4]) && u.label === "Reroll 1 slot" && !u.disabled);
+  check("Reroll: no Remove buttons", same(await removable(), [false, false, false, false, false, false]));
   const oldTeam = await js(`challenge.team.map(challengeSlotOf)`), oldId = d.id;
   const oldSource = oldTeam[4].mode;
   await roll(); await closeAll();

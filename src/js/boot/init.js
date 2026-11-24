@@ -174,5 +174,6 @@ if (typeof document !== "undefined") {
     base64urlDecode, newChallengeId, encodeChallengeCode, decodeChallengeCode, encodeRerollCode, decodeRerollCode,
     challengeSlot, rerolledChallenge,
     CHALLENGE_SOURCES, challenge, challengeCase, challengeSourceProblem, entryFromSlot, nextChallengeIndex, sourceForIndex,
-    challengeSourceLabel, pickChallengeGroup, challengeGroupCase, cleanChallengeWheel };
+    challengeSourceLabel, pickChallengeGroup, challengeGroupCase, cleanChallengeWheel,
+    challengeTeamFull, canRemoveChallengeSlot, removeChallengeSlot };
 }

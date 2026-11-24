@@ -5,7 +5,8 @@
 const CHALLENGE_MODE = "challenge"; // mã chế độ trong lịch sử quay (nhãn "Challenge")
 
 const CHALLENGE_RULES_TEXT = [
-  "Pick a source, then roll: each roll fills the next empty slot until you have 6 Pokémon. There is no way to remove one slot, only Start over for the whole team.",
+  "Pick a source, then roll: each roll fills the first empty slot until you have 6 Pokémon.",
+  "Don't want a Pokémon (a duplicate, say)? Remove it from its slot. It asks first and can't be undone; the slot is rolled again later. Pity counters are not given back.",
   "Case, Type, Biome and Letter use the same tier odds as their modes, and the same pity counters. Custom pools are not used here.",
   "Type, Biome and Letter take two steps, like on the Custom page: Spin wheel picks a type, biome or letter, then Open case opens a case of it. The wheel holds the same groups as in Custom, each with the same chance.",
   "Once the wheel has stopped, its result is locked until you open that case: you can't spin again or change the source (not even by reloading the page). Space does the next step; Quick works for both.",
@@ -13,7 +14,7 @@ const CHALLENGE_RULES_TEXT = [
   "Later evolutions of a rolled Pokémon are allowed in the game.",
   "Legendary and Mythical Pokémon ask first: keep it, or reroll that slot from the same source.",
   "Every roll is added to your collection and roll history, marked Challenge.",
-  "When the team is complete you get a TW1 code. Paste it into Trainer's Workshop.",
+  "When all 6 slots are full, press Create TW1 code and paste the code into Trainer's Workshop. After that, slots can't be removed; use Start over to build a new team.",
   "After a loss, the game gives you a TWR1 reroll code. Paste it below, pick the slots to reroll (as many as the code allows) and roll them again from their own sources. You get a new TW1 code.",
   "Lost your team? Import its TW1 code to get it back.",
   "Old codes with a Minigame slot still work. Rerolling that slot rolls it from Case.",
@@ -69,8 +70,11 @@ function renderChallengeTeam() {
     }
     const waiting = r && r.picked.includes(i) && !changed;
     const badge = changed ? "New" : waiting ? (i === next ? "Next" : "Reroll") : "";
+    const remove = canRemoveChallengeSlot(i)
+      ? `<button type="button" class="ch-remove" data-remove="${i}" title="Remove from slot ${i + 1}"
+          aria-label="Remove ${escHtml(challengePokemon(shown).name)} from slot ${i + 1}">Remove</button>` : "";
     return `<li class="ch-slot${waiting ? " is-waiting" : ""}${changed ? " is-changed" : ""}">${num}${slotCard(shown, {
-      attrs: `data-pokemon="${shown.id}"${shown.shiny ? ` data-shiny="1"` : ""}`, badge })}</li>`;
+      attrs: `data-pokemon="${shown.id}"${shown.shiny ? ` data-shiny="1"` : ""}`, badge })}${remove}</li>`;
   }).join("");
   const filled = c.team.filter(Boolean).length;
   $("ch-team-count").textContent = c.code ? `Team ${c.data.id}` : `${filled}/${CHALLENGE_TEAM_SIZE}`;
@@ -194,7 +198,10 @@ function challengeBaseHint() {
   if (c.reroll && !c.reroll.started && !c.reroll.picked.length) {
     return `Pick up to ${c.reroll.allow} slot${c.reroll.allow > 1 ? "s" : ""} to reroll.`;
   }
-  if (i === null) return c.code ? "Team complete. Copy the code below into Trainer's Workshop." : "";
+  if (i === null) {
+    if (c.code) return "Team complete. Copy the code below into Trainer's Workshop.";
+    return challengeTeamFull() ? "Your team is full. Create its TW1 code below, or remove a Pokémon to roll again." : "";
+  }
   return challengeSourceProblem(sourceForIndex(i));
 }
 
@@ -214,7 +221,7 @@ function challengeRollLabel() {
     const n = c.reroll.picked.length;
     return n ? `Reroll ${n} slot${n > 1 ? "s" : ""}` : "Pick slots to reroll";
   }
-  if (i === null) return c.code ? "Team complete" : "Roll";
+  if (i === null) return c.code ? "Team complete" : challengeTeamFull() ? "Team full" : "Roll";
   if (challengeTwoStep()) {
     const lock = challengeLockedGroup();
     return lock ? `Open ${challengeDetailName(lock.source, lock.key)} case` : "Open case";
@@ -294,9 +301,14 @@ function renderChallengeCode() {
   const c = challenge;
   $("ch-code-box").hidden = !c.code;
   $("ch-code-empty").hidden = Boolean(c.code);
+  const full = challengeTeamFull();
+  $("ch-create-box").hidden = !full;
+  $("ch-create").disabled = state.spinning || !full;
   if (!c.code) {
     const left = c.team.filter((e) => !e).length;
-    $("ch-code-empty").textContent = `Roll ${left} more Pokémon to get your code.`;
+    $("ch-code-empty").textContent = full
+      ? "All 6 slots are full. Create the code when you're happy with your team: after that, slots can't be removed."
+      : `Roll ${left} more Pokémon to get your code.`;
     return;
   }
   $("ch-code").value = c.code;
@@ -330,7 +342,8 @@ function setChallengeSpinning(on, label) {
   renderChallengeControls(label);
 }
 
-// Đặt mục vào ô index: lập đội thì vào đội (đủ 6 ô → mã TW1), reroll thì vào danh sách đổi (xong hết → mã TW1 mới).
+// Đặt mục vào ô index: lập đội thì vào đội (đủ 6 ô: người chơi tự bấm "Create TW1 code"), reroll thì vào danh sách đổi
+// (xong hết → mã TW1 mới ngay).
 function placeChallengeEntry(index, entry) {
   const c = challenge;
   if (c.reroll) {
@@ -338,7 +351,6 @@ function placeChallengeEntry(index, entry) {
     if (c.reroll.picked.every((i) => i in c.reroll.changes)) finishReroll();
   } else {
     c.team[index] = entry;
-    if (!c.team.includes(null)) completeChallenge();
   }
 }
 
@@ -447,6 +459,7 @@ async function runChallengeRoll({ quick = false } = {}) {
 // thì ghi thêm).
 function showChallengeResult(result, { index, source, box, isNew, count }) {
   const done = Boolean(challenge.code) && nextChallengeIndex() === null;
+  const full = challengeTeamFull();
   const ps = box.pitySpin;
   const pityNote = ps ? ` Pity spin: only the ${ps.n} ${CH_WHEEL.noun}${ps.n > 1 ? "s" : ""} with ${PITY_KINDS[ps.due].label} could come up.` : "";
   showResultModal(result, {
@@ -456,7 +469,7 @@ function showChallengeResult(result, { index, source, box, isNew, count }) {
     extra: `
       <div class="result-note mode-note" style="--t:var(--amber)">
         Challenge · slot ${index + 1}/${CHALLENGE_TEAM_SIZE} · <b>${escHtml(challengeSourceLabel(source, box.detail))}</b>.${pityNote}
-        ${done ? "Your team is complete: copy its code on the Challenge tab." : ""}
+        ${done ? "Your team is complete: copy its code on the Challenge tab." : full ? "Your team is full: create its TW1 code on the Challenge tab." : ""}
       </div>`,
   });
 }
@@ -510,6 +523,43 @@ function rerollChallengeLegend() {
   $("ch-legend-modal").close();
   renderChallenge();
   if (!isWheelSource(source)) runChallengeRoll({ quick: legendQuick });
+}
+
+// ----- Xoá một ô, tạo mã TW1 -----
+
+let removeIndex = null; // ô đang hỏi xoá
+
+// Hộp xác nhận xoá: "Remove <name> from slot N? This can't be undone." (+ cảnh báo Shiny).
+function askRemoveChallengeSlot(index) {
+  if (state.spinning || !canRemoveChallengeSlot(index)) return;
+  const e = challenge.team[index], p = challengePokemon(e);
+  removeIndex = index;
+  $("ch-remove-text").textContent = `Remove ${p.name} from slot ${index + 1}? This can't be undone.`;
+  $("ch-remove-shiny").hidden = !e.shiny;
+  $("ch-remove-shiny").textContent = e.shiny ? `${p.name} is Shiny: you lose the Shiny reward for this slot.` : "";
+  $("ch-remove-modal").showModal();
+  $("ch-remove-cancel").focus(); // Enter / Space mặc định là Cancel
+}
+
+function confirmRemoveChallengeSlot() {
+  const index = removeIndex;
+  removeIndex = null;
+  $("ch-remove-modal").close();
+  if (index === null || state.spinning || !removeChallengeSlot(index)) return;
+  saveChallenge();
+  renderChallenge();
+}
+
+function cancelRemoveChallengeSlot() {
+  removeIndex = null;
+  $("ch-remove-modal").close();
+}
+
+function createChallengeCodeNow() {
+  if (state.spinning || !createChallengeCode()) return;
+  saveChallenge();
+  challengeMessage("");
+  renderChallenge();
 }
 
 // ----- Dán mã, reroll, nhập mã, làm lại -----
@@ -651,7 +701,13 @@ function initChallenge() {
     const pick = e.target.closest("[data-pick]");
     if (pick) toggleRerollPick(Number(pick.dataset.pick));
     if (e.target.closest("[data-legend]")) openChallengeLegend();
+    const rm = e.target.closest("[data-remove]");
+    if (rm) askRemoveChallengeSlot(Number(rm.dataset.remove));
   });
+  $("ch-remove-confirm").addEventListener("click", confirmRemoveChallengeSlot);
+  $("ch-remove-cancel").addEventListener("click", cancelRemoveChallengeSlot);
+  $("ch-remove-modal").addEventListener("close", () => { removeIndex = null; });
+  $("ch-create").addEventListener("click", createChallengeCodeNow);
   $("ch-legend-keep").addEventListener("click", keepChallengeLegend);
   $("ch-legend-reroll").addEventListener("click", rerollChallengeLegend);
   $("ch-use-reroll").addEventListener("click", useRerollCode);

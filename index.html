@@ -316,6 +316,9 @@
         </div>
       </div>
       <p class="hint ch-code-empty" id="ch-code-empty"></p>
+      <div class="ch-create-box" id="ch-create-box" hidden>
+        <button type="button" class="btn btn-spin" id="ch-create">Create TW1 code</button>
+      </div>
       <div class="ch-reroll-bar" id="ch-reroll-bar" hidden>
         <p id="ch-reroll-text"></p>
         <button type="button" class="btn btn-ghost" id="ch-reroll-cancel">Cancel reroll</button>
@@ -387,6 +390,23 @@
   </dialog>
 
   <!-- Popup: Legendary / Mythical trong tab Challenge — giữ hay quay lại ô đó -->
+  <!-- Tab Challenge: xác nhận xoá một Pokémon khỏi đội -->
+  <dialog class="modal modal-narrow ch-remove-modal" id="ch-remove-modal" aria-labelledby="ch-remove-title">
+    <div class="modal-inner">
+      <div class="modal-head">
+        <h2 id="ch-remove-title">Remove Pokémon</h2>
+      </div>
+      <div class="modal-body">
+        <p class="ch-remove-text" id="ch-remove-text"></p>
+        <p class="ch-remove-shiny" id="ch-remove-shiny" hidden></p>
+      </div>
+      <div class="result-actions">
+        <button type="button" class="btn btn-ghost" id="ch-remove-cancel">Cancel</button>
+        <button type="button" class="btn ch-remove-confirm" id="ch-remove-confirm">Remove</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog class="modal modal-narrow ch-legend-modal" id="ch-legend-modal" aria-labelledby="ch-legend-title">
     <div class="modal-inner">
       <div class="modal-head">
