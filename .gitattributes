@@ -1,0 +1,22 @@
+# Mọi file văn bản lưu và checkout bằng LF trên mọi hệ điều hành (test so sánh nội dung file theo "\n")
+* text=auto eol=lf
+
+# File nhị phân: không đổi xuống dòng, không diff/merge như văn bản
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.gif   binary
+*.ico   binary
+*.icns  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
+*.mp3   binary
+*.wav   binary
+*.ogg   binary
+*.zip   binary
+*.jar   binary
+*.pdf   binary
