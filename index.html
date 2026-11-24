@@ -284,7 +284,12 @@
     </div>
 
     <div class="spin-area">
-      <div class="action-row">
+      <!-- Nguồn Roulette: 2 nút (quay bánh xe, mở hòm của nhóm trúng); Case: chỉ nút Roll -->
+      <div class="action-row" id="ch-actions">
+        <div class="action-group ch-roll-group" id="ch-spin-group" hidden>
+          <button type="button" class="btn btn-spin action-main" id="ch-spin"><span class="action-label">Spin wheel</span></button>
+          <button type="button" class="btn btn-ghost action-quick" id="ch-spin-quick"></button>
+        </div>
         <div class="action-group ch-roll-group">
           <button type="button" class="btn btn-spin action-main" id="ch-roll"><span class="action-label">Roll</span></button>
           <button type="button" class="btn btn-ghost action-quick" id="ch-quick"></button>
@@ -292,7 +297,7 @@
       </div>
       <!-- Thanh pity của nguồn quay kế tiếp (Minigame: ẩn) -->
       <div class="pity-meters" id="ch-pity" aria-label="Pity" hidden></div>
-      <p class="kbd-hint">Press <kbd>Space</kbd> to roll</p>
+      <p class="kbd-hint" id="ch-kbd">Press <kbd>Space</kbd> to roll</p>
       <p class="hint" id="ch-hint" aria-live="polite"></p>
     </div>
 

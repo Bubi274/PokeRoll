@@ -2,7 +2,7 @@
 // Giao diện ở pages/challenge.js. Định dạng mã ở core/challenge-code.js và docs/challenge-code.md.
 "use strict";
 
-const STORAGE_KEY_CHALLENGE = "pokeroll.challenge";           // { source, team, pending, code, reroll }
+const STORAGE_KEY_CHALLENGE = "pokeroll.challenge";           // { source, team, pending, code, reroll, wheel }
 const STORAGE_KEY_CHALLENGE_GENS = "pokeroll.challenge.gens"; // gen đã chọn ở tab Challenge (riêng với Case và Custom)
 const STORAGE_KEY_CHALLENGE_USED = "pokeroll.challenge.used"; // id các đội đã dùng mã reroll (Start over / Import không xoá)
 
@@ -34,6 +34,8 @@ const challenge = {
   code: null,        // mã TW1 của đội đã đủ 6 ô (đội đang dùng)
   data: null,        // Challenge đọc từ code
   reroll: null,      // reroll đang làm: { allow, picked: [ô], started, changes: { [ô]: mục mới } }
+  wheel: null,       // bánh xe đã quay mà chưa mở hòm: { source, key, pitySpin } — khoá: không quay lại, không đổi nguồn
+  running: null,     // nút đang chạy: "spin" (bánh xe) | "open" (hòm) | null
   used: [],          // id các đội đã bắt đầu reroll: mã reroll của các đội này không dùng lại được (kể cả sau khi nhập lại mã TW1 cũ)
   ready: false,      // true khi tab Challenge đã dựng xong
 };
@@ -90,17 +92,31 @@ function challengeWheelGroups(source, pool) {
   return { keys: Object.keys(wheelPools(all).pools), all };
 }
 
-// Hòm của nguồn source trong pool: { groups, detail, list, keys, pitySpin } hoặc null nếu không quay được.
+// Bước 1 của nguồn Roulette: quay bánh xe ra một nhóm. Trả về { key, keys, pitySpin } hoặc null nếu bánh xe trống.
+// keys = mọi nhóm trên bánh xe. counter (bộ đếm pity của nguồn, tuỳ chọn): lượt mở tới là pity thì chỉ bốc nhóm có bậc
+// bảo đảm (pityWheelKeys); pitySpin = { due, n } khi bánh xe bị giới hạn như vậy, không thì null.
+function pickChallengeGroup(source, pool, rng = Math.random, counter = null) {
+  const { keys, all } = challengeWheelGroups(source, pool);
+  if (!keys.length) return null;
+  const pity = counter ? pityWheelKeys(keys, (k) => groupByRarity(all[k]), counter) : { keys, limited: false };
+  return { key: pickRandom(pity.keys, rng()), keys, pitySpin: pity.limited ? { due: pity.due, n: pity.keys.length } : null };
+}
+
+// Bước 2 của nguồn Roulette: hòm của nhóm key đã trúng. { groups, detail, list } hoặc null nếu nhóm không còn trên bánh xe.
+function challengeGroupCase(source, pool, key) {
+  const { keys, all } = challengeWheelGroups(source, pool);
+  return keys.includes(key) ? { groups: groupByRarity(all[key]), detail: key, list: all[key] } : null;
+}
+
+// Hòm của nguồn source trong pool (quay bánh xe và lấy hòm luôn một lần): { groups, detail, list, keys, pitySpin } hoặc null.
 // Roulette: bốc đều một nhóm trong các nhóm được lên bánh xe (cùng luật với chế độ thật, wheelPools), không dùng custom pool;
 // keys = mọi nhóm trên bánh xe. counter (bộ đếm pity của nguồn, tuỳ chọn): lượt tới là pity thì chỉ bốc nhóm có bậc bảo đảm
 // (pityWheelKeys); pitySpin = { due, n } khi bánh xe bị giới hạn như vậy, không thì null.
 function challengeCase(source, pool, rng = Math.random, counter = null) {
   if (source === "case") return pool.length ? { groups: groupByRarity(pool), detail: null, list: pool, keys: [], pitySpin: null } : null;
-  const { keys, all } = challengeWheelGroups(source, pool);
-  if (!keys.length) return null;
-  const pity = counter ? pityWheelKeys(keys, (k) => groupByRarity(all[k]), counter) : { keys, limited: false };
-  const detail = pickRandom(pity.keys, rng());
-  return { groups: groupByRarity(all[detail]), detail, list: all[detail], keys, pitySpin: pity.limited ? { due: pity.due, n: pity.keys.length } : null };
+  const pick = pickChallengeGroup(source, pool, rng, counter);
+  if (!pick) return null;
+  return { ...challengeGroupCase(source, pool, pick.key), keys: pick.keys, pitySpin: pick.pitySpin };
 }
 
 // Lý do nguồn không quay được với các gen đang chọn ("" = quay được).
@@ -203,9 +219,19 @@ function cleanEntry(e) {
   };
 }
 
+// Kết quả bánh xe đã lưu: { source (nguồn Roulette), key (nhóm có thật của nguồn đó), pitySpin } hoặc null nếu hỏng.
+function cleanChallengeWheel(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const src = challengeSource(raw.source);
+  if (!src || !src.wheel || typeof raw.key !== "string" || !challengeDetailName(raw.source, raw.key)) return null;
+  const ps = raw.pitySpin;
+  const pitySpin = ps && PITY_KINDS[ps.due] && Number.isInteger(ps.n) && ps.n > 0 ? { due: ps.due, n: ps.n } : null;
+  return { source: raw.source, key: raw.key, pitySpin };
+}
+
 function saveChallenge() {
-  const { source, team, pending, code, reroll } = challenge;
-  const ok = saveJson(STORAGE_KEY_CHALLENGE, { source, team, pending, code, reroll })
+  const { source, team, pending, code, reroll, wheel } = challenge;
+  const ok = saveJson(STORAGE_KEY_CHALLENGE, { source, team, pending, code, reroll, wheel })
     && saveJson(STORAGE_KEY_CHALLENGE_USED, challenge.used);
   markSaved("challenge", ok);
 }
@@ -215,6 +241,7 @@ function loadChallenge() {
   const raw = loadJson(STORAGE_KEY_CHALLENGE, {}, isPlainObject);
   challenge.used = loadJson(STORAGE_KEY_CHALLENGE_USED, [], Array.isArray).filter((id) => /^[A-Z0-9]{8}$/.test(id));
   challenge.source = challengeSource(raw.source) ? raw.source : "case";
+  challenge.wheel = cleanChallengeWheel(raw.wheel);
   const team = Array.isArray(raw.team) ? raw.team.slice(0, CHALLENGE_TEAM_SIZE) : [];
   challenge.team = Array.from({ length: CHALLENGE_TEAM_SIZE }, (_, i) => cleanEntry(team[i]));
   challenge.code = null;
@@ -255,5 +282,6 @@ function resetChallenge() {
   challenge.code = null;
   challenge.data = null;
   challenge.reroll = null;
+  challenge.wheel = null;
   saveChallenge();
 }

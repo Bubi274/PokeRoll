@@ -17,9 +17,9 @@ app.whenReady().then(async () => {
   await js(`showView("custom"); document.querySelector('.action-quick[data-action="wheel"]').click(); document.querySelector('.action-quick[data-action="open"]').click(); document.getElementById("result-modal").close();
     selectCustomMode("biome-roulette"); document.querySelector('.action-quick[data-action="biome"]').click(); document.querySelector('.action-quick[data-action="open"]').click(); document.getElementById("result-modal").close()`); // trang Custom kiểm tra với Biome Roulette đang mở
   // Tab Challenge kiểm tra với đội đã đủ 6 ô (có mã TW1), nguồn Type Roulette để bánh xe hiện ra
-  await js(`(async () => { selectChallengeSource("type"); for (let n = 0; n < 40 && (nextChallengeIndex() !== null || challenge.pending); n++) {
+  await js(`(async () => { selectChallengeSource("type"); for (let n = 0; n < 80 && (nextChallengeIndex() !== null || challenge.pending); n++) {
     if (challenge.pending) { keepChallengeLegend(); continue; }
-    await runChallengeRoll({ quick: true }); document.getElementById("result-modal").close(); }
+    await runChallengeNext({ quick: true }); document.getElementById("result-modal").close(); }
     document.getElementById("ch-legend-modal").close(); return 1; })()`);
   for (const w of [320, 360, 390, 430, 768, 1280]) {
     win.setContentSize(w, 800); await sleep(300);
@@ -36,16 +36,25 @@ app.whenReady().then(async () => {
       if (!ok) fails++;
       console.log(`${ok ? "PASS" : "FAIL"}  ${w}px ${view}: scrollWidth ${r.sw} / ${r.cw}, tabs ${r.tabLeft.toFixed(0)}–${r.tabRight.toFixed(0)}${r.out.length ? "  overflow: " + r.out.join(", ") : ""}`);      // Nút Roll của tab Challenge: chữ dài nhất vẫn hiện đủ (không bị cắt "…", không tràn khỏi nút)
       if (view === "challenge") {
-        const fit = await js(`(() => { const btn = document.getElementById("ch-roll"), lab = btn.querySelector(".action-label"), before = lab.textContent;
-          const labels = ["Reroll slot 6 · Letter Roulette", "Reroll slot 6 · Biome Roulette", "Roll slot 6 · Letter Roulette", "Roll slot 6 · Type Roulette", "Pick slots to reroll", before];
-          const bad = labels.filter((t) => { lab.textContent = t;
-            const b = btn.getBoundingClientRect(), l = lab.getBoundingClientRect();
-            return lab.scrollWidth > lab.clientWidth + 1 || l.left < b.left - 0.5 || l.right > b.right + 0.5 || l.top < b.top - 0.5 || l.bottom > b.bottom + 0.5; });
-          lab.textContent = before;
-          return { bad, lines: Math.round(lab.getBoundingClientRect().height / parseFloat(getComputedStyle(lab).lineHeight)) }; })()`);
+        // Một nút (Case, "Reroll N slots"), rồi hai nút cạnh nhau của nguồn Roulette (Spin … wheel | Open … case)
+        const fit = await js(`(() => { const group = document.getElementById("ch-spin-group"), row = document.getElementById("ch-actions");
+          const was = { hidden: group.hidden, pair: row.classList.contains("is-pair") };
+          const bad = [];
+          const tryLabels = (id, labels) => { const btn = document.getElementById(id), lab = btn.querySelector(".action-label"), before = lab.textContent;
+            for (const t of labels) { lab.textContent = t;
+              const b = btn.getBoundingClientRect(), l = lab.getBoundingClientRect();
+              if (lab.scrollWidth > lab.clientWidth + 1 || l.left < b.left - 0.5 || l.right > b.right + 0.5 || l.top < b.top - 0.5 || l.bottom > b.bottom + 0.5) bad.push(id + ": " + t); }
+            lab.textContent = before; };
+          group.hidden = true; row.classList.remove("is-pair");
+          tryLabels("ch-roll", ["Reroll slot 6 · Letter Roulette", "Reroll slot 6 · Biome Roulette", "Roll slot 6 · Case", "Reroll 3 slots", "Pick slots to reroll", "Team complete"]);
+          group.hidden = false; row.classList.add("is-pair");
+          tryLabels("ch-spin", ["Spin letter wheel", "Spin biome wheel", "Spin type wheel", "Spinning…"]);
+          tryLabels("ch-roll", ["Open Fighting case", "Open Electric case", "Open Legendary case", "Open case", "Opening…"]);
+          group.hidden = was.hidden; row.classList.toggle("is-pair", was.pair);
+          return { bad }; })()`);
         const fits = fit.bad.length === 0;
         if (!fits) fails++;
-        console.log(`${fits ? "PASS" : "FAIL"}  ${w}px challenge: Roll button shows its whole label${fits ? "" : "  cut: " + fit.bad.join(" | ")}`);
+        console.log(`${fits ? "PASS" : "FAIL"}  ${w}px challenge: Roll / Spin / Open buttons show their whole labels${fits ? "" : "  cut: " + fit.bad.join(" | ")}`);
       }
     }
   }

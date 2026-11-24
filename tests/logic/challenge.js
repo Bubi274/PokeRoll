@@ -69,6 +69,23 @@ check("Gold pity due but no type has Gold: wheel unchanged, no pitySpin (fallbac
 check("Only Special forms: Biome can't roll (no spawn data), with a reason", A.challengeCase("biome", special) === null
   && /No biome can go on the wheel/.test(A.challengeSourceProblem("biome", special)));
 
+// 2b. Hai bước của nguồn Roulette: quay bánh xe (pickChallengeGroup), rồi mở hòm của nhóm đó (challengeGroupCase)
+const pick = A.pickChallengeGroup("type", gen1, rng(6));
+check("Step 1: a type from the wheel, with every wheel type listed", wheel.includes(pick.key) && same(pick.keys, wheel) && pick.pitySpin === null);
+const gc = A.challengeGroupCase("type", gen1, pick.key);
+check("Step 2: the case of that type", gc.detail === pick.key && gc.list.every((p) => p.types.includes(pick.key)) && gc.list.length === A.typePools(gen1)[pick.key].length);
+check("Step 2: a group that's not on the wheel any more → null", A.challengeGroupCase("type", gen1, "nope") === null
+  && A.challengeGroupCase("biome", special, "forest") === null);
+check("Step 1 with Gold pity due: only types with Gold", Array.from({ length: 100 }, (_, i) => A.pickChallengeGroup("type", gen1, rng(100 + i), { purple: 0, gold: 9 }))
+  .every((x) => goldTypes.includes(x.key) && same(x.pitySpin, { due: "gold", n: goldTypes.length })));
+// Kết quả bánh xe đã lưu (khoá)
+const W = A.cleanChallengeWheel;
+check("Saved wheel: valid result kept", same(W({ source: "type", key: "fire", pitySpin: null }), { source: "type", key: "fire", pitySpin: null })
+  && same(W({ source: "letter", key: "S", pitySpin: { due: "gold", n: 3 } }), { source: "letter", key: "S", pitySpin: { due: "gold", n: 3 } }));
+check("Saved wheel: broken or unknown → null (no lock)", [null, "x", {}, { source: "case", key: "fire" }, { source: "minigame", key: "fire" },
+  { source: "type", key: "lava" }, { source: "letter", key: "s" }, { source: "biome", key: 3 }].every((x) => W(x) === null));
+check("Saved wheel: a broken pitySpin is dropped, the result is kept", same(W({ source: "type", key: "ice", pitySpin: { due: "blue", n: 2 } }), { source: "type", key: "ice", pitySpin: null }));
+
 // 3. Ô của mã TW1 → Pokémon trong app
 const slot = (o) => ({ dex: 25, name: "Pikachu", special: null, rule: "evo", shiny: false, tier: "blue", mode: "case", ...o });
 check("Slot by dex: Pikachu", same(A.entryFromSlot(slot({})), { id: 25, rarity: "blue", shiny: false, source: "case", detail: null, pity: null }));

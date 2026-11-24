@@ -96,7 +96,7 @@ function init() {
       if (resultModal.open) btn = $("result-again");
       else if (!otherDialog) {
         btn = state.view === "case" ? $("btn-spin") : state.view === "custom" ? customActionButton("Space")
-          : state.view === "challenge" ? $("ch-roll") : null;
+          : state.view === "challenge" ? challengeSpaceButton() : null;
       }
     } else if (state.view === "custom" && !otherDialog) {
       btn = customActionButton(e.code);
@@ -174,5 +174,5 @@ if (typeof document !== "undefined") {
     base64urlDecode, newChallengeId, encodeChallengeCode, decodeChallengeCode, encodeRerollCode, decodeRerollCode,
     challengeSlot, rerolledChallenge,
     CHALLENGE_SOURCES, challenge, challengeCase, challengeSourceProblem, entryFromSlot, nextChallengeIndex, sourceForIndex,
-    challengeSourceLabel };
+    challengeSourceLabel, pickChallengeGroup, challengeGroupCase, cleanChallengeWheel };
 }

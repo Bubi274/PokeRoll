@@ -194,8 +194,13 @@
 /* ===== Nút Roll: chữ dài ("Reroll slot 6 · Letter Roulette") luôn hiện đủ =====
    Nhóm nút rộng hơn nút hành động trang Custom; hết chỗ thì chữ xuống dòng (cân hai dòng) thay vì bị cắt "…". */
 .ch-roll-group { flex-basis: 560px; }
+.ch-roll-group[hidden] { display: none; }
+/* Nguồn Roulette: 2 nút (Spin wheel | Open case) cạnh nhau khi đủ chỗ, không thì xếp chồng */
+#ch-actions.is-pair .ch-roll-group { flex-basis: 340px; }
+#ch-spin { padding-block: 12px; min-height: 58px; }
 #ch-roll { padding-block: 12px; min-height: 58px; }
-#ch-roll .action-label {
+#ch-roll .action-label,
+#ch-spin .action-label {
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
