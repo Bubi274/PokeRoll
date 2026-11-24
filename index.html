@@ -270,11 +270,17 @@
     <div class="ch-stage">
       <!-- Nguồn quay của ô kế tiếp -->
       <div class="ch-sources" id="ch-sources" role="radiogroup" aria-label="Source of the next roll"></div>
-      <section class="reel" id="ch-reel" aria-label="Challenge reel">
-        <div class="reel-strip"></div>
-        <div class="reel-marker" aria-hidden="true"></div>
-        <p class="reel-empty">Select at least one generation</p>
-      </section>
+      <!-- Nguồn Roulette: bánh xe (dựng bằng wheelMarkup) quay trước, rồi tới dải thẻ -->
+      <div class="ch-play" id="ch-play">
+        <div class="ch-wheel-col" id="ch-wheel-col" hidden>
+          <p class="wheel-caption" id="ch-wheel-caption" aria-live="polite"></p>
+        </div>
+        <section class="reel" id="ch-reel" aria-label="Challenge reel">
+          <div class="reel-strip"></div>
+          <div class="reel-marker" aria-hidden="true"></div>
+          <p class="reel-empty">Select at least one generation</p>
+        </section>
+      </div>
     </div>
 
     <div class="spin-area">

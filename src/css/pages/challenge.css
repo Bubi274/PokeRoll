@@ -78,6 +78,23 @@
 /* ===== Nguồn quay (giống ô chọn hòm của Minigame, màu nhấn xanh) ===== */
 .ch-stage { display: grid; gap: 14px; min-width: 0; }
 .ch-stage > * { min-width: 0; }
+
+/* Nguồn Roulette: bánh xe bên trái | dải thẻ bên phải (màn hình rộng); màn hình nhỏ: bánh xe trên dải thẻ.
+   Bánh xe dùng chung khung .wheel của trang Custom (modes/wheel.css), chỉ nhỏ hơn. */
+.ch-play { display: grid; gap: 14px; align-items: center; min-width: 0; }
+.ch-play > * { min-width: 0; }
+.ch-wheel-col {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  overflow: hidden; /* góc của khối vuông khi xoay không làm trang cuộn ngang */
+  padding: 10px 0 2px;
+}
+.ch-wheel-col[hidden] { display: none; }
+.ch-wheel-col .wheel { width: min(100%, 260px); }
+@media (min-width: 900px) {
+  .ch-play.has-wheel { grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); gap: 22px; }
+}
 .ch-sources { display: flex; flex-wrap: wrap; gap: 8px; }
 .ch-source {
   display: grid;
@@ -184,6 +201,7 @@
   .ch-empty { min-height: 128px; }
   .ch-sources { gap: 6px; }
   .ch-source { flex-basis: calc(50% - 3px); padding: 8px 10px; }
+  .ch-wheel-col .wheel { width: min(100%, 220px); }
   .ch-source-name { font-size: 0.85rem; }
   .ch-source-desc { display: none; } /* "How it works" giải thích từng nguồn */
   .ch-legend-head { flex-direction: column; text-align: center; }

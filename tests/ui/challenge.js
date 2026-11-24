@@ -1,5 +1,6 @@
-// Tab Challenge: quay đội 6 ô (mỗi lượt vào ô kế tiếp, không xoá từng ô), nguồn Case / Roulette / Minigame dùng bộ đếm pity
-// của chế độ tương ứng, Legendary / Mythical hỏi Keep / Reroll (còn nhớ sau khi tải lại), mã TW1 đúng định dạng, reroll bằng
+// Tab Challenge: quay đội 6 ô (mỗi lượt vào ô kế tiếp, không xoá từng ô), nguồn Case / Roulette dùng bộ đếm pity
+// của chế độ tương ứng, Roulette quay bánh xe trước (cả Quick) và ghi rõ nhóm trúng, lượt pity chỉ hiện bậc bảo đảm,
+// không còn nguồn Minigame (mã cũ có ô minigame vẫn đọc và reroll bằng Case), Legendary / Mythical hỏi Keep / Reroll (còn nhớ sau khi tải lại), mã TW1 đúng định dạng, reroll bằng
 // mã TWR1 (chỉ mã của đội đang dùng, không dùng lại được), nhập mã TW1, Start over, Clear data, lịch sử gắn nhãn Challenge.
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
@@ -38,6 +39,16 @@ app.whenReady().then(async () => {
     code: challenge.code,
   }))()`);
   const roll = () => js(`runChallengeRoll({ quick: true }).then(() => 1)`);
+  const waitIdle = () => js(`new Promise((done) => { const t = setInterval(() => { if (!state.spinning) { clearInterval(t); done(1); } }, 50); })`);
+  // Bánh xe của tab Challenge
+  const wheel = () => js(`(() => { const col = document.getElementById("ch-wheel-col"), w = document.getElementById("ch-wheel");
+    const win = w.querySelector(".wheel-slice.is-winner");
+    return { hidden: col.hidden || !col.getClientRects().length, hub: document.getElementById("ch-hub").textContent,
+      winner: w.classList.contains("has-winner") && win ? win.dataset.type : null, letters: w.classList.contains("is-letters"),
+      slices: w.querySelectorAll(".wheel-slice").length, caption: document.getElementById("ch-wheel-caption").textContent }; })()`);
+  // Bậc của các thẻ phụ trên dải Challenge
+  const reelOthers = () => js(`[...new Set([...document.querySelectorAll("#ch-reel .reel-strip .card:not(.is-winner)")].map((c) => [...c.classList].find((k) => k.startsWith("r-")).slice(2)))].sort()`);
+  const srcLabel = (i) => js(`(() => { const li = document.querySelectorAll("#ch-team .ch-slot")[${i}]; const el = li && li.querySelector(".ch-card-src"); return el ? el.textContent : ""; })()`);
   const closeAll = () => js(`for (const d of document.querySelectorAll("dialog[open]")) d.close()`);
   // Quay tới khi đầy các ô (Legendary thì giữ)
   const fill = () => js(`(async () => {
@@ -57,6 +68,10 @@ app.whenReady().then(async () => {
   check("Empty team: 6 empty slots, Roll slot 1 · Case", same(u.slots, ["-", "-", "-", "-", "-", "-"]) && u.label === "Roll slot 1 · Case" && !u.disabled, JSON.stringify(u));
   check("No Remove button on slots", await js(`!document.querySelector("#ch-team [data-remove], #ch-team .ch-remove")`));
   check("Case source: Case pity bars shown", !u.pityHidden && same(u.pity, ["0/5", "0/10"]));
+  check("Case source: no wheel", (await wheel()).hidden);
+  check("Sources: Case, Type, Biome, Letter (no Minigame Pokémon Case)",
+    same(await js(`[...document.querySelectorAll(".ch-source")].map((b) => b.dataset.source)`), ["case", "type", "biome", "letter"])
+    && !/Minigame Pokémon Case/.test(await js(`document.getElementById("ch-sources").textContent`)));
   check("No code yet", !u.code && await js(`document.getElementById("ch-code-box").hidden`));
   check("Space rolls on the Challenge tab", await js(`(() => { let hit = false; const b = document.getElementById("ch-roll"); // chặn lượt quay thật, chỉ ghi nhận cú bấm
     const f = (e) => { hit = true; e.stopImmediatePropagation(); }; b.addEventListener("click", f, { capture: true });
@@ -67,6 +82,9 @@ app.whenReady().then(async () => {
   await js(`selectChallengeSource("type")`);
   u = await ui();
   check("Type source: label and Type Roulette pity bars", u.label === "Roll slot 1 · Type Roulette" && !u.pityHidden);
+  let wh = await wheel();
+  check("Type source: the type wheel shows before rolling (18 types, hub ?)", !wh.hidden && wh.slices === 18 && wh.hub === "?" && !wh.winner
+    && wh.caption === "18 types on the wheel · each 1 in 18", JSON.stringify(wh));
   await js(`state.pity["type-roulette"] = { purple: 2, gold: 2 }; savePity(); renderPityMeters()`);
   await roll();
   u = await ui();
@@ -74,30 +92,68 @@ app.whenReady().then(async () => {
   const typeEntry = await js(`challenge.pending ? challenge.pending.entry : challenge.team[0]`);
   if (u.legend) await js(`keepChallengeLegend()`);
   check("Roll fills slot 1 with source type and the rolled type", typeEntry.source === "type" && typeof typeEntry.detail === "string", JSON.stringify(typeEntry));
+  wh = await wheel();
+  const typeName1 = await js(`typeName(${JSON.stringify(typeEntry.detail)})`);
+  check("Quick roll: the wheel still shows the type it landed on", wh.winner === typeEntry.detail && wh.hub === typeName1, JSON.stringify(wh));
   check("History entry: mode challenge, detail type:<type>", h.mode === "challenge" && h.detail === `type:${typeEntry.detail}`, JSON.stringify(h));
   check("Rolled Pokémon is added to the collection", await js(`Boolean(state.collection[${JSON.stringify(typeEntry.id)}])`));
   const tp = await js(`state.pity["type-roulette"]`), cp = await js(`state.pity.case`);
   check("Type source uses the Type Roulette pity counter (Case counter untouched)", !same(tp, { purple: 2, gold: 2 }) && same(cp, { purple: 0, gold: 0 }), JSON.stringify(tp));
   check("Recent drops: tagged Challenge", await js(`document.querySelector("#recent-row li:first-child .src-tag").textContent`) === "Challenge");
-  check("Result popup says Challenge · slot 1/6", u.result && await js(`/Challenge · slot 1\\/6 · Type Roulette/.test(document.getElementById("result-body").textContent)`));
+  check("Result popup says Challenge · slot 1/6 · Type Roulette · <type>", u.result
+    && await js(`document.getElementById("result-body").textContent.replace(/\\s+/g, " ")`).then((t) => t.includes(`Challenge · slot 1/6 · Type Roulette · ${typeName1}.`)));
   await closeAll();
   u = await ui();
   check("Next roll is slot 2", u.label === "Roll slot 2 · Type Roulette" && u.slots[0] !== "-" && u.slots[1] === "-");
+  check("Slot 1 says its source: Type Roulette · <type>", await srcLabel(0) === `Type Roulette · ${typeName1}`, await srcLabel(0));
 
-  // 3. Nguồn Minigame: không pity, popup 1 in N đều
-  await js(`selectChallengeSource("minigame")`);
-  u = await ui();
-  check("Minigame source: no pity bars", u.pityHidden);
-  const before = await js(`JSON.stringify(state.pity)`);
-  await roll();
-  const mg = await js(`challenge.pending ? challenge.pending.entry : challenge.team[1]`);
-  check("Minigame roll: source minigame, not Shiny", mg.source === "minigame" && mg.shiny === false);
-  check("Minigame roll: no pity counter changes", await js(`JSON.stringify(state.pity)`) === before);
-  if (!(await ui()).legend) {
-    check("Minigame popup: uniform odds, no tier ladder", await js(`(() => { const b = document.getElementById("result-body"); return /each with the same chance/.test(b.textContent) && !b.querySelector(".tier-ladder"); })()`));
-  }
+  // 2b. Có hiệu ứng: bánh xe quay trước (chưa lộ nhóm), rồi tới dải thẻ
+  await js(`state.pity["type-roulette"] = { purple: 0, gold: 0 }; savePity(); renderChallenge(); runChallengeRoll(); 1`); await sleep(120);
+  const midWheel = await wheel();
+  const midSlots = (await ui()).slots;
+  check("While the wheel spins: no winner yet, hub ?, slot 2 still empty, Spinning…", await js("state.spinning") && !midWheel.winner && midWheel.hub === "?"
+    && midSlots[1] === "-" && (await ui()).label === "Spinning…", JSON.stringify(midWheel));
+  await waitIdle(); await sleep(200);
+  const e2 = await js(`challenge.pending ? challenge.pending.entry : challenge.team[1]`);
+  wh = await wheel();
+  check("After the spin: the wheel shows the type, the slot is filled from that type", wh.winner === e2.detail && e2.source === "type"
+    && await js(`challengePokemon(${JSON.stringify(e2)}).types.includes(${JSON.stringify(e2.detail)})`), JSON.stringify(wh));
   await closeAll();
   if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
+
+  // 3. Nguồn Minigame không còn; Biome và Letter có bánh xe riêng
+  await js(`selectChallengeSource("minigame")`);
+  check("Minigame can't be selected any more", await js(`challenge.source`) === "type");
+  await js(`selectChallengeSource("letter")`);
+  wh = await wheel();
+  check("Letter source: the letter wheel (upright letters)", !wh.hidden && wh.letters && wh.hub === "?" && /letters? on the wheel/.test(wh.caption), JSON.stringify(wh));
+  await js(`selectChallengeSource("biome")`);
+  wh = await wheel();
+  check("Biome source: the biome wheel", !wh.hidden && !wh.letters && /biomes? on the wheel/.test(wh.caption), JSON.stringify(wh));
+  await roll();
+  const e3 = await js(`challenge.pending ? challenge.pending.entry : challenge.team[2]`);
+  const biomeName = await js(`biomeInfo(${JSON.stringify(e3.detail)}).name`);
+  wh = await wheel();
+  check("Biome roll: wheel shows the biome, slot says Biome Roulette · <biome>", e3.source === "biome" && wh.winner === e3.detail
+    && wh.hub === biomeName && await srcLabel(2) === `Biome Roulette · ${biomeName}`, `${await srcLabel(2)} / ${JSON.stringify(wh)}`);
+  await closeAll();
+  if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
+
+  // 3b. Pity ở Challenge: Gen 1, Gold pity → bánh xe chỉ dừng ở hệ có Gold, dải chỉ toàn Gold
+  await js(`challenge.gens = new Set([1]); syncCheckboxes(document.getElementById("ch-gen-grid"), challenge.gens); onChallengeGensChanged();
+    selectChallengeSource("type"); state.pity["type-roulette"] = { purple: 0, gold: 9 }; savePity(); renderChallenge()`);
+  check("Gold pity due: Next open line under the Challenge pity bars", await js(`(document.querySelector("#ch-pity .pity-next") || {}).textContent`) === "Next open: guaranteed Gold");
+  const goldTypes = await js(`challengeWheelGroups("type", challengePool()).keys.filter((k) => !pityTiers("gold", groupByRarity(typePools(challengePool())[k])).fallback)`);
+  await roll();
+  const e4 = await js(`challenge.pending ? challenge.pending.entry : challenge.team[3]`);
+  wh = await wheel();
+  check("Gold pity: the wheel landed on a type with Gold", goldTypes.includes(e4.detail) && wh.winner === e4.detail, `${e4.detail} / ${goldTypes.join(",")}`);
+  check("Gold pity: caption says it was a pity spin", wh.caption === `Pity spin: only the ${goldTypes.length} types with Gold could come up`, wh.caption);
+  check("Gold pity: Gold, every card on the reel is Gold", e4.rarity === "gold" && same(await reelOthers(), ["gold"]), JSON.stringify(await reelOthers()));
+  await closeAll();
+  if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
+  check("After the pity roll: Next open line gone", !(await js(`Boolean(document.querySelector("#ch-pity .pity-next"))`)));
+  await js(`document.getElementById("ch-all").click()`);
 
   // 4. Legendary: hỏi Keep / Reroll, nhớ sau khi tải lại
   await js(`selectChallengeSource("case"); state.pity.case = { purple: 0, gold: 9 }; savePity(); renderChallenge()`);
@@ -132,6 +188,7 @@ app.whenReady().then(async () => {
   const kept = await js(`challenge.pending && challenge.pending.index`);
   await js(`document.getElementById("ch-legend-keep").click()`); await sleep(200);
   check("Keep: the Legendary goes into the next slot", await js(`challenge.team[${kept}] && challenge.team[${kept}].rarity`) === "gold" && !(await ui()).legend);
+  check("Case Gold pity: every card on the reel is Gold", same(await reelOthers(), ["gold"]), JSON.stringify(await reelOthers()));
 
   // 5. Đầy đội → mã TW1
   const code = await fill();
@@ -144,8 +201,8 @@ app.whenReady().then(async () => {
   check("Code: team matches the slots, in order", same(d.team, expected));
   check("Code: v 1, 8-char id, app pokeroll <version>, parent null", d.v === 1 && /^[A-Z0-9]{8}$/.test(d.id) && d.app === `pokeroll ${await js("APP_VERSION")}`
     && d.parent === null && same(d.rerolled, []) && Math.abs(d.ts - Date.now() / 1000) < 600);
-  check("Code: Minigame slot is exact / minigame / not Shiny", d.team[1].mode === "minigame" && d.team[1].rule === "exact" && d.team[1].tier === "minigame" && d.team[1].shiny === false);
-  check("Code: other slots are evo with a tier", d.team.filter((s) => s.mode !== "minigame").every((s) => s.rule === "evo" && s.tier !== "minigame"));
+  check("Code: no Minigame slot; every slot is evo with a tier", d.team.every((s) => s.mode !== "minigame" && s.rule === "evo" && s.tier !== "minigame"));
+  check("Code: slot modes match the sources rolled (type, type, biome, type, ...)", same(d.team.slice(0, 4).map((s) => s.mode), ["type", "type", "biome", "type"]), JSON.stringify(d.team.map((s) => s.mode)));
   check("Code box shows the same code", await js(`document.getElementById("ch-code").value`) === code);
   await win.reload(); await sleep(500);
   check("Code survives a reload", await js(`challenge.code`) === code);
@@ -211,6 +268,31 @@ app.whenReady().then(async () => {
   await js(`window.__asked = ""; window.confirm = (m) => { window.__asked = m; return false; }; 1`);
   await paste(V1()); await js(`document.getElementById("ch-import").click()`);
   check("Import over an existing team asks first (and No keeps it)", /Replace your current team/.test(await js("window.__asked")) && await js(`challenge.code`) === code2);
+
+  // 7b. Mã TW1 cũ có ô Minigame (rule "exact"): vẫn đọc được, reroll ô đó thì quay bằng Case
+  await js(`window.confirm = () => true; 1`);
+  const legacy = await js(`(() => { const d = decodeChallengeCode(challenge.code);
+    d.team[4] = { ...d.team[4], rule: "exact", tier: "minigame", shiny: false, mode: "minigame" };
+    return encodeChallengeCode({ ...d, id: "LEGACY01", parent: null, rerolled: [] }); })()`);
+  await paste(legacy); await js(`document.getElementById("ch-import").click()`);
+  u = await ui();
+  check("Old code with a Minigame slot: imported", u.code === legacy && /imported/.test(u.msg), u.msg);
+  check("Old Minigame slot: shown as Minigame (neutral colour)", await srcLabel(4) === "Minigame"
+    && await js(`document.querySelectorAll("#ch-team .ch-slot")[4].querySelector(".ch-card").classList.contains("r-minigame")`));
+  await win.reload(); await sleep(500);
+  await js(`showView("challenge")`); await sleep(200);
+  check("Old Minigame slot: still there after a reload", await js(`challenge.code`) === legacy && await js(`challenge.team[4].source`) === "minigame");
+  const legacyTeam = await js(`decodeChallengeCode(challenge.code).team`);
+  await paste(await js(`encodeRerollCode(challenge.code, 1)`)); await js(`useRerollCode()`);
+  await js(`document.querySelector('#ch-team [data-pick="4"]').click()`);
+  u = await ui();
+  check("Reroll an old Minigame slot: it will roll from Case", u.label === "Reroll 1 slot" && !u.disabled && await js(`sourceForIndex(4)`) === "case");
+  await roll(); await closeAll();
+  if (await js(`Boolean(challenge.pending)`)) await js(`keepChallengeLegend()`);
+  const d3 = await js(`decodeChallengeCode(challenge.code)`);
+  check("Reroll an old Minigame slot: rolled from Case (mode case, rule evo, a tier)", d3.parent === "LEGACY01" && same(d3.rerolled, [4])
+    && d3.team[4].mode === "case" && d3.team[4].rule === "evo" && d3.team[4].tier !== "minigame", JSON.stringify(d3.team[4]));
+  check("Reroll an old Minigame slot: other slots unchanged", [0, 1, 2, 3, 5].every((i) => same(d3.team[i], legacyTeam[i])));
 
   // 8. Gen
   await js(`window.confirm = () => true; resetChallenge(); renderChallenge(); document.getElementById("ch-none").click()`);

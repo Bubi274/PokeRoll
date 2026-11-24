@@ -16,8 +16,8 @@ app.whenReady().then(async () => {
   // Quay một lượt ở trang Custom để dải thẻ, bánh xe và bảng tỉ lệ đều có nội dung
   await js(`showView("custom"); document.querySelector('.action-quick[data-action="wheel"]').click(); document.querySelector('.action-quick[data-action="open"]').click(); document.getElementById("result-modal").close();
     selectCustomMode("biome-roulette"); document.querySelector('.action-quick[data-action="biome"]').click(); document.querySelector('.action-quick[data-action="open"]').click(); document.getElementById("result-modal").close()`); // trang Custom kiểm tra với Biome Roulette đang mở
-  // Tab Challenge kiểm tra với đội đã đủ 6 ô (có mã TW1)
-  await js(`(async () => { for (let n = 0; n < 40 && (nextChallengeIndex() !== null || challenge.pending); n++) {
+  // Tab Challenge kiểm tra với đội đã đủ 6 ô (có mã TW1), nguồn Type Roulette để bánh xe hiện ra
+  await js(`(async () => { selectChallengeSource("type"); for (let n = 0; n < 40 && (nextChallengeIndex() !== null || challenge.pending); n++) {
     if (challenge.pending) { keepChallengeLegend(); continue; }
     await runChallengeRoll({ quick: true }); document.getElementById("result-modal").close(); }
     document.getElementById("ch-legend-modal").close(); return 1; })()`);

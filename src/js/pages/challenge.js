@@ -6,13 +6,16 @@ const CHALLENGE_MODE = "challenge"; // mã chế độ trong lịch sử quay (n
 
 const CHALLENGE_RULES_TEXT = [
   "Pick a source, then roll: each roll fills the next empty slot until you have 6 Pokémon. There is no way to remove one slot, only Start over for the whole team.",
-  "Case, Type, Biome and Letter use the same tier odds as their modes, and the same pity counters. Type, Biome and Letter pick a random group from the ones that can go on their wheel. Custom pools are not used here.",
-  "Minigame Pokémon Case gives every Pokémon the same chance, with no tiers and no Shiny. Only that exact Pokémon is allowed in the game; from the other sources, its later evolutions are allowed too.",
+  "Case, Type, Biome and Letter use the same tier odds as their modes, and the same pity counters. Custom pools are not used here.",
+  "Type, Biome and Letter spin their wheel first, so you see the type, biome or letter you got, then open a case of it. The wheel holds the same groups as in Custom, each with the same chance. Quick skips both animations.",
+  "Pity: when the next roll is guaranteed Purple or better or Gold, the wheel only stops on groups that have that tier (if any do), and the reel only shows that tier.",
+  "Later evolutions of a rolled Pokémon are allowed in the game.",
   "Legendary and Mythical Pokémon ask first: keep it, or reroll that slot from the same source.",
   "Every roll is added to your collection and roll history, marked Challenge.",
   "When the team is complete you get a TW1 code. Paste it into Trainer's Workshop.",
   "After a loss, the game gives you a TWR1 reroll code. Paste it below, pick the slots to reroll (as many as the code allows) and roll them again from their own sources. You get a new TW1 code.",
   "Lost your team? Import its TW1 code to get it back.",
+  "Old codes with a Minigame slot still work. Rerolling that slot rolls it from Case.",
 ];
 
 const ICON_COPY = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="1.5"/><path d="M5 16H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v1"/></svg>`;
@@ -70,6 +73,69 @@ function renderChallengeTeam() {
   }).join("");
   const filled = c.team.filter(Boolean).length;
   $("ch-team-count").textContent = c.code ? `Team ${c.data.id}` : `${filled}/${CHALLENGE_TEAM_SIZE}`;
+}
+
+// ----- Bánh xe (nguồn Roulette) -----
+// Dùng chung bánh xe của trang Custom (wheelMarkup / drawWheel / spinWheelTo ở modes/wheel-spin.js). Màu, nhãn và kiểu chữ
+// lấy từ bánh xe của chế độ tương ứng (TYPE_WHEEL...). Các ô là nhóm được lên bánh xe với gen của tab Challenge.
+const CHALLENGE_WHEEL_PAUSE_MS = 450; // dừng một chút sau khi bánh xe dừng để kịp nhìn nhóm trúng, rồi dải mới chạy
+const CH_WHEEL = {
+  wheel: "ch-wheel", disc: "ch-disc", hub: "ch-hub",
+  state: { types: [], rotation: 0 },
+  text: { stopped: "Challenge wheel" },
+  color: () => "#777", label: (k) => k, upright: false, noun: "group",
+  drawn: null, // "<nguồn>|<các ô>" đang vẽ: chỉ vẽ lại khi đổi
+  last: null,  // lượt quay gần nhất: { source, key, pitySpin } (để giữ chú thích của lượt đó)
+};
+
+// Nguồn của lượt quay kế tiếp (đang lập đội: nguồn đang chọn; reroll: nguồn của ô kế tiếp).
+function challengeShownSource() {
+  const c = challenge, i = nextChallengeIndex();
+  if (i !== null) return sourceForIndex(i);
+  return c.reroll && c.reroll.picked.length ? sourceForIndex(c.reroll.picked[0]) : c.source;
+}
+
+// Đặt bánh xe theo nguồn source: màu / nhãn của chế độ đó, các ô là keys. Bộ ô không đổi thì giữ nguyên (cả ô trúng).
+function setChallengeWheel(source, keys) {
+  const m = challengeSource(source).wheel();
+  Object.assign(CH_WHEEL, { color: m.color, label: m.label, upright: Boolean(m.upright), noun: m.noun });
+  $("ch-wheel").classList.toggle("is-letters", Boolean(m.upright));
+  const drawn = `${source}|${keys.join()}`;
+  if (CH_WHEEL.drawn === drawn) return;
+  CH_WHEEL.drawn = drawn;
+  CH_WHEEL.last = null;
+  drawWheel(CH_WHEEL, keys);
+}
+
+// Dòng dưới bánh xe: số nhóm và cơ hội mỗi nhóm; lượt vừa quay bị pity giới hạn thì ghi rõ.
+function challengeWheelCaption() {
+  const n = CH_WHEEL.state.types.length, noun = CH_WHEEL.noun;
+  const plural = (k) => `${k} ${noun}${k > 1 ? "s" : ""}`;
+  const ps = CH_WHEEL.last && CH_WHEEL.last.pitySpin;
+  return ps ? `Pity spin: only the ${plural(ps.n)} with ${PITY_KINDS[ps.due].label} could come up`
+    : n ? `${plural(n)} on the wheel · each 1 in ${n}` : `No ${noun}s on the wheel`;
+}
+
+// Các nhóm trên bánh xe của nguồn với gen đang chọn. Nhớ theo nguồn + gen: hàm vẽ nút chạy rất thường xuyên.
+let challengeKeysMemo = { at: null, keys: [] };
+function challengeWheelKeys(source) {
+  const at = `${source}|${[...challenge.gens].sort((a, b) => String(a).localeCompare(String(b))).join()}`;
+  if (challengeKeysMemo.at !== at) challengeKeysMemo = { at, keys: challengeWheelGroups(source, challengePool()).keys };
+  return challengeKeysMemo.keys;
+}
+
+// Hiện bánh xe khi nguồn kế tiếp là Roulette (Case: ẩn). Không vẽ lại trong lúc quay.
+function renderChallengeWheel() {
+  if (state.spinning) return;
+  const source = challengeShownSource();
+  const src = challengeSource(source);
+  const keys = src && src.wheel ? challengeWheelKeys(source) : [];
+  const on = Boolean(src && src.wheel) && keys.length > 0;
+  $("ch-wheel-col").hidden = !on;
+  $("ch-play").classList.toggle("has-wheel", on);
+  if (!on) return;
+  setChallengeWheel(source, keys);
+  $("ch-wheel-caption").textContent = challengeWheelCaption();
 }
 
 // ----- Nguồn quay -----
@@ -144,6 +210,7 @@ function renderChallengeControls(label) {
   for (const input of $("ch-gen-grid").querySelectorAll("input")) input.disabled = false;
   $("ch-all").disabled = $("ch-none").disabled = false;
   renderChallengeSources();
+  renderChallengeWheel();
   // Thanh pity của nguồn sẽ quay ở lượt tới; đội đã xong (không còn gì để quay) thì ẩn
   const i = nextChallengeIndex();
   const done = i === null && !(challenge.reroll && challenge.reroll.picked.length);
@@ -209,8 +276,10 @@ async function runChallengeRoll({ quick = false } = {}) {
   const index = nextChallengeIndex();
   if (index === null || state.spinning || challengeRollHint()) return;
   const source = sourceForIndex(index);
+  const src = challengeSource(source);
   const pool = challengePool();
-  const box = challengeCase(source, pool);
+  // Bộ đếm trước lượt quay: lượt pity thì bánh xe chỉ bốc nhóm có bậc bảo đảm
+  const box = challengeCase(source, pool, Math.random, state.pity[src.pity]);
   if (!box) return;
   if (challenge.reroll && !challenge.reroll.started) {
     challenge.reroll.started = true;
@@ -218,13 +287,7 @@ async function runChallengeRoll({ quick = false } = {}) {
     if (!challenge.used.includes(challenge.data.id)) challenge.used.push(challenge.data.id);
   }
 
-  let result;
-  if (source === "minigame") {
-    const p = pickUniform(pool);
-    result = { pokemon: p, rarity: p.rarity, shiny: false, downgraded: false, pity: null, pityFallback: false };
-  } else {
-    result = rollModePity(challengeSource(source).pity, box.groups);
-  }
+  const result = rollModePity(src.pity, box.groups);
   const p = result.pokemon;
   const isNew = !state.collection[p.id];
   const record = recordDrop(state.collection, state.history, result);
@@ -238,11 +301,26 @@ async function runChallengeRoll({ quick = false } = {}) {
   else placeChallengeEntry(index, entry);
   saveChallenge();
 
-  const mg = minigameCase("pokemon");
-  const items = source === "minigame" ? reelItemsOf(mg, buildUniformReel(p, pool)) : buildReelItems(result, box.groups);
-  await runCustomReel($("ch-reel"), items, {
-    quick, setSpinning: setChallengeSpinning,
-    urlsOf: source === "minigame" ? (it) => mg.images(it.item) : (it) => [imageUrl(it.pokemon, it.shiny)],
+  // Roulette: quay bánh xe ra nhóm trước (hiện rõ nhóm trúng), rồi mới tới dải thẻ của hòm nhóm đó
+  if (box.detail) {
+    setChallengeWheel(source, box.keys);
+    $("ch-wheel-col").hidden = false;
+    $("ch-play").classList.add("has-wheel");
+    CH_WHEEL.last = null;
+    $("ch-wheel-caption").textContent = challengeWheelCaption();
+    setChallengeSpinning(true, quick ? undefined : "Spinning…");
+    if (!quick) audio();
+    const done = spinWheelTo(CH_WHEEL, box.detail, { quick });
+    if (done) {
+      await done;
+      playReveal("blue", false);
+      await new Promise((r) => setTimeout(r, CHALLENGE_WHEEL_PAUSE_MS));
+    }
+    CH_WHEEL.last = { source, key: box.detail, pitySpin: box.pitySpin };
+    $("ch-wheel-caption").textContent = challengeWheelCaption();
+  }
+  await runCustomReel($("ch-reel"), buildReelItems(result, box.groups), {
+    quick, setSpinning: setChallengeSpinning, urlsOf: (it) => [imageUrl(it.pokemon, it.shiny)],
   });
   renderRecent();
   renderPityMeters();
@@ -250,31 +328,22 @@ async function runChallengeRoll({ quick = false } = {}) {
   if (state.view === "collection") renderCollection();
   renderChallenge();
   if (legendary) openChallengeLegend({ quick });
-  else showChallengeResult(result, { index, source, box, pool, isNew, count: record.count });
+  else showChallengeResult(result, { index, source, box, isNew, count: record.count });
 }
 
-// Popup kết quả: như các chế độ khác, thêm dòng "Challenge · slot 3/6". Minigame: "1 in N" đều, không có bậc.
-function showChallengeResult(result, { index, source, box, pool, isNew, count }) {
-  const src = challengeSource(source);
+// Popup kết quả: như các chế độ khác, thêm dòng "Challenge · slot 3/6 · Type Roulette · Fire" (lượt bánh xe bị pity giới hạn
+// thì ghi thêm).
+function showChallengeResult(result, { index, source, box, isNew, count }) {
   const done = Boolean(challenge.code) && nextChallengeIndex() === null;
-  const n = pool.length;
-  const odds = source === "minigame" ? `
-    <div class="odds">
-      <span class="odds-label">Odds of pulling ${escHtml(result.pokemon.name)}</span>
-      <span class="odds-value">1 in ${n.toLocaleString("en-US")}</span>
-      <span class="odds-note">
-        <span>1 of ${n.toLocaleString("en-US")} Pokémon in your generations, each with the same chance</span>
-        <span>No rarity tiers · no Shiny · only this exact Pokémon is allowed</span>
-      </span>
-    </div>` : null;
-  const detail = challengeDetailName(source, box.detail);
+  const ps = box.pitySpin;
+  const pityNote = ps ? ` Pity spin: only the ${ps.n} ${CH_WHEEL.noun}${ps.n > 1 ? "s" : ""} with ${PITY_KINDS[ps.due].label} could come up.` : "";
   showResultModal(result, {
-    isNew, count, groups: box.groups, odds,
+    isNew, count, groups: box.groups,
     again: () => runChallengeRoll(),
     canAgain: nextChallengeIndex() !== null && !challengeRollHint(),
     extra: `
       <div class="result-note mode-note" style="--t:var(--amber)">
-        Challenge · slot ${index + 1}/${CHALLENGE_TEAM_SIZE} · <b>${escHtml(src.name)}${detail ? ` · ${escHtml(detail)}` : ""}</b>.
+        Challenge · slot ${index + 1}/${CHALLENGE_TEAM_SIZE} · <b>${escHtml(challengeSourceLabel(source, box.detail))}</b>.${pityNote}
         ${done ? "Your team is complete: copy its code on the Challenge tab." : ""}
       </div>`,
   });
@@ -289,6 +358,7 @@ function openChallengeLegend({ quick = legendQuick } = {}) {
   if (!pend) return;
   legendQuick = quick;
   const e = pend.entry, p = challengePokemon(e), src = challengeSource(e.source);
+  const from = challengeSourceLabel(e.source, e.detail);
   const kind = p.isMythical ? "Mythical" : "Legendary";
   $("ch-legend-title").textContent = `${kind} Pokémon`;
   $("ch-legend-body").innerHTML = `
@@ -297,7 +367,7 @@ function openChallengeLegend({ quick = legendQuick } = {}) {
       <div class="ch-legend-info">
         <div class="ch-legend-name">${escHtml(p.name)}${e.shiny ? ` <span class="shiny-tag">★ Shiny</span>` : ""}</div>
         <div class="type-chips">${typeChips(p.types)}</div>
-        <p class="ch-legend-text">You rolled a ${kind} Pokémon for slot ${pend.index + 1}. Keep it, or reroll this slot from the same source (${escHtml(src.name)}).</p>
+        <p class="ch-legend-text">You rolled a ${kind} Pokémon for slot ${pend.index + 1} (${escHtml(from)}). Keep it, or reroll this slot from the same source (${escHtml(src.name)}).</p>
       </div>
     </div>
     ${findSection(p)}`;
@@ -451,6 +521,7 @@ function initChallenge() {
   });
   $("ch-rule-list").innerHTML = CHALLENGE_RULES_TEXT.map((r) => `<li>${escHtml(r)}</li>`).join("");
   $("ch-quick").innerHTML = ICON_QUICK;
+  $("ch-wheel-col").insertAdjacentHTML("afterbegin", wheelMarkup(CH_WHEEL));
   $("ch-copy").insertAdjacentHTML("afterbegin", ICON_COPY);
 
   $("ch-roll").addEventListener("click", () => runChallengeRoll());
@@ -477,6 +548,7 @@ function initChallenge() {
 // Tab Challenge vừa hiện ra: căn lại dải thẻ; Legendary còn chờ (vd. sau khi tải lại trang) thì hỏi lại.
 function showChallengeView() {
   realignReel($("ch-reel"));
+  renderChallengeWheel();
   renderChallenge();
   if (challenge.pending && !state.spinning && !document.querySelector("dialog[open]")) openChallengeLegend();
 }

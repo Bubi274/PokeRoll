@@ -1,6 +1,6 @@
 // Kiểm tra phần dữ liệu của tab Challenge bằng Node: hòm của từng nguồn (Roulette chỉ bốc nhóm được lên bánh xe, không
 // custom pool), đọc ô của mã TW1 về Pokémon trong app (theo dex + special, không theo tên), ô quay tiếp theo khi lập đội
-// và khi reroll (reroll bắt buộc nguồn cũ của ô).
+// và khi reroll (reroll bắt buộc nguồn cũ của ô; ô Minigame của mã cũ reroll bằng Case), bánh xe ở lượt pity.
 const { loadApp } = require("../sources");
 const { A, ALL } = loadApp({
   data: ["data/data.js", "data/special.js", "data/spawns.js"],
@@ -19,9 +19,10 @@ function rng(seed) {
 }
 
 // 1. Nguồn
-check("Five sources, keyed like the code's mode field", same(A.CHALLENGE_SOURCES.map((s) => s.key), ["case", "type", "biome", "letter", "minigame"]));
-check("Pity counters: Case/Type/Biome/Letter share the modes' counters, Minigame has none",
-  same(A.CHALLENGE_SOURCES.map((s) => s.pity), ["case", "type-roulette", "biome-roulette", "letter-roulette", null]));
+check("Four sources, keyed like the code's mode field (no Minigame)", same(A.CHALLENGE_SOURCES.map((s) => s.key), ["case", "type", "biome", "letter"]));
+check("Pity counters: Case/Type/Biome/Letter share the modes' counters",
+  same(A.CHALLENGE_SOURCES.map((s) => s.pity), ["case", "type-roulette", "biome-roulette", "letter-roulette"]));
+check("Roulette sources have a wheel, Case doesn't", same(A.CHALLENGE_SOURCES.map((s) => Boolean(s.wheel)), [false, true, true, true]));
 
 // 2. Hòm của từng nguồn
 const total = (g) => Object.values(g).reduce((n, l) => n + l.length, 0);
@@ -47,6 +48,24 @@ const letter = A.challengeCase("letter", ALL, rng(2));
 check("Letter: a letter, names starting with it", letter && letter.list.every((p) => A.letterOf(p) === letter.detail));
 check("Empty generations: no case, a clear reason", A.challengeCase("case", []) === null && /Select at least one generation/.test(A.challengeSourceProblem("case", [])));
 const special = ALL.filter((p) => p.group);
+check("Roulette case lists every group on the wheel (keys) and includes the picked one",
+  same(A.challengeCase("type", gen1, rng(4)).keys, wheel) && wheel.includes(A.challengeCase("type", gen1, rng(4)).detail));
+// Lượt pity: chỉ bốc hệ có bậc bảo đảm (Gen 1: chỉ vài hệ có Gold)
+const groupsOf = (k) => A.groupByRarity(A.typePools(gen1)[k]);
+const goldTypes = wheel.filter((k) => !A.pityTiers("gold", groupsOf(k)).fallback);
+let pityOk = true, pitySpin = null;
+const rp = rng(11);
+for (let i = 0; i < 200; i++) {
+  const b = A.challengeCase("type", gen1, rp, { purple: 0, gold: 9 });
+  if (!goldTypes.includes(b.detail)) pityOk = false;
+  pitySpin = b.pitySpin;
+}
+check("Gold pity due: the Type wheel only picks types with Gold", pityOk && goldTypes.length > 0 && goldTypes.length < wheel.length, goldTypes.join(","));
+check("Gold pity due: pitySpin says how many types could come up", same(pitySpin, { due: "gold", n: goldTypes.length }));
+check("Not due: no pitySpin, any type", A.challengeCase("type", gen1, rng(2), { purple: 0, gold: 0 }).pitySpin === null);
+const noGold = ALL.filter((p) => p.gen === 1 && p.rarity !== "gold");
+check("Gold pity due but no type has Gold: wheel unchanged, no pitySpin (fallback)",
+  A.challengeCase("type", noGold, rng(5), { purple: 0, gold: 9 }).pitySpin === null);
 check("Only Special forms: Biome can't roll (no spawn data), with a reason", A.challengeCase("biome", special) === null
   && /No biome can go on the wheel/.test(A.challengeSourceProblem("biome", special)));
 
@@ -70,10 +89,11 @@ const full = Array(6).fill(e).map((x, i) => ({ ...x, source: ["case", "type", "b
 check("Reroll, nothing picked → no roll", A.nextChallengeIndex(c({ team: full, code: "x", reroll: { allow: 1, picked: [], started: false, changes: {} } })) === null);
 const rr = c({ team: full, code: "x", reroll: { allow: 2, picked: [1, 4], started: true, changes: { 1: e } } });
 check("Reroll: next picked slot not yet rerolled", A.nextChallengeIndex(rr) === 4);
-check("Reroll: the slot's own source, not the selected one", A.sourceForIndex(4, rr) === "minigame" && A.sourceForIndex(1, rr) === "type");
+check("Reroll: the slot's own source, not the selected one", A.sourceForIndex(1, rr) === "type");
+check("Reroll of an old Minigame slot: rolled from Case", A.sourceForIndex(4, rr) === "case");
 check("Building: the selected source", A.sourceForIndex(0, c({ source: "letter" })) === "letter");
-check("Source labels", A.challengeSourceLabel("type", "fire") === "Type · Fire" && A.challengeSourceLabel("biome", "forest") === "Biome · Forest"
-  && A.challengeSourceLabel("letter", "A") === "Letter · A" && A.challengeSourceLabel("minigame", null) === "Minigame" && A.challengeSourceLabel("case", null) === "Case");
+check("Source labels", A.challengeSourceLabel("type", "fire") === "Type Roulette · Fire" && A.challengeSourceLabel("biome", "forest") === "Biome Roulette · Forest"
+  && A.challengeSourceLabel("letter", "S") === "Letter Roulette · S" && A.challengeSourceLabel("minigame", null) === "Minigame" && A.challengeSourceLabel("case", null) === "Case");
 
 console.log(fails ? `\n${fails} FAILED` : "\nALL PASSED");
 process.exit(fails ? 1 : 0);

@@ -6,17 +6,25 @@ const STORAGE_KEY_CHALLENGE = "pokeroll.challenge";           // { source, team,
 const STORAGE_KEY_CHALLENGE_GENS = "pokeroll.challenge.gens"; // gen đã chọn ở tab Challenge (riêng với Case và Custom)
 const STORAGE_KEY_CHALLENGE_USED = "pokeroll.challenge.used"; // id các đội đã dùng mã reroll (Start over / Import không xoá)
 
-// Nguồn quay của một ô. key: "mode" ghi trong mã TW1; pity: mã chế độ có bộ đếm pity dùng chung (null = không có pity);
-// history: mã chế độ trong lịch sử thường (nhãn "Type Roulette · Fire"...), dùng để ghi nhãn "Challenge · Type · Fire".
+// Nguồn quay của một ô (các nút chọn nguồn). key: "mode" ghi trong mã TW1; pity: mã chế độ có bộ đếm pity dùng chung;
+// wheel: nguồn Roulette quay bánh xe của chế độ đó trước (TYPE_WHEEL... ở modes/, chỉ lấy màu, nhãn, kiểu chữ).
 const CHALLENGE_SOURCES = [
   { key: "case", name: "Case", desc: "Same tier odds as the Case page", pity: "case" },
-  { key: "type", name: "Type Roulette", desc: "A random type, then a case of that type", pity: "type-roulette" },
-  { key: "biome", name: "Biome Roulette", desc: "A random Cobbleverse biome, then a case of Pokémon that spawn there", pity: "biome-roulette" },
-  { key: "letter", name: "Letter Roulette", desc: "A random letter, then a case of Pokémon whose name starts with it", pity: "letter-roulette" },
-  { key: "minigame", name: "Minigame Pokémon Case", desc: "Every Pokémon the same chance, no tiers, no Shiny. Only that exact Pokémon is allowed", pity: null },
+  { key: "type", name: "Type Roulette", desc: "Spin the type wheel, then open a case of that type", pity: "type-roulette", wheel: () => TYPE_WHEEL },
+  { key: "biome", name: "Biome Roulette", desc: "Spin the Cobbleverse biome wheel, then open a case of Pokémon that spawn there", pity: "biome-roulette", wheel: () => BIOME_WHEEL },
+  { key: "letter", name: "Letter Roulette", desc: "Spin the letter wheel, then open a case of Pokémon whose name starts with it", pity: "letter-roulette", wheel: () => LETTER_WHEEL },
 ];
 
+// Nguồn cũ không còn chọn được nhưng vẫn đọc được từ mã TW1 / dữ liệu đã lưu. rerollAs: nguồn dùng khi reroll ô đó.
+// "minigame" (Minigame Pokémon Case, rule "exact"): mã cũ vẫn hợp lệ, reroll ô đó thì quay bằng Case.
+const LEGACY_CHALLENGE_SOURCES = [
+  { key: "minigame", name: "Minigame Pokémon Case", pity: null, rerollAs: "case" },
+];
+
+// Nguồn quay được (nút chọn nguồn, lượt quay). Nguồn cũ → undefined.
 const challengeSource = (key) => CHALLENGE_SOURCES.find((s) => s.key === key);
+// Mọi nguồn đọc được (kể cả nguồn cũ): để hiện và kiểm tra các ô đã có.
+const knownChallengeSource = (key) => challengeSource(key) || LEGACY_CHALLENGE_SOURCES.find((s) => s.key === key);
 
 const challenge = {
   gens: new Set(),   // gen đã chọn ở tab Challenge
@@ -63,11 +71,12 @@ function challengeDetailName(source, detail) {
   return "";
 }
 
-// Nhãn nguồn của một ô: "Case", "Type · Fire", "Minigame".
+// Nhãn nguồn của một ô (ô đội hình, popup, hộp Legendary): "Case", "Type Roulette · Fire", "Biome Roulette · Forest",
+// "Letter Roulette · S", "Minigame" (ô minigame của mã cũ).
 function challengeSourceLabel(source, detail) {
-  const short = { case: "Case", type: "Type", biome: "Biome", letter: "Letter", minigame: "Minigame" }[source] || "?";
+  const base = { case: "Case", type: "Type Roulette", biome: "Biome Roulette", letter: "Letter Roulette", minigame: "Minigame" }[source] || "?";
   const name = challengeDetailName(source, detail);
-  return name ? `${short} · ${name}` : short;
+  return name ? `${base} · ${name}` : base;
 }
 
 // ----- Hòm của mỗi nguồn -----
@@ -75,15 +84,23 @@ function challengeSourceLabel(source, detail) {
 // Pokémon theo gen của tab Challenge (mọi nguồn đều theo bảng này).
 const challengePool = () => filterByGens(state.pokemon, challenge.gens);
 
-// Hòm của nguồn source trong pool: { groups, detail, list } hoặc null nếu không quay được.
-// Roulette: bốc đều một nhóm trong các nhóm được lên bánh xe (cùng luật với chế độ thật, wheelPools), không dùng custom pool.
-function challengeCase(source, pool, rng = Math.random) {
-  if (source === "case" || source === "minigame") return pool.length ? { groups: groupByRarity(pool), detail: null, list: pool } : null;
+// Các nhóm trên bánh xe của nguồn Roulette source với pool: { keys, all } (all: Pokémon của từng nhóm).
+function challengeWheelGroups(source, pool) {
   const all = source === "type" ? typePools(pool) : source === "biome" ? biomePools(pool) : letterPools(pool);
-  const keys = Object.keys(wheelPools(all).pools);
+  return { keys: Object.keys(wheelPools(all).pools), all };
+}
+
+// Hòm của nguồn source trong pool: { groups, detail, list, keys, pitySpin } hoặc null nếu không quay được.
+// Roulette: bốc đều một nhóm trong các nhóm được lên bánh xe (cùng luật với chế độ thật, wheelPools), không dùng custom pool;
+// keys = mọi nhóm trên bánh xe. counter (bộ đếm pity của nguồn, tuỳ chọn): lượt tới là pity thì chỉ bốc nhóm có bậc bảo đảm
+// (pityWheelKeys); pitySpin = { due, n } khi bánh xe bị giới hạn như vậy, không thì null.
+function challengeCase(source, pool, rng = Math.random, counter = null) {
+  if (source === "case") return pool.length ? { groups: groupByRarity(pool), detail: null, list: pool, keys: [], pitySpin: null } : null;
+  const { keys, all } = challengeWheelGroups(source, pool);
   if (!keys.length) return null;
-  const detail = pickRandom(keys, rng());
-  return { groups: groupByRarity(all[detail]), detail, list: all[detail] };
+  const pity = counter ? pityWheelKeys(keys, (k) => groupByRarity(all[k]), counter) : { keys, limited: false };
+  const detail = pickRandom(pity.keys, rng());
+  return { groups: groupByRarity(all[detail]), detail, list: all[detail], keys, pitySpin: pity.limited ? { due: pity.due, n: pity.keys.length } : null };
 }
 
 // Lý do nguồn không quay được với các gen đang chọn ("" = quay được).
@@ -109,9 +126,12 @@ function nextChallengeIndex(c = challenge) {
   return i < 0 ? null : i;
 }
 
-// Nguồn của ô index: reroll thì bắt buộc nguồn cũ của ô, lập đội thì nguồn đang chọn.
+// Nguồn của ô index: reroll thì bắt buộc nguồn cũ của ô (nguồn cũ không còn quay được, vd. minigame, thì nguồn rerollAs:
+// Case), lập đội thì nguồn đang chọn.
 function sourceForIndex(index, c = challenge) {
-  return c.reroll && c.team[index] ? c.team[index].source : c.source;
+  if (!(c.reroll && c.team[index])) return c.source;
+  const own = c.team[index].source;
+  return challengeSource(own) ? own : knownChallengeSource(own).rerollAs;
 }
 
 // ----- Mã TW1 -----
@@ -172,7 +192,7 @@ function checkRerollCode(text, c = challenge) {
 
 function isValidEntry(e) {
   return Boolean(e && typeof e === "object" && state.byId.get(parseId(e.id))
-    && RARITIES.some((r) => r.key === e.rarity) && typeof e.shiny === "boolean" && challengeSource(e.source));
+    && RARITIES.some((r) => r.key === e.rarity) && typeof e.shiny === "boolean" && knownChallengeSource(e.source));
 }
 
 function cleanEntry(e) {
