@@ -22,7 +22,7 @@ JSON:
 `rule`:
 
 - `"evo"`: rolled from Case, Type, Biome or Letter. That Pokémon and all its later evolutions are allowed.
-- `"exact"`: rolled from the Minigame Pokémon Case. Only that exact species/form is allowed.
+- `"exact"`: rolled from the Minigame Pokémon Case. Only that exact species/form is allowed. PokéRoll no longer offers the Minigame Pokémon Case as a Challenge source, so new codes only use `"evo"`. `"exact"` / `"minigame"` stay valid: older codes still have them, and the mod must keep supporting them.
 
 ## Reroll code (TWR1)
 
@@ -84,7 +84,7 @@ These rules were decided on 2026-11-19. They fill in what the format above leave
 | Type Roulette | `type` | `evo` | the rolled tier | as rolled |
 | Biome Roulette | `biome` | `evo` | the rolled tier | as rolled |
 | Letter Roulette | `letter` | `evo` | the rolled tier | as rolled |
-| Minigame Pokémon Case | `minigame` | `exact` | `minigame` | always `false` |
+| Minigame Pokémon Case (older codes only) | `minigame` | `exact` | `minigame` | always `false` |
 
 PokéRoll only writes `rule`. The mod checks the evolution line.
 
@@ -96,7 +96,7 @@ PokéRoll only writes `rule`. The mod checks the evolution line.
 **Rerolls**
 
 - The player picks which slots to reroll, up to `allow`.
-- A rerolled slot is rolled again from the same `mode` as before.
+- A rerolled slot is rolled again from the same `mode` as before. Exception: a `minigame` slot (from an older code) is rerolled from Case, so the new slot has `"mode":"case"`, `"rule":"evo"` and a normal tier.
 - PokéRoll only accepts a reroll code whose TW1 code is the team it currently has active. A reroll code that was already used is rejected. PokéRoll also remembers which teams it has rerolled, so importing the old TW1 code again doesn't make the reroll code usable again.
 
 ## Test vectors
